@@ -1,0 +1,22 @@
+{
+  "enabledPlugins": {
+    "humanize@humania": true,
+    "document-skills@anthropic-agent-skills": true,
+    "claude-api@anthropic-agent-skills": true
+  },
+  "extraKnownMarketplaces": {
+    "humania": {
+      "source": {
+        "source": "github",
+        "repo": "humania-org/humanize"
+      }
+    },
+    "anthropic-agent-skills": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/skills"
+      }
+    }
+  },
+  "skipDangerousModePermissionPrompt": true
+}
