@@ -15,6 +15,14 @@ Personal Claude Code configuration. Clone this repo and run two commands to full
 
 ## Migration (new machine)
 
+### Step 0 — Install Claude Code
+
+```bash
+npm install -g @anthropic-ai/claude-code
+```
+
+Verify: `claude --version`
+
 ### Step 1 — Clone
 
 ```bash
