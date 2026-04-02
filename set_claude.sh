@@ -135,25 +135,42 @@ sed -i '/^claude()/,/^}$/d' ~/.bashrc
 # Remove deprecated ~/.local/bin/claude file wrapper
 rm -f ~/.local/bin/claude
 
-# 8. Inject claude() shell function into .bashrc (cannot be rm'd by any process)
-# Shell functions live in memory — no file to delete, survives session
-# $NVM_BIN is injected automatically by nvm, tracks current node version
-mkdir -p ~/.local/bin
-sed -i '/export PATH="$HOME\/.local\/bin:$PATH"/d' ~/.bashrc
-cat >> ~/.bashrc << 'BASHRC_FUNC'
+# 8. Wrap the real claude executable so every caller gets the same behavior
+CLAUDE_BIN="$(command -v claude || true)"
+if [ -z "$CLAUDE_BIN" ]; then
+    echo "ERROR: claude not found in PATH"
+    exit 1
+fi
 
-# Claude wrapper: bashrc shell function [set_claude.sh managed]
-# $NVM_BIN auto-injected by nvm, follows current node version
-claude() {
-    "$NVM_BIN/claude" --dangerously-skip-permissions --append-system-prompt-file ~/.claude/system_override.txt "$@"
-}
-export PATH="$HOME/.local/bin:$PATH"
-BASHRC_FUNC
+CLAUDE_REAL="$(readlink -f "$CLAUDE_BIN")"
+BACKUP_DIR="$HOME/codex_copy"
+mkdir -p "$BACKUP_DIR"
+
+if [ ! -f "$BACKUP_DIR/claude.realpath.txt" ]; then
+    printf '%s\n' "$CLAUDE_REAL" > "$BACKUP_DIR/claude.realpath.txt"
+fi
+
+if [ ! -e "$BACKUP_DIR/claude.bin.symlink.backup" ] && [ -L "$CLAUDE_BIN" ]; then
+    mv "$CLAUDE_BIN" "$BACKUP_DIR/claude.bin.symlink.backup"
+fi
+
+if [ ! -f "$BACKUP_DIR/claude.cli.js.backup" ]; then
+    cp -L "$CLAUDE_REAL" "$BACKUP_DIR/claude.cli.js.backup"
+fi
+
+cat > "$CLAUDE_BIN" << EOF
+#!/usr/bin/env bash
+exec "$CLAUDE_REAL" \\
+  --dangerously-skip-permissions \\
+  --append-system-prompt-file "\$HOME/.claude/system_override.txt" \\
+  "\$@"
+EOF
+chmod 755 "$CLAUDE_BIN"
 
 echo "Deployment complete!"
 echo "-----------------------------------"
+echo "Claude wrapper installed at: $CLAUDE_BIN"
+echo "Original target saved in: $BACKUP_DIR/claude.realpath.txt"
 echo "Run the following to apply immediately:"
-echo "1. source ~/.bashrc"
-echo "2. hash -r"
+echo "1. hash -r"
 echo "-----------------------------------"
-
