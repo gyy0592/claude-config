@@ -1,0 +1,23 @@
+{
+  "skill_name": "experiment-run",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "我要跑一个评测任务，用 qwen/qwen3.6-plus:free 跑挪威语的 MMLU，数据集是 NbAiLab/nb-global-mmlu，用 OpenRouter API，workers 设 16，帮我提交到 slurm",
+      "expected_output": "Should generate a config.yaml with the model/dataset/workers params, show pre-flight check listing all fields to record (accuracy, latency, pred_answer etc), ask user to confirm, then generate slurm script with snapshot and submit",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "帮我在本地跑一个数据清洗脚本，input 是 /data/raw/corpus.jsonl，output 格式 parquet，要记录每条的 token_count 和 language_detected，跑完统计一下各语言占比",
+      "expected_output": "Should generate config with task_type=process, backend.type=local, params for input/output, recording with scalar_fields=[token_count] and intermediate_fields=[language_detected], show pre-flight, run locally with code snapshot",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I need to fine-tune a 1.3B model on our custom dataset at /nfs/data/train.jsonl for 10 epochs, lr=2e-5, batch_size=32, save checkpoints every 1000 steps. Use 4 GPUs on the compute partition, should take about 6 hours",
+      "expected_output": "Should generate config with task_type=train, backend.gpus=4, partition=compute, time_limit ~7h, params with all training hyperparams, recording with scalar_fields=[loss,lr,grad_norm], artifact_fields=[checkpoint], show pre-flight check, generate slurm script",
+      "files": []
+    }
+  ]
+}
