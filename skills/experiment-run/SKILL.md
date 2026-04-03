@@ -11,7 +11,23 @@ The core idea: every run should be a self-contained capsule in `exp/` that a str
 
 ---
 
-## Step 1 — Build or Load the Config
+## Step 1 — Determine Execution Backend
+
+Before building the config, figure out how the task will run. Not every machine has a job scheduler.
+
+**If the user explicitly said** "slurm", "sbatch", "submit job", or mentioned a partition name → use Slurm.
+
+**If the user explicitly said** "run locally", "just run it", or is clearly on a laptop/workstation → use local.
+
+**If neither**: check whether a scheduler is available:
+```bash
+which sbatch 2>/dev/null && echo "slurm available" || echo "no scheduler"
+```
+Then ask the user: "This machine has Slurm available. Do you want to submit as a Slurm job, or run locally?" (or if no scheduler: "No job scheduler detected — I'll run this locally.")
+
+Other schedulers (PBS, LSF, etc.) follow the same pattern as Slurm — generate a job script, submit with the scheduler's submit command. Adapt the template accordingly.
+
+## Step 2 — Build or Load the Config
 
 Every run needs a config file (YAML or JSON). If the user doesn't provide one, generate a template from their request and ask them to confirm.
 
@@ -27,8 +43,8 @@ run:
   entrypoint: ""         # The command to execute, e.g. "python -m my_module" or "bash run.sh"
 
 backend:
-  type: "slurm"          # slurm / local
-  partition: "short"     # Slurm partition (ignored if local)
+  type: ""               # slurm / local / pbs / lsf (determine in Step 1)
+  partition: ""          # Scheduler partition/queue (ignored if local)
   time_limit: "02:00:00"
   cpus: 4
   gpus: 0               # 0 = no GPU needed
@@ -64,7 +80,7 @@ The reason every parameter lives in the config (not hardcoded in scripts) is rep
 
 ---
 
-## Step 2 — Pre-flight Confirmation
+## Step 3 — Pre-flight Confirmation
 
 Before executing anything, show the user a summary of what will happen and what will be recorded. This catches mistakes early and ensures nothing important is missed.
 
@@ -111,7 +127,7 @@ Do not proceed until the user confirms.
 
 ---
 
-## Step 3 — Set Up the Output Directory
+## Step 4 — Set Up the Output Directory
 
 Create the output directory with this structure:
 
@@ -154,7 +170,7 @@ This ensures the exact code that produced the results is always available, even 
 
 ---
 
-## Step 4 — Generate and Submit the Job
+## Step 5 — Generate and Submit the Job
 
 ### Slurm mode
 
@@ -213,7 +229,7 @@ Same setup (snapshot, config copy, manifest), but run directly in the shell. Use
 
 ---
 
-## Step 5 — Runtime Recording Rules
+## Step 6 — Runtime Recording Rules
 
 These rules apply to the task code itself. When writing or modifying the entrypoint code, ensure it follows these patterns:
 
@@ -248,7 +264,7 @@ But be practical: tensors and large arrays should be summarized into scalar stat
 
 ---
 
-## Step 6 — Post-run Checks
+## Step 7 — Post-run Checks
 
 After the task finishes, validate the outputs and write `run_checks.json`:
 
