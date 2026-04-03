@@ -1,37 +1,33 @@
 ---
 name: claude-config-sync
-description: "Manage the user's claude-config repo (github.com/gyy0592/claude-config.git). Use ONLY when the user explicitly asks to sync, update, push, or check their claude config — e.g. '/claude-config-sync', '同步claude配置', 'push我的config', '更新claude-config'. Never trigger automatically."
+description: "Manage the user's claude-config git repo — sync, commit, push skill changes and settings. Use ONLY when the user explicitly asks to sync, update, push, or check their claude config — e.g. '/claude-config-sync', 'sync my config', 'push config'. Never trigger automatically."
 ---
 
 # Claude Config Sync
 
-The user maintains a personal Claude Code configuration repo that makes it easy to restore their full Claude setup on any new machine.
+The user maintains a personal Claude Code configuration repo for portable setup across machines.
 
-## Repo Location
+## How to Find the Repo
 
+The repo is a git clone with remote matching `claude-config`. To locate it:
+
+```bash
+# Check common locations
+for d in ~/claude-config ~/.claude-config; do
+  [ -d "$d/.git" ] && echo "$d" && break
+done
 ```
-/home/barry/claude-config
-```
 
-Remote: `git@github.com:gyy0592/claude-config.git` (branch: main)
+If not found, ask the user for the path.
 
-## What's In It
+## Repo Structure
 
-| Path | What |
-|------|------|
-| `set_claude.sh` | Setup script — writes CLAUDE.md, rule files, system_override.txt, patches .bashrc |
-| `settings.json` | Plugin subscriptions (auto-downloads ~38 skills on launch) |
+| Path | Purpose |
+|------|---------|
+| `set_claude.sh` | Setup script — writes CLAUDE.md, rule files, patches shell RC |
+| `settings.json` | Plugin subscriptions |
 | `skills/` | Custom global skills (symlinked to `~/.claude/skills/`) |
 | `README.md` | Migration guide |
-
-## Current Custom Skills
-
-| Skill | Directory | Trigger |
-|-------|-----------|---------|
-| gen-report | `skills/gen-report/` | `/gen-report` |
-| gen-report-detailed | `skills/gen-report-detailed/` | `/gen-report-detailed` |
-| experiment-run | `skills/experiment-run/` | `/experiment-run`, 跑实验, 提交任务 |
-| claude-config-sync | `skills/claude-config-sync/` | `/claude-config-sync` |
 
 ## How to Update
 
@@ -40,7 +36,7 @@ When the user asks to sync or push changes:
 ### 1. Check what changed
 
 ```bash
-cd /home/barry/claude-config && git status && git diff
+cd <repo-path> && git status && git diff
 ```
 
 ### 2. Stage and commit
@@ -53,35 +49,27 @@ Types:
 - `sync` — pull latest from ~/.claude/ into repo
 - `fix` — bug fix
 
-Examples:
-```
-add: experiment-run skill
-update: gen-report skill with new template
-sync: settings.json and rules from ~/.claude
-fix: set_claude.sh bashrc path
-```
-
 ### 3. Push
 
 ```bash
-cd /home/barry/claude-config && git add -A && git commit -m "type: description" && git push origin main
+cd <repo-path> && git add -A && git commit -m "type: description" && git push origin main
 ```
 
 ### 4. If adding a new skill
 
-Also symlink it to the global skills directory:
+Symlink it to the global skills directory:
 
 ```bash
-ln -sf /home/barry/claude-config/skills/<skill-name> /home/barry/.claude/skills/<skill-name>
+ln -sf <repo-path>/skills/<skill-name> ~/.claude/skills/<skill-name>
 ```
 
-And update the README.md table if needed.
+Update README.md skill table if needed.
 
 ## Sync from Live Config
 
-If the user wants to pull their current live config back into the repo:
+Pull current live config back into repo:
 
 ```bash
-cp ~/.claude/settings.json /home/barry/claude-config/settings.json
+cp ~/.claude/settings.json <repo-path>/settings.json
 # Don't copy plugin-managed skills, only custom ones
 ```

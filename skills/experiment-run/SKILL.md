@@ -202,9 +202,9 @@ cd "\$PROJECT_DIR"
 {entrypoint}
 ```
 
-If the environment requires `ssh user@host` before sbatch, use absolute paths:
+If the environment requires SSH to a scheduler node before sbatch, use absolute paths:
 ```bash
-ssh user@127.0.0.1 'sbatch /absolute/path/to/job.slurm'
+ssh <scheduler-host> 'sbatch /absolute/path/to/job.slurm'
 ```
 
 ### Local mode
