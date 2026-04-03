@@ -68,6 +68,8 @@ cp -r skills/* ~/.claude/skills/
 |---|---|
 | `gen-report` | `/gen-report` |
 | `gen-report-detailed` | `/gen-report-detailed` |
+| `experiment-run` | `/experiment-run`, 跑实验, 提交任务 |
+| `claude-config-sync` | `/claude-config-sync`, 同步配置 |
 
 ---
 
