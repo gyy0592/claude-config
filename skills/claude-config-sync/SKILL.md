@@ -158,3 +158,16 @@ cp ~/.claude/settings.json <repo-path>/settings.json
 # Only copy custom skills (not plugin-managed ones)
 # Plugin skills live under ~/.claude/skills/<plugin-name>:<skill-name> — skip these
 ```
+
+---
+
+## Self-Improvement (on friction during sync)
+
+This skill should evolve as the user's workflow evolves. When you encounter a problem while executing any step above — a command that fails, a missing path, an edge case the instructions don't cover, or a step that turns out to be unnecessary — do the following:
+
+1. **Fix the immediate problem** to complete the sync.
+2. **Ask the user**: "I hit [brief description of issue]. Want me to update this skill so it handles this automatically next time? If so, how?"
+3. **If the user agrees**, apply the minimum edit to this SKILL.md that prevents the same issue in the future. Prefer adding a single line or clause over restructuring existing steps. The edit goes into the repo copy (since `~/.claude/skills/claude-config-sync` is a symlink, the change is live immediately).
+4. **Include the self-update in the same commit** as the rest of the sync — no separate commit needed.
+
+What counts as "friction": command errors, unexpected file states, security scan false positives on known-safe patterns, missing steps the user had to manually intervene on. What does NOT count: normal user confirmation prompts, expected "no changes to sync" results.

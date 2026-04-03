@@ -65,16 +65,21 @@ Restart Claude Code. The following plugins auto-download (~38 skills total):
 
 ```bash
 mkdir -p ~/.claude/skills
-cp -r skills/* ~/.claude/skills/
+# Symlink each skill so edits in the repo are reflected immediately
+for s in skills/*/; do
+  name=$(basename "$s")
+  ln -sfn "$(pwd)/skills/$name" ~/.claude/skills/"$name"
+done
 ```
 
 | Skill | Trigger |
 |---|---|
-| `gen-draft` | `/gen-draft`, 写draft, 生成draft |
-| `gen-report` | `/gen-report` |
-| `gen-report-detailed` | `/gen-report-detailed` |
-| `experiment-run` | `/experiment-run`, 跑实验, 提交任务 |
-| `claude-config-sync` | `/claude-config-sync`, 同步配置 |
+| `gen-draft` | `/gen-draft`, "write draft", "generate draft" |
+| `gen-report` | `/gen-report`, "write report", "summarize experiment" |
+| `gen-report-detailed` | `/gen-report-detailed`, "detailed report", "full report" |
+| `experiment-run` | `/experiment-run`, "run experiment", "submit job" |
+| `claude-config-sync` | `/claude-config-sync`, "sync config", "push config" |
+| `this-cluster` | Auto-consulted when writing Slurm scripts, choosing Python envs, or setting GPU flags |
 
 ---
 
