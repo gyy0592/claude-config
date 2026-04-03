@@ -135,18 +135,47 @@ sed -i '/^claude()/,/^}$/d' ~/.bashrc
 # Remove deprecated ~/.local/bin/claude file wrapper
 rm -f ~/.local/bin/claude
 
-# 8. Wrap the real claude executable so every caller gets the same behavior
+# 8. Wrap the real claude executable so every caller gets the same behavior.
+# Keep it idempotent: rerunning must not point wrapper to itself.
 CLAUDE_BIN="$(command -v claude || true)"
 if [ -z "$CLAUDE_BIN" ]; then
     echo "ERROR: claude not found in PATH"
     exit 1
 fi
 
-CLAUDE_REAL="$(readlink -f "$CLAUDE_BIN")"
 BACKUP_DIR="$HOME/codex_copy"
 mkdir -p "$BACKUP_DIR"
 
-if [ ! -f "$BACKUP_DIR/claude.realpath.txt" ]; then
+CURRENT_REAL="$(readlink -f "$CLAUDE_BIN")"
+SAVED_REAL=""
+if [ -f "$BACKUP_DIR/claude.realpath.txt" ]; then
+    SAVED_REAL="$(head -n 1 "$BACKUP_DIR/claude.realpath.txt")"
+fi
+if [ -z "$SAVED_REAL" ] || [ ! -f "$SAVED_REAL" ]; then
+    if [ -e "$BACKUP_DIR/claude.bin.symlink.backup" ]; then
+        SAVED_REAL="$(readlink -f "$BACKUP_DIR/claude.bin.symlink.backup")"
+    fi
+fi
+if [ -z "$SAVED_REAL" ] || [ ! -f "$SAVED_REAL" ]; then
+    CLAUDE_PREFIX="$(cd "$(dirname "$CLAUDE_BIN")/.." && pwd)"
+    CANDIDATE_REAL="$CLAUDE_PREFIX/lib/node_modules/@anthropic-ai/claude-code/cli.js"
+    if [ -f "$CANDIDATE_REAL" ]; then
+        SAVED_REAL="$CANDIDATE_REAL"
+    fi
+fi
+
+if [ "$CURRENT_REAL" = "$CLAUDE_BIN" ]; then
+    if [ -n "$SAVED_REAL" ] && [ -f "$SAVED_REAL" ]; then
+        CLAUDE_REAL="$SAVED_REAL"
+    else
+        echo "ERROR: claude wrapper points to itself and no valid backup target is available"
+        exit 1
+    fi
+else
+    CLAUDE_REAL="$CURRENT_REAL"
+fi
+
+if [ ! -f "$BACKUP_DIR/claude.realpath.txt" ] || [ "$(head -n 1 "$BACKUP_DIR/claude.realpath.txt" 2>/dev/null)" != "$CLAUDE_REAL" ]; then
     printf '%s\n' "$CLAUDE_REAL" > "$BACKUP_DIR/claude.realpath.txt"
 fi
 

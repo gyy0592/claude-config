@@ -20,6 +20,7 @@ Before writing anything, understand the task. Ask the user if anything is unclea
 - What is the goal? (one sentence)
 - What are the inputs? (data sources, formats, APIs — described abstractly)
 - What are the expected outputs? (deliverables, not file names)
+- What should be observable during execution? (metrics to track, intermediate variables to monitor, artifacts to save — users often forget this; ask explicitly)
 - What constraints exist? (performance, compatibility, fairness, cost)
 - What is already known? (prior experiments, verified facts, failed approaches)
 - What decisions need the user to weigh in? (trade-offs with no obvious answer)
@@ -52,7 +53,31 @@ Output to `draft.md` in the project root. Use this structure:
 {Verified conclusions from prior work or testing. Only results, not the process that produced them. Use tables for structured comparisons.}
 
 ## Execution Order
-{Numbered high-level steps. Each step is one sentence describing WHAT to do, not HOW.}
+{Dependency-aware ordered steps. MANDATORY format — every step MUST follow this pattern:
+
+  N. [independent] or [depends: N, M] — one-sentence description
+
+Formatting rules (violations = self-check failure):
+1. EVERY step has exactly one tag: [independent] or [depends: step N, M]. No exceptions. A step without a tag is a bug.
+2. Parallel group: consecutive [independent] steps are visually grouped under a "── parallel ──" marker. Example:
+   ── parallel ──
+   1. [independent] Verify dataset exists and is readable
+   2. [independent] Test API connectivity (1 request per provider)
+   ── end parallel ──
+   3. [depends: 1, 2] Run full evaluation
+3. Prerequisite-first: the FIRST group must be validation/setup (data? network? env? GPU?). Main logic NEVER appears before all prerequisites pass.
+4. When unsure about ordering, flag it in Decision Points for user confirmation.}
+
+## Observable Outputs
+{What the user needs to see DURING and AFTER execution. This section feeds directly into `/experiment-run`'s `recording` config (scalar_fields, intermediate_fields, artifact_fields).
+
+For each category below, either list concrete items OR flag "⚠ not specified — confirm with user":
+- Scalar metrics tracked over time: (e.g., loss, accuracy, throughput)
+- Per-item details recorded: (e.g., per-question correctness, latency)
+- Intermediate variables to monitor: (e.g., gradient norm, memory usage)
+- Artifacts to save: (e.g., checkpoints, generated samples)
+
+If the user specified SOME outputs but not others, list what they specified and flag the rest as "⚠ not specified". Never assume defaults — ask.}
 
 ## Decision Points
 {Table: questions that need user input, with options and trade-offs.}
@@ -133,6 +158,18 @@ Every draft must answer: what goes in, what comes out. Describe by **content and
 - Bad: "output `detail.csv` with columns: question_id, gold_answer, pred_answer"
 - Good: "per-item results showing model answer, correct answer, and match status"
 
+### Check 4: Execution Order is Prerequisite-First (HARD FAIL if violated)
+
+Scan every line in Execution Order. If ANY of these are true, the draft is invalid — fix before showing to user:
+- A step is missing its [independent] or [depends: N] tag
+- A main-logic step appears before all validation/setup steps
+- Two [independent] steps are NOT inside a "── parallel ──" group
+- A step uses output from a previous step without declaring [depends: N]
+
+### Check 5: Observable Outputs Are Explicit
+
+Verify the Observable Outputs section is not empty or vague. If the user didn't specify what to track, the draft must contain an explicit note: "⚠ User has not specified runtime metrics to track — must confirm before implementation." This feeds directly into `/experiment-run`'s `recording` config.
+
 ## Example
 
 **User says**: "I want to benchmark a few free models on multilingual MMLU"
@@ -145,6 +182,7 @@ Compare multiple free models on multilingual MMLU accuracy across two low-resour
 ## Constraints
 1. All models use identical prompt and parameters for fair comparison
 2. Results must be written to disk incrementally, supporting crash recovery
+3. Independent sub-tasks (e.g., different models) must run in parallel
 
 ## Environment & Resources
 - Provider A: <endpoint URL>, Key: <key from user>
@@ -157,6 +195,20 @@ Compare multiple free models on multilingual MMLU accuracy across two low-resour
 |-------|-------------|----------|---------|
 | Model X | OK | None | Can run |
 | Model Y | OK | Forced, content=null | Skip |
+
+## Execution Order
+── parallel ──
+1. [independent] Download and verify datasets for all languages locally
+2. [independent] Test API connectivity for all providers (1 request each)
+── end parallel ──
+3. [depends: 1, 2] Run full evaluation across all models × languages
+4. [depends: 3] Generate summary report
+
+## Observable Outputs
+- Scalar metrics over time: per-model accuracy, request success rate, average latency
+- Per-item details: question ID, model answer, correct answer, match status, response latency, retry count
+- Monitoring: API error rate, timeout count — to distinguish infra errors from model errors
+- Artifacts: raw API responses (for debugging parse failures)
 ```
 
 **Bad draft excerpt** (implementation decisions mixed in):
@@ -167,4 +219,12 @@ Compare multiple free models on multilingual MMLU accuracy across two low-resour
 ## Code changes
 - modify config loader to support multi-provider  <- this is implementation planning
 - add new endpoint class for Provider B            <- same
+```
+
+**Bad Execution Order** (no tags, no prerequisite-first, no parallel grouping):
+```
+## Execution Order
+1. Write the evaluation script                      <- no tag, no validation first
+2. Run all models                                   <- assumes data + API are ready
+3. Download datasets if needed                      <- should be step 1, not step 3
 ```

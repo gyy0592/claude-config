@@ -8,8 +8,12 @@ Personal Claude Code configuration. Clone this repo and run two commands to full
 |---|---|
 | `set_claude.sh` | Writes CLAUDE.md, all rule files, system_override.txt, and patches `.bashrc` with the `claude()` wrapper |
 | `settings.json` | Plugin subscriptions — Claude Code auto-downloads all 38 skills on next launch |
+| `skills/gen-draft/` | Custom global skill: generate high-level draft with dependency-aware execution order and observable outputs |
 | `skills/gen-report/` | Custom global skill: concise experiment report |
 | `skills/gen-report-detailed/` | Custom global skill: full 13-section detailed report |
+| `skills/experiment-run/` | Custom global skill: config-driven experiment submission with structured output and recording |
+| `skills/claude-config-sync/` | Custom global skill: sync this repo |
+| `ten_commandments_for_ai_coding.md` | Methodology guide for AI-assisted coding (see [Credits](#credits)) |
 
 ---
 
@@ -66,6 +70,7 @@ cp -r skills/* ~/.claude/skills/
 
 | Skill | Trigger |
 |---|---|
+| `gen-draft` | `/gen-draft`, 写draft, 生成draft |
 | `gen-report` | `/gen-report` |
 | `gen-report-detailed` | `/gen-report-detailed` |
 | `experiment-run` | `/experiment-run`, 跑实验, 提交任务 |
@@ -82,3 +87,9 @@ cp -r ~/.claude/skills/gen-report-detailed skills/gen-report-detailed
 cp ~/set_claude.sh set_claude.sh
 git add -A && git commit -m "sync" && git push
 ```
+
+---
+
+## Credits
+
+**Ten Commandments for AI-Assisted Coding** (`ten_commandments_for_ai_coding.md`) is adapted from the methodology of [Humanize](https://github.com/humania-org/humanize) by Dr. Sihao Liu, with personal modifications and additions. The original framework provides a structured approach to AI-assisted software development — the version in this repo incorporates project-specific extensions (e.g., Prerequisite-First execution ordering, observable output tracking).

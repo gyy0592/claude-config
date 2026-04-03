@@ -1,5 +1,6 @@
 ---
 name: claude-config-sync
+user_invocable: true
 description: "Manage the user's claude-config git repo — sync, commit, push skill changes and settings. Use ONLY when the user explicitly asks to sync, update, push, or check their claude config — e.g. '/claude-config-sync', 'sync my config', 'push config'. Never trigger automatically."
 ---
 
