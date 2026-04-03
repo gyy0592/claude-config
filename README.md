@@ -47,13 +47,21 @@ This writes:
 - `~/.claude/system_override.txt` — system prompt injected on every `claude` call
 - Patches `~/.bashrc` with `claude()` wrapper that auto-injects the system prompt
 
-### Step 3 — Install plugin subscriptions
+### Step 3 — Install plugins
+
+Copying `settings.json` alone does NOT install plugins — it only registers marketplace sources. You must explicitly install each plugin:
 
 ```bash
+# First, copy settings to register marketplace sources
 cp settings.json ~/.claude/settings.json
+
+# Then install each plugin (inside Claude Code, run these as slash commands):
+/plugin install humanize@humania
+/plugin install document-skills@anthropic-agent-skills
+/plugin install claude-api@anthropic-agent-skills
 ```
 
-Restart Claude Code. The following plugins auto-download (~38 skills total):
+Alternatively, use the interactive `/plugin` menu → **Discover** tab to browse and install.
 
 | Plugin | Skills |
 |---|---|
