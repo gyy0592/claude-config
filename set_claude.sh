@@ -129,77 +129,61 @@ EOF
 # 7. Clean up old alias/function/wrapper entries (prevent conflicts)
 sed -i '/alias claude=/d' ~/.bashrc
 sed -i '/Claude Code System Override Alias/d' ~/.bashrc
-# Remove old claude() function block (from definition to closing })
 sed -i '/^# Claude wrapper:/,/^}$/d' ~/.bashrc
 sed -i '/^claude()/,/^}$/d' ~/.bashrc
-# Remove deprecated ~/.local/bin/claude file wrapper
-rm -f ~/.local/bin/claude
 
-# 8. Wrap the real claude executable so every caller gets the same behavior.
-# Keep it idempotent: rerunning must not point wrapper to itself.
-CLAUDE_BIN="$(command -v claude || true)"
-if [ -z "$CLAUDE_BIN" ]; then
-    echo "ERROR: claude not found in PATH"
+# 8. Install wrapper at ~/.local/bin/claude (PATH-priority approach).
+#    npm install -g / auto-update only touches nvm's bin dir, NEVER ~/.local/bin.
+#    This makes the wrapper immune to any claude self-update.
+mkdir -p ~/.local/bin
+
+# Restore nvm's original symlink if a previous run replaced it with a script
+NVM_CLAUDE="$(command -v claude 2>/dev/null || true)"
+if [ -n "$NVM_CLAUDE" ] && [ -f "$NVM_CLAUDE" ] && ! [ -L "$NVM_CLAUDE" ] && head -1 "$NVM_CLAUDE" 2>/dev/null | grep -q "bash"; then
+    echo "[FIX] Restoring nvm claude symlink (was replaced by old wrapper)..."
+    REAL_JS="$(grep -oP 'exec "\K[^"]+' "$NVM_CLAUDE" 2>/dev/null || true)"
+    if [ -n "$REAL_JS" ] && [ -f "$REAL_JS" ]; then
+        rm -f "$NVM_CLAUDE"
+        ln -s "$REAL_JS" "$NVM_CLAUDE"
+        echo "[OK] Restored: $NVM_CLAUDE -> $REAL_JS"
+    fi
+fi
+
+cat > ~/.local/bin/claude << 'WRAPPER'
+#!/usr/bin/env bash
+# Claude wrapper — injects --dangerously-skip-permissions + system_override.
+# Lives in ~/.local/bin/ (PATH priority > nvm). npm will never overwrite this.
+
+SELF="$(realpath "$0")"
+IFS=: read -ra DIRS <<< "$PATH"
+REAL=""
+for dir in "${DIRS[@]}"; do
+    candidate="$dir/claude"
+    [ -x "$candidate" ] || continue
+    resolved="$(realpath "$candidate" 2>/dev/null)"
+    if [ "$resolved" != "$SELF" ]; then
+        REAL="$resolved"
+        break
+    fi
+done
+
+if [ -z "$REAL" ]; then
+    echo "ERROR: cannot find real claude binary in PATH" >&2
     exit 1
 fi
 
-BACKUP_DIR="$HOME/codex_copy"
-mkdir -p "$BACKUP_DIR"
+exec "$REAL" \
+  --dangerously-skip-permissions \
+  --append-system-prompt-file "$HOME/.claude/system_override.txt" \
+  "$@"
+WRAPPER
+chmod 755 ~/.local/bin/claude
 
-CURRENT_REAL="$(readlink -f "$CLAUDE_BIN")"
-SAVED_REAL=""
-if [ -f "$BACKUP_DIR/claude.realpath.txt" ]; then
-    SAVED_REAL="$(head -n 1 "$BACKUP_DIR/claude.realpath.txt")"
-fi
-if [ -z "$SAVED_REAL" ] || [ ! -f "$SAVED_REAL" ]; then
-    if [ -e "$BACKUP_DIR/claude.bin.symlink.backup" ]; then
-        SAVED_REAL="$(readlink -f "$BACKUP_DIR/claude.bin.symlink.backup")"
-    fi
-fi
-if [ -z "$SAVED_REAL" ] || [ ! -f "$SAVED_REAL" ]; then
-    CLAUDE_PREFIX="$(cd "$(dirname "$CLAUDE_BIN")/.." && pwd)"
-    CANDIDATE_REAL="$CLAUDE_PREFIX/lib/node_modules/@anthropic-ai/claude-code/cli.js"
-    if [ -f "$CANDIDATE_REAL" ]; then
-        SAVED_REAL="$CANDIDATE_REAL"
-    fi
-fi
-
-if [ "$CURRENT_REAL" = "$CLAUDE_BIN" ]; then
-    if [ -n "$SAVED_REAL" ] && [ -f "$SAVED_REAL" ]; then
-        CLAUDE_REAL="$SAVED_REAL"
-    else
-        echo "ERROR: claude wrapper points to itself and no valid backup target is available"
-        exit 1
-    fi
-else
-    CLAUDE_REAL="$CURRENT_REAL"
-fi
-
-if [ ! -f "$BACKUP_DIR/claude.realpath.txt" ] || [ "$(head -n 1 "$BACKUP_DIR/claude.realpath.txt" 2>/dev/null)" != "$CLAUDE_REAL" ]; then
-    printf '%s\n' "$CLAUDE_REAL" > "$BACKUP_DIR/claude.realpath.txt"
-fi
-
-if [ ! -e "$BACKUP_DIR/claude.bin.symlink.backup" ] && [ -L "$CLAUDE_BIN" ]; then
-    mv "$CLAUDE_BIN" "$BACKUP_DIR/claude.bin.symlink.backup"
-fi
-
-if [ ! -f "$BACKUP_DIR/claude.cli.js.backup" ]; then
-    cp -L "$CLAUDE_REAL" "$BACKUP_DIR/claude.cli.js.backup"
-fi
-
-cat > "$CLAUDE_BIN" << EOF
-#!/usr/bin/env bash
-exec "$CLAUDE_REAL" \\
-  --dangerously-skip-permissions \\
-  --append-system-prompt-file "\$HOME/.claude/system_override.txt" \\
-  "\$@"
-EOF
-chmod 755 "$CLAUDE_BIN"
+# Refresh shell hash so current session picks up the wrapper
+hash -r 2>/dev/null || true
 
 echo "Deployment complete!"
 echo "-----------------------------------"
-echo "Claude wrapper installed at: $CLAUDE_BIN"
-echo "Original target saved in: $BACKUP_DIR/claude.realpath.txt"
-echo "Run the following to apply immediately:"
-echo "1. hash -r"
+echo "Wrapper installed at: ~/.local/bin/claude"
+echo "npm install -g / auto-update will NOT affect it."
 echo "-----------------------------------"
