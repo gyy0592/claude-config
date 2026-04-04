@@ -1,6 +1,6 @@
 ---
 name: experiment-run
-description: "Standards for writing experiment code and scripts — config-driven parameters, structured output directories, code snapshots, real-time CSV recording, and pre-flight confirmation. MUST read this skill when: (1) writing or modifying any script that runs training, evaluation, inference, or data processing; (2) designing output directory structure or recording config for an experiment; (3) creating Slurm launcher scripts; (4) the user asks to run/submit/launch an experiment (sbatch, submit, 跑实验, 提交任务, 起任务, 跑一下). The code itself must satisfy these requirements — read BEFORE writing, not just before submitting."
+description: "Standards for writing experiment code and scripts — config-driven parameters, structured output directories, code snapshots, real-time CSV recording, and pre-flight confirmation. MUST read this skill when: (1) writing or modifying any script that runs training, evaluation, inference, or data processing; (2) designing output directory structure or recording config for an experiment; (3) creating Slurm launcher scripts; (4) the user asks to run/submit/launch an experiment. Triggers on: sbatch, submit, train, eval, inference, experiment, 跑实验, 提交任务, 起任务, 跑一下, 写训练脚本, 写脚本, 训练代码, 新实验, 实验代码, 输出目录, 记录metrics, exp目录, 创建训练脚本, scalars.csv, events.jsonl, run_manifest, field_registry, 实验记录, 跑训练, 跑一个实验, 写一个训练, 需要输出的脚本, 有输出的项目. The code itself must satisfy these requirements — read BEFORE writing, not just before submitting."
 ---
 
 # Experiment Run Skill
