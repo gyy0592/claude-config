@@ -1,6 +1,6 @@
 ---
 name: experiment-run
-description: "Manage experiment submission with config-driven parameters, structured output directories, code snapshots, real-time CSV recording, and pre-flight confirmation. Use this skill whenever the user wants to run an experiment, submit a job, 跑实验, 提交任务, launch a training/eval/processing task, or set up a reproducible run — even if they don't explicitly say 'experiment'. Also trigger when the user asks to sbatch, submit slurm, 起任务, or 跑一下."
+description: "Standards for writing experiment code and scripts — config-driven parameters, structured output directories, code snapshots, real-time CSV recording, and pre-flight confirmation. MUST read this skill when: (1) writing or modifying any script that runs training, evaluation, inference, or data processing; (2) designing output directory structure or recording config for an experiment; (3) creating Slurm launcher scripts; (4) the user asks to run/submit/launch an experiment (sbatch, submit, 跑实验, 提交任务, 起任务, 跑一下). The code itself must satisfy these requirements — read BEFORE writing, not just before submitting."
 ---
 
 # Experiment Run Skill

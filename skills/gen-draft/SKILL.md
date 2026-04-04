@@ -22,6 +22,8 @@ Before writing anything, understand the task. Ask the user if anything is unclea
 - What are the expected outputs? (deliverables, not file names)
 - What should be observable during execution? (metrics to track, intermediate variables to monitor, artifacts to save — users often forget this; ask explicitly)
 - What constraints exist? (performance, compatibility, fairness, cost)
+- Are there skills or reference documents that the AI must read at specific trigger points? (e.g., "read skill X before writing any experiment script", "read skill Y before submitting any job"). If yes, capture each as: trigger condition → skill to read → why.
+- Are there destructive or irreversible operations that require user confirmation before executing? (e.g., deleting data directories, overwriting results, force-pushing). If yes, list them explicitly.
 - What is already known? (prior experiments, verified facts, failed approaches)
 - What decisions need the user to weigh in? (trade-offs with no obvious answer)
 
@@ -38,7 +40,15 @@ Output to `draft.md` in the project root. Use this structure:
 {One paragraph: what this task achieves and why it matters.}
 
 ## Constraints
-{Numbered list of non-negotiable rules for this task.}
+{Numbered list of non-negotiable rules for this task. Include two special categories if the user specified them:
+
+**Mandatory skill reads** — if the user specified skills that must be read at certain trigger points, list each as:
+  "Before [trigger], must read [skill]: [reason]"
+  These propagate into the plan and ensure every iteration of an AI loop reads the right reference at the right moment.
+
+**Destructive operation guards** — if the user identified irreversible operations that need confirmation, list each as:
+  "[operation] requires explicit user approval before executing: [reason]"
+}
 
 ## Inputs
 {What goes in: data sources, APIs, formats. Described by role, not by path or schema.}
