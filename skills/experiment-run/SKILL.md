@@ -1,286 +1,100 @@
 ---
 name: experiment-run
-description: "Standards for writing experiment code and scripts — config-driven parameters, structured output directories, code snapshots, real-time CSV recording, and pre-flight confirmation. MUST read this skill when: (1) writing or modifying any script that runs training, evaluation, inference, or data processing; (2) designing output directory structure or recording config for an experiment; (3) creating Slurm launcher scripts; (4) the user asks to run/submit/launch an experiment. Triggers on: sbatch, submit, train, eval, inference, experiment, 跑实验, 提交任务, 起任务, 跑一下, 写训练脚本, 写脚本, 训练代码, 新实验, 实验代码, 输出目录, 记录metrics, exp目录, 创建训练脚本, scalars.csv, events.jsonl, run_manifest, field_registry, 实验记录, 跑训练, 跑一个实验, 写一个训练, 需要输出的脚本, 有输出的项目. The code itself must satisfy these requirements — read BEFORE writing, not just before submitting."
+description: "Standards for writing experiment code and scripts — config-driven parameters, structured output directories, code snapshots, real-time CSV recording, and pre-flight confirmation. This skill is the mandatory reference for ANY code that produces outputs worth keeping. MUST read this skill when: (1) writing or modifying any script that runs training, evaluation, inference, or data processing; (2) designing output directory structure or recording config for an experiment; (3) creating Slurm launcher scripts or local run scripts; (4) the user asks to run/submit/launch an experiment; (5) writing code that logs metrics, saves checkpoints, or records results. Triggers on: sbatch, submit, train, eval, inference, experiment, run, launch, metrics, logging, checkpoint, scalars, CSV, record, output directory, exp dir, 跑实验, 提交任务, 起任务, 跑一下, 写训练脚本, 写脚本, 训练代码, 新实验, 实验代码, 输出目录, 记录metrics, exp目录, 创建训练脚本, scalars.csv, events.jsonl, run_manifest, field_registry, 实验记录, 跑训练, 跑一个实验, 写一个训练, 需要输出的脚本, 有输出的项目, 记录loss, 记录什么, 保存模型, 保存checkpoint. The code itself must satisfy these requirements — read BEFORE writing, not just before submitting."
 ---
 
-# Experiment Run Skill
+# Experiment Run Skill (v2)
 
-When a user asks you to run any code task (training, evaluation, data processing, inference, analysis, or anything else), follow this workflow to ensure the run is config-driven, reproducible, and well-recorded.
+When a user asks you to run any code task (training, evaluation, data processing, inference, analysis, or anything else that produces outputs), follow this skill to ensure the run is config-driven, reproducible, and well-recorded.
 
 The core idea: every run should be a self-contained capsule in `exp/` that a stranger could pick up months later and fully understand what was run, with what parameters, what code, and what happened.
 
----
-
-## Step 1 — Determine Execution Backend
-
-Before building the config, figure out how the task will run. Not every machine has a job scheduler.
-
-**If the user explicitly said** "slurm", "sbatch", "submit job", or mentioned a partition name → use Slurm.
-
-**If the user explicitly said** "run locally", "just run it", or is clearly on a laptop/workstation → use local.
-
-**If neither**: check whether a scheduler is available:
-```bash
-which sbatch 2>/dev/null && echo "slurm available" || echo "no scheduler"
-```
-Then ask the user: "This machine has Slurm available. Do you want to submit as a Slurm job, or run locally?" (or if no scheduler: "No job scheduler detected — I'll run this locally.")
-
-Other schedulers (PBS, LSF, etc.) follow the same pattern as Slurm — generate a job script, submit with the scheduler's submit command. Adapt the template accordingly.
-
-## Step 2 — Build or Load the Config
-
-Every run needs a config file (YAML or JSON). If the user doesn't provide one, generate a template from their request and ask them to confirm.
-
-The config has two parts: **fixed structure** (same for all tasks) and **task-specific params** (user defines freely).
-
-### Fixed structure
-
-```yaml
-run:
-  name: ""              # Names the output directory. Keep it short and descriptive.
-  description: ""       # One line: what this run does and why.
-  task_type: ""          # train / eval / process / infer / analyze / other
-  entrypoint: ""         # The command to execute, e.g. "python -m my_module" or "bash run.sh"
-
-backend:
-  type: ""               # slurm / local / pbs / lsf (determine in Step 1)
-  partition: ""          # Scheduler partition/queue (ignored if local)
-  time_limit: "02:00:00"
-  cpus: 4
-  gpus: 0               # 0 = no GPU needed
-  memory: "16G"
-
-snapshot:
-  enabled: true
-  exclude: [".git", "__pycache__", ".cache", "exp", ".venv", "node_modules"]
-
-output:
-  root: "exp"            # Output root relative to project directory
-```
-
-### Task-specific params
-
-```yaml
-params:
-  # User puts whatever they need here. Examples:
-  #   learning_rate: 3e-4
-  #   model_path: "/data/checkpoints/step-1000"
-  #   input_file: "data/test.jsonl"
-  # The skill makes zero assumptions about these fields.
-
-recording:
-  scalar_fields: []       # Numeric values to track in scalars.csv (for plotting)
-  intermediate_fields: [] # Per-item fields to log in events.jsonl
-  artifact_fields: []     # Large outputs saved as files in artifacts/
-  interval_rows: 50       # Aggregate snapshot every N items
-  interval_seconds: 60    # Or every N seconds, whichever comes first
-```
-
-The reason every parameter lives in the config (not hardcoded in scripts) is reproducibility: someone reading `config.yaml` in the output directory should know exactly what was run without reading the code.
+**Last updated: 2026-04-06**
 
 ---
 
-## Step 3 — Pre-flight Confirmation
+## Sub-skill Router
 
-Before executing anything, show the user a summary of what will happen and what will be recorded. This catches mistakes early and ensures nothing important is missed.
+Route to the right reference file based on what you are about to do. Read ONLY the relevant file — do not load all of them.
 
-### What to show
-
-```
-═══════════════════════════════════════════
-  Pre-flight Check
-═══════════════════════════════════════════
-
-  Run name:       {run.name}
-  Task type:      {run.task_type}
-  Entrypoint:     {run.entrypoint}
-  Backend:        {backend.type} ({backend.partition})
-
-  Output dir:     {output.root}/{dir_name}/
-
-  Scalar metrics (→ scalars.csv, for plotting):
-    ✓ {field_1}
-    ✓ {field_2}
-    ...
-
-  Per-item fields (→ events.jsonl):
-    ✓ {field_a}
-    ✓ {field_b}
-    ...
-
-  Artifacts (→ artifacts/):
-    ✓ {artifact_1}
-    ...
-
-  Code snapshot:  {yes/no}
-  Aggregate interval: every {N} items or {T} seconds
-
-  Anything missing? Confirm to proceed.
-═══════════════════════════════════════════
-```
-
-The point of asking "anything missing?" is that users often forget to record things they'll want later. Better to ask now than to rerun a 10-hour job because you didn't log gradient norms.
-
-Save the confirmed field list to `records/field_registry.json` so there's a record of what was promised.
-
-Do not proceed until the user confirms.
+| When you are about to... | Read this | Why |
+|---|---|---|
+| Build a config or decide what parameters go where | [references/config-schema.md](references/config-schema.md) | Config is the single source of truth for every run. Wrong structure = broken reproducibility. |
+| Decide what metrics/fields to record, or write recording code | [references/recording-format.md](references/recording-format.md) | Exact CSV/JSONL formats, flush rules, field proposal logic. Getting the format wrong means broken plotting and analysis. |
+| Set up the output directory or understand its layout | [references/output-directory.md](references/output-directory.md) | Directory naming, code snapshot, file layout. Wrong layout = scripts can't find outputs. |
+| Generate a job script, choose backend, or submit a run | [references/job-generation.md](references/job-generation.md) | Slurm/local templates, backend detection, submission commands. Wrong template = job fails silently. |
+| Show the pre-flight summary or confirm with the user | [references/preflight-checks.md](references/preflight-checks.md) | What to display, what to ask, how to catch missing fields before a 10-hour job starts. |
+| Validate outputs after a run finishes | [references/postrun-validation.md](references/postrun-validation.md) | run_checks.json schema, validation checklist, failure reporting. |
 
 ---
 
-## Step 4 — Set Up the Output Directory
+## Mandatory Workflow (always follow this order)
 
-Create the output directory with this structure:
-
-```
-{output.root}/
-└── {run.name}_{YYYYMMDD_HHMMSS}_{identifier}/
-    ├── config.yaml              # Exact config used for this run
-    ├── snapshot/                 # Code at the moment of execution
-    ├── logs/
-    │   ├── stdout.log
-    │   └── stderr.log
-    ├── records/
-    │   ├── scalars.csv          # Long-format numeric time series
-    │   ├── events.jsonl         # Per-item structured logs
-    │   └── field_registry.json  # What fields were promised
-    ├── artifacts/               # Large outputs (weights, images, tables)
-    ├── run_manifest.json        # Metadata: command, env, timing, exit code
-    └── run_checks.json          # Post-run validation results
-```
-
-### Directory naming
-
-`{run.name}_{YYYYMMDD_HHMMSS}_{identifier}` where identifier is:
-- Slurm: `job{SLURM_JOB_ID}_{SLURMD_NODENAME}`
-- Local: `pid{PID}_{hostname}`
-
-If the directory already exists and is non-empty, refuse to run. This prevents accidental overwrites.
-
-### Code snapshot
-
-Copy the project code into `snapshot/` before execution starts:
-
-```bash
-rsync -a --exclude='.git' --exclude='__pycache__' --exclude='.cache' \
-      --exclude='exp' --exclude='.venv' --exclude='node_modules' \
-      "$PROJECT_DIR/" "$EXP_DIR/snapshot/"
-```
-
-This ensures the exact code that produced the results is always available, even if the repo changes later.
+1. **Determine backend** — Slurm or local? (see [job-generation.md](references/job-generation.md))
+2. **Build config** — generate or load config.yaml (see [config-schema.md](references/config-schema.md))
+3. **Negotiate recording fields** — this is critical, see below
+4. **Pre-flight confirmation** — show summary, get user approval (see [preflight-checks.md](references/preflight-checks.md))
+5. **Set up output directory** — create structure + snapshot (see [output-directory.md](references/output-directory.md))
+6. **Generate and submit job** — write script, submit (see [job-generation.md](references/job-generation.md))
+7. **Post-run validation** — check outputs (see [postrun-validation.md](references/postrun-validation.md))
 
 ---
 
-## Step 5 — Generate and Submit the Job
+## Recording Field Negotiation (Step 3 — do not skip)
 
-### Slurm mode
+Before writing any code, you must have a conversation with the user about what to record. This is the single highest-leverage moment in the workflow — it's cheap to add a field now and expensive to rerun a 10-hour job because you didn't log gradient norms.
 
-Generate a job script from the config:
+### What you must do
 
-```bash
-#!/bin/bash
-#SBATCH --job-name={run.name}
-#SBATCH --partition={backend.partition}
-#SBATCH --nodes=1
-#SBATCH --cpus-per-task={backend.cpus}
-#SBATCH --gres=gpu:{backend.gpus}       # Only if gpus > 0
-#SBATCH --time={backend.time_limit}
-#SBATCH --output={exp_dir}/logs/stdout.log
-#SBATCH --error={exp_dir}/logs/stderr.log
+1. **Ask the user** what they want to track. Be specific: "What metrics do you want to see in plots afterward? What per-item details do you want logged?"
 
-set -euo pipefail
+2. **Propose additional fields** based on the task type. You understand the domain — use that knowledge. For each proposed field, explain in one sentence why it matters. The user can accept or reject each one.
 
-EXP_DIR="{exp_dir}"
-PROJECT_DIR="{project_root}"
+   Example proposals by task type:
 
-mkdir -p "$EXP_DIR"/{logs,records,artifacts}
+   **Training tasks** — always propose these if the user didn't mention them:
+   - `loss` (total loss per step) — the primary signal; without it you're flying blind
+   - `learning_rate` (current LR) — catches scheduler bugs and warmup issues
+   - `grad_norm` (global gradient norm) — early warning for exploding/vanishing gradients
+   - `throughput` (samples/sec or tokens/sec) — detects performance regressions
+   - `gpu_memory_allocated` (peak GPU memory in MB) — catches memory leaks before OOM
+   - `epoch` — tracks progress through the dataset
+   - Per-component losses if the model has multiple loss terms (e.g., `loss_cls`, `loss_reg`)
 
-# Record run metadata
-python3 -c "
-import json, os, datetime
-json.dump({
-    'job_id': os.environ.get('SLURM_JOB_ID',''),
-    'node': os.environ.get('SLURMD_NODENAME',''),
-    'partition': os.environ.get('SLURM_JOB_PARTITION',''),
-    'start_time': datetime.datetime.now().isoformat(),
-    'command': '{entrypoint}',
-    'config': '{config_path}',
-}, open('$EXP_DIR/run_manifest.json','w'), indent=2)
-"
+   **Evaluation tasks** — always propose:
+   - Primary metric (accuracy, F1, BLEU, etc. — depends on task)
+   - Per-sample prediction + ground truth (in events.jsonl)
+   - Confidence/probability scores if available
+   - Latency per sample
+   - Error categorization (what types of mistakes)
 
-# Code snapshot
-rsync -a {exclude_flags} "\$PROJECT_DIR/" "\$EXP_DIR/snapshot/"
+   **Data processing tasks** — always propose:
+   - Items processed count
+   - Items skipped/filtered count + reason
+   - Processing time per item
+   - Output size (bytes or tokens)
+   - Any quality metric (if applicable)
 
-# Config copy
-cp "{config_path}" "\$EXP_DIR/config.yaml"
+   **Inference tasks** — always propose:
+   - Latency per request (p50, p95, p99 if batched)
+   - Throughput (requests/sec)
+   - Token counts (input/output)
+   - GPU utilization if available
 
-# Execute
-cd "\$PROJECT_DIR"
-{entrypoint}
-```
+3. **Classify each field** into one of three categories:
+   - **scalar_fields** → goes into `scalars.csv`, for time-series plotting
+   - **intermediate_fields** → goes into `events.jsonl`, per-item structured logs
+   - **artifact_fields** → saved as files in `artifacts/`, for large outputs
 
-If the environment requires SSH to a scheduler node before sbatch, use absolute paths:
-```bash
-ssh <scheduler-host> 'sbatch /absolute/path/to/job.slurm'
-```
+4. **Confirm the final list** with the user before proceeding. Save to `field_registry.json`.
 
-### Local mode
+### Why this matters
 
-Same setup (snapshot, config copy, manifest), but run directly in the shell. Use PID and hostname for the identifier.
+Users routinely forget to log things they'll desperately want later. By proactively proposing fields, you save them from having to rerun experiments. The 30 seconds spent discussing fields now can save hours of re-computation.
 
 ---
 
-## Step 6 — Runtime Recording Rules
-
-These rules apply to the task code itself. When writing or modifying the entrypoint code, ensure it follows these patterns:
-
-### scalars.csv — for plotting
-
-Long format so any task can use the same file:
-
-```csv
-timestamp,step,phase,field,value
-2026-04-03T15:01:00Z,1,train,loss,2.345
-2026-04-03T15:01:00Z,1,train,lr,3e-4
-```
-
-- `step`: iteration/batch/sample number (meaning depends on task)
-- `phase`: stage name (train/eval/test/process/etc)
-- `field`: metric name
-- `value`: numeric value
-
-Every scalar is appended immediately on production — no buffering until the end. Use file locks if concurrent writes are possible.
-
-### events.jsonl — per-item details
-
-One JSON line per processed item/step, containing all intermediate fields declared in the config. Written immediately, not buffered.
-
-Large values (>1KB strings, arrays) should be truncated in events.jsonl and saved in full to `artifacts/`.
-
-### Recording philosophy
-
-Record generously. It's cheap to write an extra column; it's expensive to rerun a job because you didn't log something you needed. If in doubt, record it.
-
-But be practical: tensors and large arrays should be summarized into scalar stats (mean, max, norm) for scalars.csv. Save raw data to artifacts/ only when specifically needed.
-
----
-
-## Step 7 — Post-run Checks
-
-After the task finishes, validate the outputs and write `run_checks.json`:
-
-Checks to run (adapt to the task):
-1. events.jsonl is non-empty
-2. scalars.csv is non-empty (if scalar fields were declared)
-3. No NaN/Inf values in scalars
-4. All fields from field_registry.json are present in events
-5. Process exited with code 0
-6. If expected count is known (sample count, step count), actual count matches
-
-If any check fails, print `[CHECK] FAILED` to stdout.
-
----
-
-## Rules That Apply to Every Run
+## Universal Rules (apply to every run)
 
 - **No hardcoding**: every parameter comes from config. If you catch yourself writing a magic number in a script, put it in the config instead.
 - **Flush on write**: all record files flush after every write. If the job crashes, you keep everything written so far.
@@ -288,3 +102,4 @@ If any check fails, print `[CHECK] FAILED` to stdout.
 - **Directory collision = abort**: if the output directory exists and is non-empty, stop and tell the user.
 - **No silent drops**: if a record can't be written (permission error, disk full), fail loudly rather than silently skipping.
 - **Config is the truth**: anyone should be able to read `config.yaml` and `run_manifest.json` in the output directory and fully understand what was run.
+- **Record generously**: it's cheap to write an extra column; it's expensive to rerun a job because you didn't log something you needed.

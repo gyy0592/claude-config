@@ -3,20 +3,45 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "我要跑一个评测任务，用 qwen/qwen3.6-plus:free 跑挪威语的 MMLU，数据集是 NbAiLab/nb-global-mmlu，用 OpenRouter API，workers 设 16，帮我提交到 slurm",
-      "expected_output": "Should generate a config.yaml with the model/dataset/workers params, show pre-flight check listing all fields to record (accuracy, latency, pred_answer etc), ask user to confirm, then generate slurm script with snapshot and submit",
+      "prompt": "帮我写一个训练脚本，用 PyTorch 训练一个简单的 ResNet18 做 CIFAR-10 分类，用 cosine annealing scheduler，跑 50 个 epoch，用本机 GPU 跑就行",
+      "expected_output": "Should produce: (1) a config.yaml with all params including lr, batch_size, epochs, scheduler type; (2) recording field negotiation asking user about loss, accuracy, lr, grad_norm, throughput, gpu_memory; (3) a pre-flight summary; (4) training script that writes scalars.csv in long format and events.jsonl; (5) proper exp/ directory structure with snapshot",
+      "assertions": [
+        {"text": "Generates a config.yaml with run.name, run.task_type, backend section, params section, and recording section", "type": "content"},
+        {"text": "Proactively asks the user what metrics to record AND proposes additional fields like grad_norm, throughput, gpu_memory_allocated", "type": "behavior"},
+        {"text": "Shows a pre-flight summary with all scalar fields, per-item fields, and asks for confirmation before proceeding", "type": "behavior"},
+        {"text": "Training script writes scalars.csv with columns: timestamp,step,phase,field,value (long format)", "type": "content"},
+        {"text": "Training script flushes after every write to scalars.csv", "type": "content"},
+        {"text": "Output directory follows the naming convention {name}_{YYYYMMDD_HHMMSS}_{identifier}", "type": "content"},
+        {"text": "No hardcoded hyperparameters in the training script — all come from config", "type": "content"}
+      ],
       "files": []
     },
     {
       "id": 2,
-      "prompt": "帮我在本地跑一个数据清洗脚本，input 是 /data/raw/corpus.jsonl，output 格式 parquet，要记录每条的 token_count 和 language_detected，跑完统计一下各语言占比",
-      "expected_output": "Should generate config with task_type=process, backend.type=local, params for input/output, recording with scalar_fields=[token_count] and intermediate_fields=[language_detected], show pre-flight, run locally with code snapshot",
+      "prompt": "I have a script eval_model.py that evaluates a language model on a benchmark. I want to run it on the cluster via Slurm. It takes --model_path and --dataset arguments. I want to evaluate on 3 datasets: gsm8k, math, humaneval. Help me set up the experiment.",
+      "expected_output": "Should produce: (1) config.yaml with eval-specific params; (2) negotiate recording fields proposing accuracy, per-sample prediction/ground_truth, latency, confidence; (3) Slurm job script with proper SBATCH headers; (4) pre-flight check; (5) proper directory structure",
+      "assertions": [
+        {"text": "Detects Slurm backend or asks user about it since they mentioned 'cluster'", "type": "behavior"},
+        {"text": "Config includes task_type: eval and covers all three datasets (either in one config or separate per-dataset configs)", "type": "content"},
+        {"text": "Proposes eval-specific recording fields: primary metric (accuracy/score), per-sample predictions, latency, confidence scores", "type": "behavior"},
+        {"text": "Generates a valid Slurm script with #SBATCH headers matching config backend section", "type": "content"},
+        {"text": "Slurm script includes code snapshot, config copy, and run_manifest.json creation", "type": "content"},
+        {"text": "Shows pre-flight summary before generating the job script", "type": "behavior"}
+      ],
       "files": []
     },
     {
       "id": 3,
-      "prompt": "I need to fine-tune a 1.3B model on our custom dataset at /nfs/data/train.jsonl for 10 epochs, lr=2e-5, batch_size=32, save checkpoints every 1000 steps. Use 4 GPUs on the compute partition, should take about 6 hours",
-      "expected_output": "Should generate config with task_type=train, backend.gpus=4, partition=compute, time_limit ~7h, params with all training hyperparams, recording with scalar_fields=[loss,lr,grad_norm], artifact_fields=[checkpoint], show pre-flight check, generate slurm script",
+      "prompt": "写个数据处理脚本，把 /data/raw/wiki_dump.jsonl 里的文章做 tokenize 和过滤（去掉太短的），输出到一个新的 jsonl 文件。大概有 500 万条数据，可能要跑几个小时",
+      "expected_output": "Should produce: (1) config with task_type: process; (2) negotiate recording fields proposing items_processed, items_filtered, filter_reason, tokens_per_doc, processing_time_ms, output_size_bytes; (3) incremental writing; (4) proper exp/ structure; (5) suggest tmux for long-running local task",
+      "assertions": [
+        {"text": "Config has task_type: process with input_file and output_file in params", "type": "content"},
+        {"text": "Proposes data-processing specific fields: items_processed, items_skipped/filtered, filter_reason, processing_time_per_item, output_size", "type": "behavior"},
+        {"text": "Script writes output incrementally (not buffered until end)", "type": "content"},
+        {"text": "Script records progress to scalars.csv (items_processed count over time)", "type": "content"},
+        {"text": "Launcher script or comments include tmux/background execution guidance for long-running local tasks", "type": "content"},
+        {"text": "Shows pre-flight summary including all recording fields", "type": "behavior"}
+      ],
       "files": []
     }
   ]
