@@ -1,0 +1,74 @@
+{
+  "skill_name": "gen-draft",
+  "evals": [
+    {
+      "id": 0,
+      "name": "training-run-asks-naming",
+      "prompt": "I want to run an ablation study comparing two learning rates (1e-3 and 1e-4) for a small LSTM on Penn Treebank. I'll use 2 GPUs on a Slurm cluster. /gen-draft",
+      "expected_output": "draft.md exists AND contains a run naming template in Constraints, AND the AskUserQuestion tool was called to ask which categories to include in the run name.",
+      "assertions": [
+        {
+          "name": "draft_file_created",
+          "description": "draft.md was written to the project root",
+          "type": "file_exists"
+        },
+        {
+          "name": "run_naming_in_constraints",
+          "description": "The Constraints section of draft.md contains a concrete run directory naming template (e.g., '{model}_{params}_...' or a filled example)",
+          "type": "content_check"
+        },
+        {
+          "name": "askuserquestion_called",
+          "description": "The AskUserQuestion tool was invoked during the skill execution to ask about run naming categories",
+          "type": "tool_use_check"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "non-training-task-no-naming-question",
+      "prompt": "I want to parse a folder of PDF invoices and extract totals into a CSV. /gen-draft",
+      "expected_output": "draft.md exists. AskUserQuestion about run naming is NOT called (not a training task). Inputs, Outputs, Execution Order all present.",
+      "assertions": [
+        {
+          "name": "draft_file_created",
+          "description": "draft.md was written",
+          "type": "file_exists"
+        },
+        {
+          "name": "no_unnecessary_naming_question",
+          "description": "AskUserQuestion is NOT called for run directory naming (this is a data-processing task, not an experiment run)",
+          "type": "tool_use_absence_check"
+        },
+        {
+          "name": "execution_order_tagged",
+          "description": "Every step in Execution Order has either [independent] or [depends: N] tag",
+          "type": "content_check"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "naming-already-in-conversation",
+      "prompt": "Run an MQAR ablation: DeltaNetSST with theta=0.001 and theta=0.1, batch size 32 and 64, on 4x GB200 GPUs with Slurm. Run names should follow 'model_theta_bs_4xgb200_nodeXX_jYYYY' format. /gen-draft",
+      "expected_output": "draft.md contains the naming template the user already specified (model_theta_bs_4xgb200_nodeXX_jYYYY). AskUserQuestion for naming is NOT re-asked because the user already gave the format.",
+      "assertions": [
+        {
+          "name": "draft_file_created",
+          "description": "draft.md was written",
+          "type": "file_exists"
+        },
+        {
+          "name": "user_format_preserved",
+          "description": "Constraints section contains the user-specified format 'model_theta_bs_4xgb200_nodeXX_jYYYY'",
+          "type": "content_check"
+        },
+        {
+          "name": "no_redundant_question",
+          "description": "AskUserQuestion for run naming is NOT called since the user already specified the format",
+          "type": "tool_use_absence_check"
+        }
+      ]
+    }
+  ]
+}

@@ -29,6 +29,34 @@ Before writing anything, understand the task. Ask the user if anything is unclea
 
 If the conversation already contains this information, extract it — don't re-ask what you already know.
 
+### Special case: Experiment / training tasks
+
+If the task involves training runs, evaluations, data processing, or any work that produces **output directories per run**, you MUST use `AskUserQuestion` (before writing the draft) to ask which information belongs in the run directory name. This is not optional — without it, run names will default to opaque timestamps and the user won't be able to tell runs apart at a glance.
+
+**Trigger condition**: task involves training, fine-tuning, evaluation, hyperparameter search, ablation, or any experiment that produces one output directory per run.
+
+**What to ask** — use `multiSelect: true` so the user can pick multiple categories:
+
+```
+Question: "What should be encoded in the run directory name?"
+Options:
+  - Model / task identity  (e.g. "deltanet_sst")          ← always recommended
+  - Key hyperparameters    (e.g. "t0.1_bs32_lr5e4")
+  - Hardware info          (e.g. "4xgb200")
+  - Node / cluster ID      (e.g. "node11")
+  - Scheduler job ID       (e.g. "j7131")
+  - Date / timestamp       (e.g. "20260405")
+```
+
+**What to record**: once the user answers, write a concrete naming template into the draft's Constraints section. Example:
+
+```
+Run directory name format: {model}_{key_params}_{date}_{hardware}_{node}_j{jobid}
+→ e.g. deltanet_sst_t0.001_bs32_lr2.5e4_e32_20260405_4xgb200_node11_j7135
+```
+
+Only include the categories the user selected. If the user already specified a naming preference in the conversation, extract it instead of asking again.
+
 ## Step 2 — Write draft.md
 
 Output to `draft.md` in the project root. Use this structure:

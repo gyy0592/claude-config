@@ -8,7 +8,7 @@ mkdir -p ~/.claude/rules
 # 2. Write system-level override directives
 cat << 'EOF' > ~/.claude/system_override.txt
 CRITICAL SYSTEM DIRECTIVE:
-1. MINIMALISM: Output ONLY in Chinese. Zero pleasantries. Strict step-by-step logic.
+1. MINIMALISM: Output Zero pleasantries. Strict step-by-step logic.
 2. NO ASSUMPTIONS: Always verify via ls/find/cat before modifying anything.
 3. MANDATORY ROUTER: Read ~/.claude/CLAUDE.md before ANY action in a new workspace.
 4. ARTIFACTS SYNC (HARD STOP):
@@ -132,58 +132,28 @@ sed -i '/Claude Code System Override Alias/d' ~/.bashrc
 sed -i '/^# Claude wrapper:/,/^}$/d' ~/.bashrc
 sed -i '/^claude()/,/^}$/d' ~/.bashrc
 
-# 8. Install wrapper at ~/.local/bin/claude (PATH-priority approach).
-#    npm install -g / auto-update only touches nvm's bin dir, NEVER ~/.local/bin.
-#    This makes the wrapper immune to any claude self-update.
-mkdir -p ~/.local/bin
+# 8. Install wrapper as bash function in .bashrc (immune to rm by AI agents).
+#    `which claude` still returns the real nvm binary — no confusion.
+#    `command claude` inside the function bypasses the function itself.
 
-# Restore nvm's original symlink if a previous run replaced it with a script
-NVM_CLAUDE="$(command -v claude 2>/dev/null || true)"
-if [ -n "$NVM_CLAUDE" ] && [ -f "$NVM_CLAUDE" ] && ! [ -L "$NVM_CLAUDE" ] && head -1 "$NVM_CLAUDE" 2>/dev/null | grep -q "bash"; then
-    echo "[FIX] Restoring nvm claude symlink (was replaced by old wrapper)..."
-    REAL_JS="$(grep -oP 'exec "\K[^"]+' "$NVM_CLAUDE" 2>/dev/null || true)"
-    if [ -n "$REAL_JS" ] && [ -f "$REAL_JS" ]; then
-        rm -f "$NVM_CLAUDE"
-        ln -s "$REAL_JS" "$NVM_CLAUDE"
-        echo "[OK] Restored: $NVM_CLAUDE -> $REAL_JS"
-    fi
-fi
+# Remove old file wrapper if it exists
+rm -f ~/.local/bin/claude 2>/dev/null
 
-cat > ~/.local/bin/claude << 'WRAPPER'
-#!/usr/bin/env bash
-# Claude wrapper — injects --dangerously-skip-permissions + system_override.
-# Lives in ~/.local/bin/ (PATH priority > nvm). npm will never overwrite this.
+# Remove any previous claude function from .bashrc before appending
+sed -i '/^# Claude wrapper (function/,/^}$/d' ~/.bashrc
 
-SELF="$(realpath "$0")"
-IFS=: read -ra DIRS <<< "$PATH"
-REAL=""
-for dir in "${DIRS[@]}"; do
-    candidate="$dir/claude"
-    [ -x "$candidate" ] || continue
-    resolved="$(realpath "$candidate" 2>/dev/null)"
-    if [ "$resolved" != "$SELF" ]; then
-        REAL="$resolved"
-        break
-    fi
-done
+cat >> ~/.bashrc << 'BASHFUNC'
+# Claude wrapper (function, not file — immune to rm by AI agents)
+claude() {
+    command claude --dangerously-skip-permissions --append-system-prompt-file "$HOME/.claude/system_override.txt" "$@"
+}
+BASHFUNC
 
-if [ -z "$REAL" ]; then
-    echo "ERROR: cannot find real claude binary in PATH" >&2
-    exit 1
-fi
-
-exec "$REAL" \
-  --dangerously-skip-permissions \
-  --append-system-prompt-file "$HOME/.claude/system_override.txt" \
-  "$@"
-WRAPPER
-chmod 755 ~/.local/bin/claude
-
-# Refresh shell hash so current session picks up the wrapper
+# Refresh shell hash
 hash -r 2>/dev/null || true
 
 echo "Deployment complete!"
 echo "-----------------------------------"
-echo "Wrapper installed at: ~/.local/bin/claude"
-echo "npm install -g / auto-update will NOT affect it."
+echo "Wrapper: bash function in ~/.bashrc (not a file)"
+echo "which claude → real nvm binary (unchanged)"
 echo "-----------------------------------"
