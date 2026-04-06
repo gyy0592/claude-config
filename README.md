@@ -7,7 +7,7 @@ Personal Claude Code configuration. Clone this repo and run two commands to full
 | File | Purpose |
 |---|---|
 | `set_claude.sh` | Writes CLAUDE.md, all rule files, system_override.txt, and patches `.bashrc` with the `claude()` wrapper |
-| `settings.json` | Plugin subscriptions — Claude Code auto-downloads all 38 skills on next launch |
+| `settings.json` | Plugin config — copy to `~/.claude/settings.json` as part of Step 3 |
 | `skills/gen-draft/` | Custom global skill: generate high-level draft with dependency-aware execution order and observable outputs |
 | `skills/gen-report/` | Custom global skill: concise experiment report |
 | `skills/gen-report-detailed/` | Custom global skill: full 13-section detailed report |
@@ -49,25 +49,32 @@ This writes:
 
 ### Step 3 — Install plugins
 
-Copying `settings.json` alone does NOT install plugins — it only registers marketplace sources. You must explicitly install each plugin:
+Plugin installation is a **three-step process** that must happen inside Claude Code (all commands are slash commands, not terminal):
 
 ```bash
-# First, copy settings to register marketplace sources
+# Step 3a — Copy settings (run in terminal)
 cp settings.json ~/.claude/settings.json
 
-# Then install each plugin (inside Claude Code, run these as slash commands):
+# Step 3b — Add marketplaces (run inside Claude Code)
+/plugin marketplace add anthropics/skills
+/plugin marketplace add humania-org/humanize
+/plugin marketplace add openai/codex-plugin-cc
+
+# Step 3c — Install plugins (run inside Claude Code)
 /plugin install humanize@humania
 /plugin install document-skills@anthropic-agent-skills
 /plugin install claude-api@anthropic-agent-skills
+/plugin install codex@openai-codex
 ```
 
-Alternatively, use the interactive `/plugin` menu → **Discover** tab to browse and install.
+> **Why this order?** `extraKnownMarketplaces` in `settings.json` enables discovery but `/plugin install` will fail unless `/plugin marketplace add` is run first.
 
 | Plugin | Skills |
 |---|---|
 | `humanize@humania` | ask-codex, humanize, humanize-gen-plan, humanize-rlcr |
 | `document-skills@anthropic-agent-skills` | pdf, docx, pptx, xlsx, frontend-design, canvas-design, algorithmic-art, brand-guidelines, doc-coauthoring, internal-comms, mcp-builder, skill-creator, slack-gif-creator, theme-factory, web-artifacts-builder, webapp-testing, claude-api |
 | `claude-api@anthropic-agent-skills` | same 17 skills, claude-api variant |
+| `codex@openai-codex` | codex CLI integration |
 
 ### Step 4 — Install custom global skills
 
