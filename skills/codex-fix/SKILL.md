@@ -49,7 +49,28 @@ ERROR: Reconnecting... 1/5 ... 5/5
 ERROR: stream disconnected before completion
 ```
 
-**Root cause:** `codex review --base <sha>` feeds the entire diff into the prompt. When the diff exceeds ~1000 lines, the CRS proxy stream times out and closes.
+**Step 1 — Retry first (network blip vs structural problem)**
+
+Before changing anything, retry the exact same command up to 3 times. Network jitter often causes a single disconnect; a clean retry succeeds within 1-2 attempts.
+
+```bash
+# Retry the original command — do this up to 3 times before assuming a structural issue
+<original codex command>
+```
+
+If it succeeds on retry: done, no further action needed.
+If it fails all 3 attempts consistently: proceed to Step 2.
+
+**Step 2 — Check diff size**
+
+```bash
+git diff <base>..<head> | wc -l
+```
+
+- **< 1000 lines and still failing**: likely a persistent network/proxy issue. Wait a few minutes and retry again. If still failing after 5 total attempts, escalate to the user.
+- **≥ 1000 lines**: the diff is too large for the stream. Switch strategies below.
+
+**Step 3 — Switch strategies (only if diff ≥ 1000 lines)**
 
 **Fix A — Review commit-by-commit (preferred):**
 ```bash
