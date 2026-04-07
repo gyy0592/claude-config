@@ -97,6 +97,7 @@ done
 | `experiment-run` | `/experiment-run`, "run experiment", "submit job" |
 | `claude-config-sync` | `/claude-config-sync`, "sync config", "push config" |
 | `this-cluster` | Auto-consulted when writing Slurm scripts, choosing Python envs, or setting GPU flags |
+| `codex-fix` | Auto-consulted on `codex review` failures: bwrap sandbox errors, stream disconnections |
 
 ---
 
