@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# Cross-platform sed -i: macOS requires an explicit backup suffix, Linux does not.
+# Use an array so the empty-string argument on macOS is preserved correctly.
+if sed --version 2>/dev/null | grep -q GNU; then
+    SED_I=(sed -i)
+else
+    SED_I=(sed -i '')
+fi
+
 echo "Deploying Claude multi-layer control system..."
 
 # 1. Create required directories
@@ -127,10 +135,10 @@ On any failure/error:
 EOF
 
 # 7. Clean up old alias/function/wrapper entries (prevent conflicts)
-sed -i '/alias claude=/d' ~/.bashrc
-sed -i '/Claude Code System Override Alias/d' ~/.bashrc
-sed -i '/^# Claude wrapper:/,/^}$/d' ~/.bashrc
-sed -i '/^claude()/,/^}$/d' ~/.bashrc
+"${SED_I[@]}" '/alias claude=/d' ~/.bashrc
+"${SED_I[@]}" '/Claude Code System Override Alias/d' ~/.bashrc
+"${SED_I[@]}" '/^# Claude wrapper:/,/^}$/d' ~/.bashrc
+"${SED_I[@]}" '/^claude()/,/^}$/d' ~/.bashrc
 
 # 8. Install wrapper as bash function in .bashrc (immune to rm by AI agents).
 #    `which claude` still returns the real nvm binary — no confusion.
@@ -140,7 +148,7 @@ sed -i '/^claude()/,/^}$/d' ~/.bashrc
 rm -f ~/.local/bin/claude 2>/dev/null
 
 # Remove any previous claude function from .bashrc before appending
-sed -i '/^# Claude wrapper (function/,/^}$/d' ~/.bashrc
+"${SED_I[@]}" '/^# Claude wrapper (function/,/^}$/d' ~/.bashrc
 
 cat >> ~/.bashrc << 'BASHFUNC'
 # Claude wrapper (function, not file — immune to rm by AI agents)
