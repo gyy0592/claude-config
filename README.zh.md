@@ -15,6 +15,7 @@
 | `skills/gen-report-detailed/` | 自定义全局 Skill：完整 13 节详细报告 |
 | `skills/experiment-run/` | 自定义全局 Skill：配置驱动的实验提交，含结构化输出与记录 |
 | `skills/claude-config-sync/` | 自定义全局 Skill：同步本仓库 |
+| `skills/paper-reader/` + 7 个子 skill | **论文 / 长文阅读套件**：编排 `pdf-ingest`、`contrib-extract`、`pipeline-walk`、`math-explain`、`old-vs-new`、`zero-jump-check`、`concise-complete`,以逐块、动机优先、零逻辑跳跃的方式讲解论文 |
 | `ten_commandments_for_ai_coding.zh.md` | [📖 AI 辅助编程十戒](ten_commandments_for_ai_coding.zh.md) |
 
 ---
@@ -97,6 +98,14 @@ done
 | `experiment-run` | `/experiment-run`、"run experiment"、"submit job" |
 | `claude-config-sync` | `/claude-config-sync`、"sync config"、"push config" |
 | `this-cluster` | 编写 Slurm 脚本、选择 Python 环境或设置 GPU 参数时自动参考 |
+| `paper-reader` | `/read-paper`、`/paper-reader`、"读这篇论文"、"解析这篇文章" — 完整论文阅读流水线 |
+| `pdf-ingest` | PDF 作为输入时自动调用(一次性提取文本 + 渲染页面图像) |
+| `contrib-extract` | "这篇论文的贡献是什么"、"有什么创新"、`/contributions` — 四要素法则 |
+| `pipeline-walk` | "逐步讲解这个方法"、"走一遍这个 pipeline"、`/walk` — 按论文顺序逐阶段走读 |
+| `math-explain` | "用数学解释"、"推导一下"、"更严谨点" — 每个公式的必经之门 |
+| `old-vs-new` | "对比 A 和 B"、"新方法比旧方法好在哪" — Before/After 结构化对比 |
+| `zero-jump-check` | "这一步跳过了推导"、"填上中间步骤"、"审一下这个证明" — 步骤间逻辑审计 |
+| `concise-complete` | "压缩一下"、"去掉废话"、"更密" — 最终语言打磨 pass |
 
 ---
 
@@ -104,8 +113,11 @@ done
 
 ```bash
 cp ~/.claude/settings.json settings.json
-cp -r ~/.claude/skills/gen-report skills/gen-report
-cp -r ~/.claude/skills/gen-report-detailed skills/gen-report-detailed
+# 将所有已跟踪的自定义 skill 从 ~/.claude/skills/ 同步回仓库
+for s in skills/*/; do
+  name=$(basename "$s")
+  [ -d ~/.claude/skills/"$name" ] && rsync -a --delete ~/.claude/skills/"$name"/ skills/"$name"/
+done
 cp ~/set_claude.sh set_claude.sh
 git add -A && git commit -m "sync" && git push
 ```

@@ -1,1 +1,10 @@
 skills/this-cluster/
+
+# Local test outputs / scratch (paper-reader runs, drafts, logs)
+artifacts/
+logs/
+draft.md
+paper_reader.md
+paper_reader_outputs_zh/
+paper-reader-workspace/
+test_papers/

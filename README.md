@@ -15,6 +15,7 @@ Personal Claude Code configuration. Clone this repo and run two commands to full
 | `skills/gen-report-detailed/` | Custom global skill: full 13-section detailed report |
 | `skills/experiment-run/` | Custom global skill: config-driven experiment submission with structured output and recording |
 | `skills/claude-config-sync/` | Custom global skill: sync this repo |
+| `skills/paper-reader/` + 7 sub-skills | **Paper / long-text reading suite**: orchestrates `pdf-ingest`, `contrib-extract`, `pipeline-walk`, `math-explain`, `old-vs-new`, `zero-jump-check`, `concise-complete` into a chunk-by-chunk, motivation-first, zero-logical-jump explainer |
 | `ten_commandments_for_ai_coding.md` | [📖 Ten Commandments for AI-Assisted Coding](ten_commandments_for_ai_coding.md) |
 
 ---
@@ -98,6 +99,14 @@ done
 | `claude-config-sync` | `/claude-config-sync`, "sync config", "push config" |
 | `this-cluster` | Auto-consulted when writing Slurm scripts, choosing Python envs, or setting GPU flags |
 | `codex-fix` | Auto-consulted on `codex review` failures: bwrap sandbox errors, stream disconnections |
+| `paper-reader` | `/read-paper`, `/paper-reader`, "read this paper", "解析这篇文章", "读这篇论文" — full pipeline |
+| `pdf-ingest` | Auto-invoked whenever a PDF is the input (text + rendered page images in one shot) |
+| `contrib-extract` | "what are the contributions", "what's novel here", `/contributions` — four-ingredient rule |
+| `pipeline-walk` | "walk me through this method", "step by step", `/walk` — stage-by-stage method walkthrough |
+| `math-explain` | "explain mathematically", "show the derivation", "be more rigorous" — per-equation gate |
+| `old-vs-new` | "compare A vs B", "why is this better than the exact form" — Before/After delta |
+| `zero-jump-check` | "this skips steps", "fill in the missing steps", "audit this proof" — inter-step logic audit |
+| `concise-complete` | "tighten this", "kill the filler", "make it denser" — final language pass |
 
 ---
 
@@ -105,8 +114,11 @@ done
 
 ```bash
 cp ~/.claude/settings.json settings.json
-cp -r ~/.claude/skills/gen-report skills/gen-report
-cp -r ~/.claude/skills/gen-report-detailed skills/gen-report-detailed
+# Sync every tracked custom skill back from ~/.claude/skills/
+for s in skills/*/; do
+  name=$(basename "$s")
+  [ -d ~/.claude/skills/"$name" ] && rsync -a --delete ~/.claude/skills/"$name"/ skills/"$name"/
+done
 cp ~/set_claude.sh set_claude.sh
 git add -A && git commit -m "sync" && git push
 ```
