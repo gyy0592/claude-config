@@ -21,8 +21,8 @@ npm install -g @openai/codex
 git clone https://github.com/gyy0592/claude-config.git
 cd claude-config
 
-# Claude Code: writes CLAUDE.md, rules, system_override, and patches .bashrc
-bash set_claude.sh && source ~/.bashrc
+# Claude Code: writes CLAUDE.md, rules, system_override, and patches shell rc
+bash set_claude.sh && source "${ZDOTDIR:-$HOME}/.zshrc" 2>/dev/null || source ~/.bashrc
 
 # Codex CLI: fill in your base_url and api_key, then run setup
 cp codex_info.yaml.template codex_info.yaml

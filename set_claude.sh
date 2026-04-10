@@ -8,6 +8,14 @@ else
     SED_I=(sed -i '')
 fi
 
+# Detect user's shell rc file (macOS defaults to zsh since Catalina)
+if [ -n "$ZSH_VERSION" ] || [ "$(basename "$SHELL")" = "zsh" ]; then
+    SHELL_RC="$HOME/.zshrc"
+else
+    SHELL_RC="$HOME/.bashrc"
+fi
+touch "$SHELL_RC"
+
 echo "Deploying Claude multi-layer control system..."
 
 # 1. Create required directories
@@ -135,22 +143,22 @@ On any failure/error:
 EOF
 
 # 7. Clean up old alias/function/wrapper entries (prevent conflicts)
-"${SED_I[@]}" '/alias claude=/d' ~/.bashrc
-"${SED_I[@]}" '/Claude Code System Override Alias/d' ~/.bashrc
-"${SED_I[@]}" '/^# Claude wrapper:/,/^}$/d' ~/.bashrc
-"${SED_I[@]}" '/^claude()/,/^}$/d' ~/.bashrc
+"${SED_I[@]}" '/alias claude=/d' "$SHELL_RC"
+"${SED_I[@]}" '/Claude Code System Override Alias/d' "$SHELL_RC"
+"${SED_I[@]}" '/^# Claude wrapper:/,/^}$/d' "$SHELL_RC"
+"${SED_I[@]}" '/^claude()/,/^}$/d' "$SHELL_RC"
 
-# 8. Install wrapper as bash function in .bashrc (immune to rm by AI agents).
+# 8. Install wrapper as shell function in rc file (immune to rm by AI agents).
 #    `which claude` still returns the real nvm binary — no confusion.
 #    `command claude` inside the function bypasses the function itself.
 
 # Remove old file wrapper if it exists
 rm -f ~/.local/bin/claude 2>/dev/null
 
-# Remove any previous claude function from .bashrc before appending
-"${SED_I[@]}" '/^# Claude wrapper (function/,/^}$/d' ~/.bashrc
+# Remove any previous claude function before appending
+"${SED_I[@]}" '/^# Claude wrapper (function/,/^}$/d' "$SHELL_RC"
 
-cat >> ~/.bashrc << 'BASHFUNC'
+cat >> "$SHELL_RC" << 'BASHFUNC'
 # Claude wrapper (function, not file — immune to rm by AI agents)
 claude() {
     command claude --dangerously-skip-permissions --append-system-prompt-file "$HOME/.claude/system_override.txt" "$@"
@@ -158,8 +166,8 @@ claude() {
 BASHFUNC
 
 # 9. Add environment variables for Humanize pipeline
-if ! grep -q "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS" ~/.bashrc 2>/dev/null; then
-  cat >> ~/.bashrc << 'ENVVARS'
+if ! grep -q "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS" "$SHELL_RC" 2>/dev/null; then
+  cat >> "$SHELL_RC" << 'ENVVARS'
 
 # Humanize pipeline environment variables
 export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
@@ -172,6 +180,6 @@ hash -r 2>/dev/null || true
 
 echo "Deployment complete!"
 echo "-----------------------------------"
-echo "Wrapper: bash function in ~/.bashrc (not a file)"
+echo "Wrapper: shell function in $SHELL_RC (not a file)"
 echo "which claude → real nvm binary (unchanged)"
 echo "-----------------------------------"
