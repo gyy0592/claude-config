@@ -1,8 +1,6 @@
 {
   "enabledPlugins": {
     "humanize@humania": true,
-    "document-skills@anthropic-agent-skills": true,
-    "claude-api@anthropic-agent-skills": true,
     "codex@openai-codex": true
   },
   "extraKnownMarketplaces": {
@@ -10,12 +8,6 @@
       "source": {
         "source": "github",
         "repo": "humania-org/humanize"
-      }
-    },
-    "anthropic-agent-skills": {
-      "source": {
-        "source": "github",
-        "repo": "anthropics/skills"
       }
     },
     "openai-codex": {

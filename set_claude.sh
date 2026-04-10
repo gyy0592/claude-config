@@ -157,6 +157,16 @@ claude() {
 }
 BASHFUNC
 
+# 9. Add environment variables for Humanize pipeline
+if ! grep -q "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS" ~/.bashrc 2>/dev/null; then
+  cat >> ~/.bashrc << 'ENVVARS'
+
+# Humanize pipeline environment variables
+export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+export HUMANIZE_CODEX_BYPASS_SANDBOX=true
+ENVVARS
+fi
+
 # Refresh shell hash
 hash -r 2>/dev/null || true
 

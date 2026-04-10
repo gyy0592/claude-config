@@ -1,5 +1,8 @@
 skills/this-cluster/
 
+# Codex credentials (never commit real keys)
+codex_info.yaml
+
 # Local test outputs / scratch (paper-reader runs, drafts, logs)
 artifacts/
 logs/

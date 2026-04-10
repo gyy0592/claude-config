@@ -1,0 +1,17 @@
+# Edit the 'now' section with the base_url and api_key you want to apply.
+# On each run, 'now' is rotated into last1; last1->last2; ...; last4 is dropped.
+now:
+  base_url: ""
+  api_key: ""
+last1:
+  base_url: ""
+  api_key: ""
+last2:
+  base_url: ""
+  api_key: ""
+last3:
+  base_url: ""
+  api_key: ""
+last4:
+  base_url: ""
+  api_key: ""
