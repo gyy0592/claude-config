@@ -17,7 +17,8 @@ backup_if_exists() {
   local src="$1" name="$2"
   if [ -e "$src" ]; then
     rm -rf "$BACKUP_DIR/$name"
-    cp -r --no-preserve=mode,ownership "$src" "$BACKUP_DIR/$name"
+    cp -r "$src" "$BACKUP_DIR/$name"
+    chmod -R u+rw "$BACKUP_DIR/$name" 2>/dev/null || true
   fi
 }
 backup_if_exists "$CONFIG_TOML" "config.toml.codex.bak"
@@ -207,10 +208,22 @@ chmod 600 "$CONFIG_TOML" "$AUTH_JSON"
 
 # --- clean OpenAI official env vars from .bashrc (prevent shell overrides from interfering) ---
 BASHRC="$HOME/.bashrc"
-if [ -f "$BASHRC" ]; then
+# If .bashrc is a symlink, resolve it so sed -i doesn't break the link
+if [ -L "$BASHRC" ]; then
+  BASHRC_REAL="$(readlink -f "$BASHRC" 2>/dev/null || python3 -c "import os; print(os.path.realpath('$BASHRC'))")"
+else
+  BASHRC_REAL="$BASHRC"
+fi
+if [ -f "$BASHRC_REAL" ]; then
+  # Cross-platform sed -i
+  if sed --version 2>/dev/null | grep -q GNU; then
+    _sed_i() { sed -i "$@"; }
+  else
+    _sed_i() { sed -i '' "$@"; }
+  fi
   for var in OPENAI_API_KEY OPENAI_BASE_URL OPENAI_ORG_ID OPENAI_ORGANIZATION OPENAI_PROJECT_ID; do
-    # --follow-symlinks: .bashrc may be a symlink (see commit a7f5ce0)
-    sed -i --follow-symlinks "/^\s*export\s\+${var}=/d;/^\s*${var}=/d" "$BASHRC" || true
+    # Use POSIX regex: [[:space:]] instead of \s, + instead of \+
+    _sed_i "/^[[:space:]]*export[[:space:]][[:space:]]*${var}=/d;/^[[:space:]]*${var}=/d" "$BASHRC_REAL" || true
     unset "$var" || true
   done
 fi
