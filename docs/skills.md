@@ -1,3 +1,5 @@
+[🇨🇳 中文版](skills.zh.md)
+
 # Custom Skills Reference
 
 All skills are installed via symlink (Step 4 in README). Trigger with the slash command or natural language.

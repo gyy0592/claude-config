@@ -51,7 +51,7 @@ for s in skills/*/; do
 done
 ```
 
-完整 Skill 列表和触发方式见 [docs/skills.md](docs/skills.md)。
+完整 Skill 列表和触发方式见 [docs/skills.zh.md](docs/skills.zh.md)。
 
 ---
 
