@@ -21,8 +21,8 @@ npm install -g @openai/codex
 git clone https://github.com/gyy0592/claude-config.git
 cd claude-config
 
-# Claude Code：写入 CLAUDE.md、规则文件、system_override，并配置 .bashrc
-bash set_claude.sh && source ~/.bashrc
+# Claude Code：写入 CLAUDE.md、规则文件、system_override，并配置 shell rc
+bash set_claude.sh && source "${ZDOTDIR:-$HOME}/.zshrc" 2>/dev/null || source ~/.bashrc
 
 # Codex CLI：填入你的 base_url 和 api_key，然后运行配置
 cp codex_info.yaml.template codex_info.yaml
@@ -51,7 +51,7 @@ for s in skills/*/; do
 done
 ```
 
-完整 Skill 列表和触发方式见 [docs/skills.md](docs/skills.md)。
+完整 Skill 列表和触发方式见 [docs/skills.zh.md](docs/skills.zh.md)。
 
 ---
 

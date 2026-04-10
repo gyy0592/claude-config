@@ -12,12 +12,20 @@ AUTH_JSON="$CODEX_DIR/auth.json"
 
 mkdir -p "$CODEX_DIR" "$BACKUP_DIR"
 
+# Detect user's shell rc file (macOS defaults to zsh since Catalina)
+if [ -n "$ZSH_VERSION" ] || [ "$(basename "$SHELL")" = "zsh" ]; then
+    SHELL_RC="$HOME/.zshrc"
+else
+    SHELL_RC="$HOME/.bashrc"
+fi
+
 # --- backup current files (raw snapshot, same as 02 script) ---
 backup_if_exists() {
   local src="$1" name="$2"
   if [ -e "$src" ]; then
     rm -rf "$BACKUP_DIR/$name"
-    cp -r --no-preserve=mode,ownership "$src" "$BACKUP_DIR/$name"
+    cp -r "$src" "$BACKUP_DIR/$name"
+    chmod -R u+rw "$BACKUP_DIR/$name" 2>/dev/null || true
   fi
 }
 backup_if_exists "$CONFIG_TOML" "config.toml.codex.bak"
@@ -205,21 +213,32 @@ PYEOF
 
 chmod 600 "$CONFIG_TOML" "$AUTH_JSON"
 
-# --- clean OpenAI official env vars from .bashrc (prevent shell overrides from interfering) ---
-BASHRC="$HOME/.bashrc"
-if [ -f "$BASHRC" ]; then
+# --- clean OpenAI official env vars from shell rc (prevent shell overrides from interfering) ---
+# If rc file is a symlink, resolve it so sed -i doesn't break the link
+if [ -L "$SHELL_RC" ]; then
+  SHELL_RC_REAL="$(readlink -f "$SHELL_RC" 2>/dev/null || python3 -c "import os; print(os.path.realpath('$SHELL_RC'))")"
+else
+  SHELL_RC_REAL="$SHELL_RC"
+fi
+if [ -f "$SHELL_RC_REAL" ]; then
+  # Cross-platform sed -i
+  if sed --version 2>/dev/null | grep -q GNU; then
+    _sed_i() { sed -i "$@"; }
+  else
+    _sed_i() { sed -i '' "$@"; }
+  fi
   for var in OPENAI_API_KEY OPENAI_BASE_URL OPENAI_ORG_ID OPENAI_ORGANIZATION OPENAI_PROJECT_ID; do
-    # --follow-symlinks: .bashrc may be a symlink (see commit a7f5ce0)
-    sed -i --follow-symlinks "/^\s*export\s\+${var}=/d;/^\s*${var}=/d" "$BASHRC" || true
+    # Use POSIX regex: [[:space:]] instead of \s, + instead of \+
+    _sed_i "/^[[:space:]]*export[[:space:]][[:space:]]*${var}=/d;/^[[:space:]]*${var}=/d" "$SHELL_RC_REAL" || true
     unset "$var" || true
   done
 fi
 
 # --- preserve 02 script behaviors: sandbox bypass + tmux env cleanup ---
-if ! grep -q "HUMANIZE_CODEX_BYPASS_SANDBOX" "$BASHRC" 2>/dev/null; then
-  echo "" >> "$BASHRC"
-  echo "# Codex sandbox bypass - bwrap not supported on this cluster (HPC/container)" >> "$BASHRC"
-  echo "export HUMANIZE_CODEX_BYPASS_SANDBOX=true" >> "$BASHRC"
+if ! grep -q "HUMANIZE_CODEX_BYPASS_SANDBOX" "$SHELL_RC" 2>/dev/null; then
+  echo "" >> "$SHELL_RC"
+  echo "# Codex sandbox bypass - bwrap not supported on this cluster (HPC/container)" >> "$SHELL_RC"
+  echo "export HUMANIZE_CODEX_BYPASS_SANDBOX=true" >> "$SHELL_RC"
 fi
 export HUMANIZE_CODEX_BYPASS_SANDBOX=true
 
