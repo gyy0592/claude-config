@@ -34,6 +34,18 @@ For **every** distinct contribution in the paper, produce a block with exactly t
 5. Drop items that are just restatements of prior work or routine engineering.
 6. For every formula you are about to cite, open the corresponding page PNG from `pdf-ingest` and verify the symbols and indices against the image. The text channel frequently mangles subscripts.
 
+## Source-fidelity check (run after writing each contribution block)
+
+After writing a contribution block, re-read the corresponding section(s) of the paper paragraph by paragraph. For each paragraph, verify that every information bit below is either present in the block or explicitly irrelevant:
+
+- **Design decisions**: every choice the authors made (architecture, hyperparameter range, data source, evaluation metric) and their stated rationale.
+- **Design rationale**: every "because ..." or "this ensures ..." or "unlike standard X which does Y, we do Z" explanation.
+- **Quantitative specifics**: exact numbers, ranges, thresholds, dataset sizes, model names, layer indices.
+- **Hyperparameter-to-hypothesis mappings**: when an architectural choice directly encodes a scientific hypothesis (e.g., "dictionary size = number of mechanisms"), state the mapping explicitly.
+- **Contrast with standard practice**: when the authors deliberately deviate from convention (e.g., using $D \ll d$ when standard practice is $D \gg d$), state both the convention and the deviation.
+
+If any information bit is missing, add it to the block before running the three self-checks. This check is about *what information appears*, not *how it reads* — the language-level pass (`concise-complete`) comes later.
+
 ## Zero-jump and concise-complete apply to the prose too
 
 After writing each contribution block, run the block through `zero-jump-check` (seams between the four parts must be obvious) and `concise-complete` (every sentence minimal but complete). Show the self-check pass, don't hide it.

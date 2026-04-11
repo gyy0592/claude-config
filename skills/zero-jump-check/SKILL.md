@@ -16,10 +16,11 @@ For every pair of adjacent steps `(A, B)` in a derivation or argument, the move 
 ## How to run the audit
 
 1. **Extract the sequence.** List the steps in order — every equation, every claim, every inferential move. Number them `S1, S2, …, Sn`.
-2. **Scan each seam.** For each pair `(Sk, Sk+1)`, ask: what single operation takes `Sk` to `Sk+1`? Write that operation down in one phrase.
-3. **Flag the jumps.** If you cannot produce the phrase, OR if the phrase hides more than one non-trivial operation (e.g. "simplify" is not a phrase, it is a euphemism for several operations), mark the seam as a jump.
-4. **Patch each jump.** For every flagged seam, insert one or more intermediate steps `Sk.1, Sk.2, …` between `Sk` and `Sk+1` until every new seam passes the rule. Patching is recursive: if a newly inserted step creates a new non-obvious seam, patch that too.
-5. **Report what you did.** List the seams you patched and what you inserted, so the caller can show the pass to the user.
+2. **Prerequisite scan (before seam scanning).** For each step `Sk`, ask: does `Sk` introduce a concept, tool, or method that has not been defined earlier in the document from something the reader already knows? If yes, flag it as a concept-prerequisite gap. This is a jump even if there is no adjacent step to compare against — the gap is between the reader's knowledge and the step itself.
+3. **Scan each seam.** For each pair `(Sk, Sk+1)`, ask: what single operation takes `Sk` to `Sk+1`? Write that operation down in one phrase.
+4. **Flag the jumps.** If you cannot produce the phrase, OR if the phrase hides more than one non-trivial operation (e.g. "simplify" is not a phrase, it is a euphemism for several operations), mark the seam as a jump.
+5. **Patch each jump.** For every flagged seam (including concept-prerequisite gaps from step 2), insert one or more intermediate steps `Sk.1, Sk.2, …` between `Sk` and `Sk+1` — or before `Sk` for prerequisite gaps — until every new seam passes the rule. Patching is recursive: if a newly inserted step creates a new non-obvious seam, patch that too.
+6. **Report what you did.** List the seams you patched and what you inserted, so the caller can show the pass to the user.
 
 ## What counts as "not a jump"
 
@@ -34,6 +35,7 @@ For every pair of adjacent steps `(A, B)` in a derivation or argument, the move 
 - Swapping the order of a sum and an integral without stating Fubini and its hypotheses.
 - Introducing an approximation without naming which term was dropped and why it is small.
 - Using a result from a named lemma/theorem without saying which lemma and verifying its hypotheses.
+- **Concept-prerequisite gap:** introducing a tool, method, or formalism (e.g. "Sparse Autoencoder", "Langevin dynamics", "Riemannian gradient") that a reader with standard ML/math/physics training would not know, without first defining it from something the reader does know. The test: if you removed the term's name and left only its formula, would the reader recognize it as a special case of something familiar? If not, the concept needs an introduction before you use it. This is distinct from algebraic jumps — it is a *knowledge* jump, and it is just as fatal to comprehension.
 - Any move that combines two or more of the above in one step.
 
 ## Boundary with math-explain

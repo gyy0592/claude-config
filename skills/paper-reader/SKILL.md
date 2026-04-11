@@ -64,12 +64,31 @@ For each chunk in order:
 
 1. **Write the chunk.** Use `contrib-extract` for contribution chunks or `pipeline-walk` for pipeline chunks. Append the chunk to `<paper_name>-output.md` — never overwrite existing chunks.
 2. **Verify formulas against the image channel.** For every equation you wrote, open the corresponding `page-NN.png` with the `Read` tool and verify the symbols/subscripts. If the text channel mangled anything, correct it using the image as ground truth.
-3. **Run all three self-checks, in this order, on the chunk you just wrote.** None may be skipped. Marking a chunk "done" without all three is a protocol violation.
-   1. `math-explain` checklist — every formula in the chunk has canonical-form derivation, self-contained `where` block, term-by-term insight, explicit assumptions, approximation audit.
-   2. `zero-jump-check` — every seam inside the chunk AND the seam from the previous chunk to this one. Patch any jump by inserting intermediate steps until every seam is immediately obvious.
-   3. `concise-complete` — every sentence minimal, no filler, no ambiguous pronouns, all subjects/verbs/objects intact.
-4. **Show the self-check pass to the user.** Append a short "self-check pass" block under the chunk listing what was found and what was fixed. The user must see the work. Empty passes (nothing to fix) are still listed as "no issues".
-5. **Append only.** If a later chunk reveals a problem in an earlier chunk, do NOT silently rewrite the earlier chunk. Append a clearly-marked correction block at the end of the affected chunk.
+3. **Source-fidelity check.** Re-read the corresponding section(s) of the paper paragraph by paragraph. Verify that every design decision, design rationale, quantitative specific, hyperparameter-to-hypothesis mapping, and contrast-with-standard-practice in the paper is present in the chunk. If anything is missing, add it to the chunk now, before running the self-checks. (See `contrib-extract`'s source-fidelity check section for the full checklist.)
+4. **Recursive self-check loop.** Run all three self-checks on the chunk. If any check triggers a modification, re-run ALL three checks on the modified chunk. Repeat until a full pass produces zero modifications. The reason for re-running all three: a `zero-jump-check` patch may insert new formulas that need `math-explain` treatment; a `math-explain` expansion may add text that needs `concise-complete` pruning; a `concise-complete` rewrite may create a new seam that `zero-jump-check` must audit.
+
+   ```
+   LOOP:
+     modified = false
+     (a) math-explain checklist — every formula has canonical-form derivation
+         (including the non-universal-concept chain: if a concept like SAE is
+         used, verify it was derived from a known parent before first use),
+         self-contained `where` block, term-by-term insight, explicit assumptions,
+         approximation audit, paper equation number cited.
+         → If any formula fails: expand the chunk. Set modified = true.
+     (b) zero-jump-check — every seam inside the chunk AND the seam from the
+         previous chunk to this one, INCLUDING concept-prerequisite gaps
+         (a concept used but never introduced from known foundations).
+         → If any jump found: insert intermediate steps. Set modified = true.
+     (c) concise-complete — every sentence minimal, no filler, no ambiguous
+         pronouns, all subjects/verbs/objects intact.
+         → If any sentence rewritten: set modified = true.
+     IF modified → go to LOOP
+     ELSE → all checks pass, exit loop
+   ```
+
+5. **Show the self-check pass to the user.** Append a short "self-check pass" block under the chunk listing what was found and what was fixed in each iteration of the loop. The user must see the work. If the loop ran more than one iteration, show each iteration's findings. Empty passes (nothing to fix) are still listed as "no issues".
+6. **Append only.** If a later chunk reveals a problem in an earlier chunk, do NOT silently rewrite the earlier chunk. Append a clearly-marked correction block at the end of the affected chunk.
 
 ### Step 4 — Final hand-off
 
@@ -84,7 +103,7 @@ Answer follow-up questions from the user using the same four-ingredient + zero-j
 ## Output file structure
 
 ```
-# <Paper title> — paper-reader output
+# <Paper title (always in the paper's original language — never translate)> — paper-reader output
 
 <optional one-line citation>
 
@@ -124,20 +143,26 @@ _self-check pass (Stage 1):_
 
 ## Hard rules (repeat because they matter)
 
-- **Chunk-by-chunk, never whole-document at once.** One chunk written, three checks run, checks shown, next chunk.
+- **Chunk-by-chunk, never whole-document at once.** One chunk written, checks run in recursive loop, checks shown, next chunk.
+- **Source-fidelity before self-checks.** Re-read the paper paragraph by paragraph and verify every information bit is present before running the three self-checks. Missing information cannot be caught by language-level or formula-level checks.
+- **Recursive self-check loop, not single-pass.** If any self-check triggers a modification, re-run ALL three checks. Repeat until a full pass produces zero modifications. A single-pass check misses cross-skill dependencies (e.g., a zero-jump patch inserting a new formula that needs math-explain treatment).
 - **Every chunk gets all three checks.** No skipping math-explain, no skipping zero-jump-check, no skipping concise-complete.
+- **Non-universal concepts need derivation chains.** If the paper uses a specialized tool (SAE, normalizing flow, score matching, etc.), derive or define it from something the reader knows before using it. This is enforced by both math-explain (canonical-form-first) and zero-jump-check (concept-prerequisite gap).
+- **Paper equation numbers must be cited.** When the paper numbers an equation, reference that number in the output so the reader can cross-check.
 - **Image channel is ground truth for every formula.** Don't trust `pdftotext` output for an equation you haven't cross-referenced against the page PNG.
 - **Contributions first, then full pipeline. Always.** No abbreviated mode. No "skip the pipeline".
 - **Append only.** Earlier chunks are preserved as written; corrections are appended, not overwritten.
-- **Self-check passes are visible.** The user must be able to see what was audited and what was fixed, for every chunk.
+- **Self-check passes are visible.** The user must be able to see what was audited and what was fixed, for every chunk. If the recursive loop ran multiple iterations, show each iteration.
 
 ## Why this protocol
 
 Each rule exists because skipping it produces a specific, visible failure:
 
 - **Without chunk-by-chunk**, the writer drifts toward "summarize everything at once" and loses the motivation-first rhythm.
+- **Without source-fidelity check**, design decisions, rationales, and quantitative specifics from the paper get silently dropped — and no downstream check catches the omission because they only audit what was written, not what should have been written.
+- **Without the recursive loop**, a zero-jump patch may insert a new formula that never gets math-explain treatment, or a math-explain expansion may bloat text that concise-complete never prunes.
 - **Without math-explain per chunk**, formulas get dropped with undefined symbols or no assumptions.
-- **Without zero-jump-check per chunk**, adjacent steps drift apart and the reader gets stranded.
+- **Without zero-jump-check per chunk**, adjacent steps drift apart and the reader gets stranded — including concept-prerequisite gaps where a specialized tool is used without introduction.
 - **Without concise-complete per chunk**, the output bloats and the user has to reread sentences.
 - **Without the image channel**, text-channel subscript errors propagate into the explanation unchecked.
 - **Without append-only**, the user loses visibility into what changed and why.
