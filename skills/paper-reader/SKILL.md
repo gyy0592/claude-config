@@ -1,13 +1,18 @@
 ---
 name: paper-reader
-description: Reads an academic paper end to end and produces a boilerplate-free, motivation-first, mathematically rigorous explanation with zero logical jumps — written to `<paper_name>-output.md`. Use ONLY when the user explicitly invokes `/read-paper`, `/paper-reader`, or says "read this paper", "解析这篇文章", "读这篇论文". Never auto-trigger from keywords alone. The skill orchestrates six sub-skills (pdf-ingest, contrib-extract, pipeline-walk, math-explain, zero-jump-check, concise-complete) in a strict chunk-by-chunk protocol with visible per-chunk self-checks. Output is always contributions first, then the full pipeline walkthrough.
+description: Reads an academic paper end to end and produces two files — a reader-friendly overview (`<paper_name>-overview.md`) and a mathematically rigorous deep read (`<paper_name>-output.md`) with zero logical jumps. Use ONLY when the user explicitly invokes `/read-paper`, `/paper-reader`, or says "read this paper", "解析这篇文章", "读这篇论文". Never auto-trigger from keywords alone. The skill orchestrates eight sub-skills (pdf-ingest, prereq-probe, paper-overview, contrib-extract, pipeline-walk, math-explain, zero-jump-check, concise-complete) in a strict protocol: ingest → prereq probe → overview → chunk-by-chunk deep read with visible per-chunk self-checks.
 ---
 
 # paper-reader (main orchestrator)
 
 ## Goal
 
-Read an academic paper and write a single markdown file `<paper_name>-output.md` that:
+Read an academic paper and produce two markdown files:
+
+1. `<paper_name>-overview.md` — a reader-friendly eight-section overview (via `paper-overview` sub-skill).
+2. `<paper_name>-output.md` — a mathematically rigorous deep read with chunk-by-chunk self-checks.
+
+The deep-read output file `<paper_name>-output.md`:
 
 - Strips boilerplate (related-work surveys, marketing, generic background, uninformative tables).
 - Explains every contribution and every pipeline stage with four ingredients: **motivation, intuition, scenario/example, formula**.
@@ -28,6 +33,8 @@ Load each sub-skill's SKILL.md from `~/.claude/skills/<name>/SKILL.md` the first
 | Sub-skill | Path | Role here |
 |---|---|---|
 | `pdf-ingest` | `~/.claude/skills/pdf-ingest/SKILL.md` | Step 1: dual-channel extraction from the PDF. |
+| `prereq-probe` | `~/.claude/skills/prereq-probe/SKILL.md` | Step 1.2: scan for non-universal prerequisites, probe user knowledge, write knowledge_map. |
+| `paper-overview` | `~/.claude/skills/paper-overview/SKILL.md` | Step 1.5: eight-section reader-friendly overview (written before the deep read). |
 | `contrib-extract` | `~/.claude/skills/contrib-extract/SKILL.md` | Step 2: one chunk per contribution, novelty-focused. |
 | `pipeline-walk` | `~/.claude/skills/pipeline-walk/SKILL.md` | Step 3: one chunk per pipeline stage, in the paper's own order. |
 | `math-explain` | `~/.claude/skills/math-explain/SKILL.md` | Per-chunk check #1: intra-formula rigor (the five-item checklist). |
@@ -49,6 +56,42 @@ If the input is a PDF: run `bash ~/.claude/skills/pdf-ingest/scripts/ingest.sh <
 
 If the input is already text, create the temp dir yourself and dump the text into `<paper_name>_temp/text.txt`. No image channel in that case — note this in the output file and rely on the text alone.
 
+### Step 1.2 — Prerequisite probe (prereq-probe)
+
+After ingestion and before the overview, scan the paper for non-universal prerequisite concepts and map the user's knowledge.
+
+1. Load `~/.claude/skills/prereq-probe/SKILL.md`.
+2. If `<paper_name>_temp/knowledge_map.md` already exists, skip to step 4 — do not re-ask the user.
+3. Run prereq-probe Phases 1–4:
+   - Extract non-universal concepts from `text.txt` (max 7).
+   - Build the dependency tree.
+   - Use `AskUserQuestion` to probe user knowledge top-down (cascade infers dependents automatically).
+   - Write `<paper_name>_temp/knowledge_map.md`.
+4. Read `knowledge_map.md` into working memory. All subsequent writing steps consult this map to control expansion depth.
+
+**Why before the overview:** The overview (Step 1.5) already needs to decide how deeply to explain background concepts. If the overview is written before knowledge is mapped, it must guess the reader's level — and guessing wrong produces either a bloated tutorial or an incomprehensible summary.
+
+**What happens if there are no non-universal concepts:** Skip the AskUserQuestion phase. Write an empty knowledge_map (just the header) and continue. Do not ask the user pointless questions.
+
+### Step 1.5 — Overview (paper-overview)
+
+After ingestion and before the deep read, produce a reader-friendly overview of the entire paper by invoking `paper-overview`. This step:
+
+1. Load `~/.claude/skills/paper-overview/SKILL.md`.
+2. Using the paper text (from `<paper_name>_temp/text.txt` or the arxiv read result), write `<paper_name>-overview.md` following paper-overview's eight-section structure and lightweight self-checks.
+3. The overview is a **standalone deliverable** — it is written to its own file, not into `<paper_name>-output.md`.
+
+**Why this step exists:** The overview builds a global map of the paper (problem context, key concepts with analogies, structured Before/After comparisons, experiment tables) before the chunk-by-chunk deep read begins. This global map serves two purposes:
+- The user gets an immediately useful quick-read document.
+- The subsequent chunk-level writing (Steps 2–3) can reference the overview's analogies, comparison blocks, and data tables rather than re-deriving them, improving coherence and reducing redundancy.
+
+**During chunk-by-chunk writing (Step 3):** When writing contribution or pipeline chunks, you may reference the overview file for:
+- Intuitive analogies already established (reuse or refine them, don't contradict).
+- Before/After comparison blocks (the deep read's `old-vs-new` blocks should be consistent with the overview's, but more detailed).
+- Experiment numbers (the overview's tables are the quick reference; the deep read cites them when relevant).
+
+Do NOT copy-paste from the overview into the output. The output must stand alone — but the overview informs its writing.
+
 ### Step 2 — Plan the chunks
 
 Read `text.txt` (fast scan: abstract, introduction, method headings, conclusion). Produce an ordered list:
@@ -62,7 +105,7 @@ Write this list at the top of `<paper_name>-output.md` as a visible table of con
 
 For each chunk in order:
 
-1. **Write the chunk.** Use `contrib-extract` for contribution chunks or `pipeline-walk` for pipeline chunks. Append the chunk to `<paper_name>-output.md` — never overwrite existing chunks.
+1. **Write the chunk.** Use `contrib-extract` for contribution chunks or `pipeline-walk` for pipeline chunks. Append the chunk to `<paper_name>-output.md` — never overwrite existing chunks. Before writing any non-universal concept, look it up in `knowledge_map.md` and apply the expansion rule: `known` → one-line reference; `partial` → definition + intuition + one formula; `unknown` → full canonical-form derivation chain. If the concept is not in knowledge_map, treat it as `unknown`.
 2. **Verify formulas against the image channel.** For every equation you wrote, open the corresponding `page-NN.png` with the `Read` tool and verify the symbols/subscripts. If the text channel mangled anything, correct it using the image as ground truth.
 3. **Source-fidelity check.** Re-read the corresponding section(s) of the paper paragraph by paragraph. Verify that every design decision, design rationale, quantitative specific, hyperparameter-to-hypothesis mapping, and contrast-with-standard-practice in the paper is present in the chunk. If anything is missing, add it to the chunk now, before running the self-checks. (See `contrib-extract`'s source-fidelity check section for the full checklist.)
 4. **Recursive self-check loop.** Run all three self-checks on the chunk. If any check triggers a modification, re-run ALL three checks on the modified chunk. Repeat until a full pass produces zero modifications. The reason for re-running all three: a `zero-jump-check` patch may insert new formulas that need `math-explain` treatment; a `math-explain` expansion may add text that needs `concise-complete` pruning; a `concise-complete` rewrite may create a new seam that `zero-jump-check` must audit.
@@ -94,9 +137,10 @@ For each chunk in order:
 
 When every chunk has been written and passed all three self-checks, tell the user:
 
-- Where the output file is (`<paper_name>-output.md`).
+- Where the overview file is (`<paper_name>-overview.md`) — the quick-read version.
+- Where the deep-read file is (`<paper_name>-output.md`) — the formula-level version.
 - Where the temp dir is (`<paper_name>_temp/`) and that it may be kept or deleted.
-- A one-line summary of the paper (not a replacement for the output, just an orientation line).
+- A one-line summary of the paper (not a replacement for the outputs, just an orientation line).
 
 Answer follow-up questions from the user using the same four-ingredient + zero-jump + concise-complete rules. Follow-ups are not exempt.
 
@@ -147,6 +191,7 @@ _self-check pass (Stage 1):_
 - **Source-fidelity before self-checks.** Re-read the paper paragraph by paragraph and verify every information bit is present before running the three self-checks. Missing information cannot be caught by language-level or formula-level checks.
 - **Recursive self-check loop, not single-pass.** If any self-check triggers a modification, re-run ALL three checks. Repeat until a full pass produces zero modifications. A single-pass check misses cross-skill dependencies (e.g., a zero-jump patch inserting a new formula that needs math-explain treatment).
 - **Every chunk gets all three checks.** No skipping math-explain, no skipping zero-jump-check, no skipping concise-complete.
+- **knowledge_map controls expansion depth.** For every non-universal concept, look it up in `knowledge_map.md` before writing. Apply the expansion rule from prereq-probe: `known` → one-line reference; `partial` → definition + intuition + one formula; `unknown` → full canonical-form derivation chain. Never write a full derivation for a concept the user already knows, and never skip one for a concept they do not.
 - **Non-universal concepts need derivation chains.** If the paper uses a specialized tool (SAE, normalizing flow, score matching, etc.), derive or define it from something the reader knows before using it. This is enforced by both math-explain (canonical-form-first) and zero-jump-check (concept-prerequisite gap).
 - **Paper equation numbers must be cited.** When the paper numbers an equation, reference that number in the output so the reader can cross-check.
 - **Image channel is ground truth for every formula.** Don't trust `pdftotext` output for an equation you haven't cross-referenced against the page PNG.
@@ -166,3 +211,4 @@ Each rule exists because skipping it produces a specific, visible failure:
 - **Without concise-complete per chunk**, the output bloats and the user has to reread sentences.
 - **Without the image channel**, text-channel subscript errors propagate into the explanation unchecked.
 - **Without append-only**, the user loses visibility into what changed and why.
+- **Without prereq-probe**, expansion depth is guessed: too shallow strands the novice reader at the first specialized concept; too deep wastes the expert reader's time with derivations they already own. prereq-probe eliminates the guess.

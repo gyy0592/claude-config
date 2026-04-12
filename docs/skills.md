@@ -32,6 +32,7 @@ Two entry points:
 | Sub-Skill | Trigger | Purpose |
 |---|---|---|
 | `pdf-ingest` | Auto-invoked on PDF input | Dual-channel extraction: text + rendered page images |
+| `prereq-probe` | Auto-invoked after ingest; or "probe my knowledge", "ask me what I know" | Scans for non-universal prerequisites, probes user knowledge via A/B/C questions, writes `knowledge_map.md` to control explanation depth |
 | `contrib-extract` | "what are the contributions", `/contributions` | Four-ingredient rule (motivation, intuition, scenario, formula) |
 | `pipeline-walk` | "walk me through this method", `/walk` | Stage-by-stage method walkthrough |
 | `math-explain` | "explain mathematically", "show the derivation" | Rigorous per-equation explanation |

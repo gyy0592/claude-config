@@ -32,6 +32,7 @@
 | 子 Skill | 触发方式 | 用途 |
 |---|---|---|
 | `pdf-ingest` | PDF 输入时自动调用 | 双通道提取：文本 + 渲染页面图片 |
+| `prereq-probe` | ingest 后自动调用；或"先问我几个问题"、"检查我的背景知识" | 扫描非通用前置概念，用 A/B/C 问题探测用户知识，写 `knowledge_map.md` 控制展开深度 |
 | `contrib-extract` | "这篇的贡献是什么"、`/contributions` | 四要素法（动机、直觉、场景、公式） |
 | `pipeline-walk` | "带我走一遍方法"、`/walk` | 逐阶段方法详解 |
 | `math-explain` | "数学上怎么解释"、"推导一下" | 逐公式严格推导 |
