@@ -18,11 +18,16 @@
 | `this-cluster` | 编写 Slurm 脚本、选择 Python 环境、设置 GPU 参数时自动参考 |
 | `codex-fix` | `codex review` 失败时自动参考：bwrap 沙箱错误、流断开等 |
 
-## 论文阅读套件（1 主 + 7 子 skill）
+## 论文阅读套件（2 主 + 6 子 skill）
 
-入口：`/read-paper`、`/paper-reader`、"读这篇论文"
+两个入口：
+- **快速概览**: `/paper-overview`、"概览这篇论文" → 8个固定部分的结构化概览（5-10分钟）
+- **深度分析**: `/read-paper`、`/paper-reader`、"读这篇论文" → 逐块递归自检的精确分析（30-60分钟）
 
-将下列子 skill 编排为逐块、动机优先、零逻辑跳跃的论文讲解流程。
+| 主 Skill | 触发方式 | 用途 |
+|---|---|---|
+| `paper-overview` | `/paper-overview`、`/overview`、"快速分析"、"概览" | 快速结构化概览：问题、方法、结果，8个固定部分 |
+| `paper-reader` | `/read-paper`、`/paper-reader`、"读这篇论文" | 深度分析编排器，逐块精确处理
 
 | 子 Skill | 触发方式 | 用途 |
 |---|---|---|

@@ -18,11 +18,16 @@ All skills are installed via symlink (Step 4 in README). Trigger with the slash 
 | `this-cluster` | Auto-consulted when writing Slurm scripts, choosing Python envs, or setting GPU flags |
 | `codex-fix` | Auto-consulted on `codex review` failures: bwrap sandbox errors, stream disconnections |
 
-## Paper Reader Suite (1 + 7 sub-skills)
+## Paper Reader Suite (2 main + 6 sub-skills)
 
-Entry point: `/read-paper`, `/paper-reader`, "read this paper"
+Two entry points:
+- **Quick overview**: `/paper-overview`, "overview this paper" → 8-section structured overview (5-10 min)
+- **Deep analysis**: `/read-paper`, `/paper-reader`, "read this paper" → chunk-by-chunk with recursive self-checks (30-60 min)
 
-Orchestrates the sub-skills below into a chunk-by-chunk, motivation-first, zero-logical-jump paper explainer.
+| Main Skill | Trigger | Purpose |
+|---|---|---|
+| `paper-overview` | `/paper-overview`, `/overview`, "quick analysis", "概览" | Fast structured overview: problem, method, results, 8 fixed sections |
+| `paper-reader` | `/read-paper`, `/paper-reader`, "read this paper" | Deep analysis orchestrator for chunk-by-chunk precision
 
 | Sub-Skill | Trigger | Purpose |
 |---|---|---|
