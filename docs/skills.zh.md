@@ -13,6 +13,8 @@
 | `gen-report-detailed` | `/gen-report-detailed`、"详细报告"、"完整报告" |
 | `experiment-run` | `/experiment-run`、"跑实验"、"提交任务" |
 | `claude-config-sync` | `/claude-config-sync`、"同步配置"、"推送配置" |
+| `error-log` | `/error-log`、用户对AI错误表达愤怒/沮丧、骂AI出错 |
+| `follow-instruction` | `/follow-instruction`、AI违反指令或做了假设 |
 | `this-cluster` | 编写 Slurm 脚本、选择 Python 环境、设置 GPU 参数时自动参考 |
 | `codex-fix` | `codex review` 失败时自动参考：bwrap 沙箱错误、流断开等 |
 

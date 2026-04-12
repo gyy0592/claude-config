@@ -13,6 +13,8 @@ All skills are installed via symlink (Step 4 in README). Trigger with the slash 
 | `gen-report-detailed` | `/gen-report-detailed`, "detailed report", "full report" |
 | `experiment-run` | `/experiment-run`, "run experiment", "submit job" |
 | `claude-config-sync` | `/claude-config-sync`, "sync config", "push config" |
+| `error-log` | `/error-log`, user frustration/anger at AI errors, cursing at mistakes |
+| `follow-instruction` | `/follow-instruction`, AI violated instructions or made assumptions |
 | `this-cluster` | Auto-consulted when writing Slurm scripts, choosing Python envs, or setting GPU flags |
 | `codex-fix` | Auto-consulted on `codex review` failures: bwrap sandbox errors, stream disconnections |
 

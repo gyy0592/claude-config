@@ -14,8 +14,8 @@ if [ ! -f "$pdf" ]; then
   echo "error: file not found: $pdf" >&2
   exit 1
 fi
-command -v pdftotext >/dev/null || { echo "error: pdftotext missing (install poppler-utils)" >&2; exit 1; }
-command -v pdftoppm  >/dev/null || { echo "error: pdftoppm missing (install poppler-utils)"  >&2; exit 1; }
+command -v pdftotext >/dev/null || { echo "error: pdftotext missing (install poppler-utils on Linux, or brew install poppler on macOS)" >&2; exit 1; }
+command -v pdftoppm  >/dev/null || { echo "error: pdftoppm missing (install poppler-utils on Linux, or brew install poppler on macOS)"  >&2; exit 1; }
 
 base="$(basename "$pdf" .pdf)"
 dir="${base}_temp"

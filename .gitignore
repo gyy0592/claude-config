@@ -1,4 +1,5 @@
 skills/this-cluster/
+skills/lyx-cluster/
 
 # Codex credentials (never commit real keys)
 codex_info.yaml

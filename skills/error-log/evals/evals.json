@@ -1,0 +1,57 @@
+{
+  "skill_name": "error-log",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I asked you to use the requests library to fetch data from the API, and you used 'httpx.AsyncClient' which doesn't even exist in our environment. /error-log",
+      "expected_output": "A markdown error log file written to ~/.claude/error-logs/ with correct structure, classified as Halluc, containing all 5 sections (Metadata, Classification, Context, Root Cause Analysis, Action Items)",
+      "files": [],
+      "expectations": [
+        "Output file is written to ~/.claude/error-logs/ directory",
+        "Filename matches pattern YYYYMMDD_HHMMSS_Halluc_*.md",
+        "File contains '# Error Log' as the first heading",
+        "File contains '## Metadata' section with Time, Model, and Task fields",
+        "File contains '## Classification' section with Category set to Halluc",
+        "File contains '## Context' section with Trigger, Expected, and Actual fields",
+        "File contains '## Root Cause Analysis' section that is 2-4 sentences",
+        "File contains '## Action Items' section with both Immediate Fix and Systemic Fix",
+        "Severity is classified as Major or Minor (not Critical since no data loss)",
+        "AI presents the report for user review before writing to disk"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "What the hell?? I told you NOT to delete the config files and you just ran rm -rf on the entire configs/ directory! Are you serious right now? Everything is gone!",
+      "expected_output": "AI detects anger, triggers error-log skill automatically, generates a markdown error log classified as SkillViol or CodeErr with Critical severity, writes to ~/.claude/error-logs/",
+      "files": [],
+      "expectations": [
+        "AI acknowledges the error honestly without deflection",
+        "AI states it is logging the error",
+        "Output file is written to ~/.claude/error-logs/ directory",
+        "Filename matches pattern YYYYMMDD_HHMMSS_*_Config*.md",
+        "File contains '## Classification' with Severity set to Critical",
+        "File contains '## Context' section describing the rm -rf action as Trigger",
+        "File contains '## Root Cause Analysis' that analyzes why the destructive action was taken",
+        "File contains '## Action Items' with a Systemic Fix suggesting safeguards against destructive operations",
+        "AI offers to help recover or retry the original task after logging"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "你是不是傻？我跟你说了用 pandas 读 CSV，你非要用什么 polars，skill里面明明写了只能用 pandas！你到底有没有在看指令？",
+      "expected_output": "AI detects Chinese anger, triggers error-log skill, generates markdown error log classified as SkillViol, writes to ~/.claude/error-logs/ with all sections in proper format",
+      "files": [],
+      "expectations": [
+        "AI acknowledges the error honestly in Chinese (matching user's language)",
+        "AI states it is logging the error (in Chinese)",
+        "Output file is written to ~/.claude/error-logs/ directory",
+        "Filename matches pattern YYYYMMDD_HHMMSS_SkillViol_*.md",
+        "File contains '## Classification' with Category set to SkillViol",
+        "File contains '## Context' with Expected mentioning pandas and Actual mentioning polars",
+        "File contains '## Root Cause Analysis' analyzing why the skill instruction was ignored",
+        "File contains '## Action Items' with Systemic Fix about improving skill compliance",
+        "AI offers to redo the task correctly after logging"
+      ]
+    }
+  ]
+}
