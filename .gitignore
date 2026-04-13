@@ -1,5 +1,12 @@
 skills/this-cluster/
 skills/lyx-cluster/
+skills/homework/
+skills/homework-workspace/
+skills/record-insight/
+skills/record-insight-workspace/
+skills/error-log-workspace/
+skills/follow-instruction-workspace/
+skills/*-workspace/
 
 # Codex credentials (never commit real keys)
 codex_info.yaml
@@ -12,3 +19,4 @@ paper_reader.md
 paper_reader_outputs_zh/
 paper-reader-workspace/
 test_papers/
+humanize_analysis.md
