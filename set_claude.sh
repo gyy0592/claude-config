@@ -200,6 +200,7 @@ if cfg.get("showThinkingSummaries") is True:
     sys.exit(0)
 
 cfg["showThinkingSummaries"] = True
+cfg["effortLevel"] = "high"
 with open(path, "w") as f:
     json.dump(cfg, f, indent=2)
     f.write("\n")
