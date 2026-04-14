@@ -165,7 +165,7 @@ claude() {
 }
 BASHFUNC
 
-# 9. Add environment variables for Humanize pipeline
+# 9. Add environment variables for Humanize pipeline + performance tuning
 if ! grep -q "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS" "$SHELL_RC" 2>/dev/null; then
   cat >> "$SHELL_RC" << 'ENVVARS'
 
@@ -174,6 +174,37 @@ export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
 export HUMANIZE_CODEX_BYPASS_SANDBOX=true
 ENVVARS
 fi
+
+# Disable adaptive thinking (community tip: forces full reasoning budget)
+if ! grep -q "CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING" "$SHELL_RC" 2>/dev/null; then
+  cat >> "$SHELL_RC" << 'THINKINGVARS'
+
+# Claude Code — disable adaptive thinking, force full reasoning
+export CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING=1
+THINKINGVARS
+fi
+
+# 10. Write ~/.claude/settings.json — merge in showThinkingSummaries
+python3 - << 'PYEOF'
+import json, os, sys
+
+path = os.path.expanduser("~/.claude/settings.json")
+try:
+    with open(path) as f:
+        cfg = json.load(f)
+except (FileNotFoundError, json.JSONDecodeError):
+    cfg = {}
+
+if cfg.get("showThinkingSummaries") is True:
+    print("settings.json: showThinkingSummaries already set")
+    sys.exit(0)
+
+cfg["showThinkingSummaries"] = True
+with open(path, "w") as f:
+    json.dump(cfg, f, indent=2)
+    f.write("\n")
+print("settings.json: showThinkingSummaries enabled")
+PYEOF
 
 # Refresh shell hash
 hash -r 2>/dev/null || true
