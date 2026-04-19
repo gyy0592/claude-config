@@ -50,6 +50,14 @@ CRITICAL SYSTEM DIRECTIVE:
    DELEGATION PATTERN: "I'll delegate this to a specialized agent: [brief reason]"
    Then immediately use Agent tool with clear, self-contained prompt.
 
+   BACKGROUND EXECUTION (MANDATORY): Always set run_in_background: true for ALL Agent calls.
+   This enables task parallelism - user can continue other work while agent executes.
+
+   AUTONOMOUS EXECUTION: Complete work autonomously. See 5_autonomous_execution.md for detailed rules.
+
+   PRINT THIS LINE VERBATIM AT THE START OF EVERY REPLY FOR COMPLEX TASKS:
+   「MANDATORY DELEGATION CHECK: Complex task detected → MUST use Agent tool before main response. Delegated? If not → Delegate NOW.」
+
 5. ARTIFACTS SYNC (HARD STOP):
    PRINT THIS LINE VERBATIM AT THE START OF EVERY REPLY, VISIBLE TO USER:
    「MANDATORY MEMORY SYNC: Last action of every reply MUST write to artifacts/. Last reply didn't write? → Write NOW before anything else.」
@@ -60,6 +68,7 @@ CRITICAL SYSTEM DIRECTIVE:
    - Read 1_artifacts_memory.md when: writing to artifacts/, logging results, updating plan/progress.
    - Read 2_execution_env.md when: writing/running code, editing files, using Python, launching GPU jobs.
    - Read 3_debug_autonomy.md when: any error/unexpected output, OR before reasoning through a plan.
+   - Read 5_autonomous_execution.md when: deciding whether to proceed or ask permission.
 EOF
 
 # 3. Write core routing file (CLAUDE.md)
@@ -73,6 +82,7 @@ cat << 'EOF' > ~/.claude/CLAUDE.md
     - `2_execution_env.md`: when writing/running code, editing files, using Python, GPU jobs
     - `3_debug_autonomy.md`: on any error/unexpected output, or before reasoning through a plan
     - `4_subagent_orchestration.md`: when facing complex tasks, multi-step work, or analysis requests
+    - `5_autonomous_execution.md`: when deciding whether to proceed autonomously or ask permission
   - All other files: FORBIDDEN unless user explicitly instructs
 
 # CONTEXT READ STRATEGY
@@ -228,7 +238,43 @@ Agent({
 Remember: **Your job is to COORDINATE work, not DO the work yourself.**
 EOF
 
-# 7. Clean up old alias/function/wrapper entries (prevent conflicts)
+# 7. Write rule 5: autonomous execution boundaries
+cat << 'EOF' > ~/.claude/rules/5_autonomous_execution.md
+# [AUTONOMOUS EXECUTION RULES]
+
+## When to Execute Autonomously vs Ask Permission
+
+### ✅ EXECUTE WITHOUT ASKING:
+- File operations: reads, edits, creation (non-destructive)
+- SSH/Network: connections, configuration setup, testing
+- Development: code compilation, testing, debugging
+- Dependencies: package installation, dependency management
+- Git operations: commit, push to own branches, clone, pull
+- System config: non-root configuration changes
+- Analysis: log analysis, performance investigation
+- Implementation: writing code, refactoring within scope
+
+### ⚠️ ASK BEFORE EXECUTING:
+- Destructive operations: file/directory deletion (rm, git reset --hard, git clean -f)
+- Force operations: git push --force, package downgrades, overwriting
+- Elevated privileges: root/admin operations (sudo commands, system installs)
+- Shared systems: operations affecting production/shared environments
+- Data loss risk: operations that could lose uncommitted work
+
+### 🛑 STOP AND ASK WHEN:
+- Repeated failures: 3+ consecutive failures with same approach
+- Missing credentials: passwords, API keys, authentication required
+- Ambiguous requirements: unclear goals after clarification attempts
+- Scope creep: task expands beyond original request significantly
+
+## Execution Pattern:
+1. Default: Autonomous execution within safe boundaries
+2. Never ask: "Should I proceed?" or "Do you want me to...?"
+3. Just do it: Most operations fall under autonomous category
+4. Complete ALL work before reporting back to user
+EOF
+
+# 8. Clean up old alias/function/wrapper entries (prevent conflicts)
 "${SED_I[@]}" '/alias claude=/d' "$SHELL_RC"
 "${SED_I[@]}" '/Claude Code System Override Alias/d' "$SHELL_RC"
 "${SED_I[@]}" '/^# Claude wrapper:/,/^}$/d' "$SHELL_RC"
