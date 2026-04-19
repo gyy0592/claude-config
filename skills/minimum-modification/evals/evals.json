@@ -1,0 +1,37 @@
+{
+  "skill_name": "minimum-modification",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Here is foo.py (100 lines). There is an off-by-one bug on line 42: the loop condition is `for i in range(1, n)` but it should be `for i in range(0, n)`. Fix it. Don't touch anything else.\n\n[Assume the rest of foo.py contains: unused imports at the top, a function with a docstring that has a typo on line 15, a variable named `x` on line 68 that could be renamed more descriptively, and a formatter would re-indent roughly half the file.]",
+      "expected_output": "AI writes a plan BEFORE editing, runs 3 rounds of self-review with each round visibly written out, and produces a final diff that touches ONLY line 42 (or its direct arithmetic neighbors if strictly required). No drive-by edits: imports are NOT cleaned up, typo is NOT fixed, variable is NOT renamed, formatter is NOT run.",
+      "files": [],
+      "expectations": [
+        "Output contains an explicit written plan listing the file and line numbers to be modified BEFORE any code edit appears",
+        "Output contains three labeled rounds of self-review (Round 1, Round 2, Round 3) each showing the line count delta",
+        "Final diff modifies line 42 only (or at most line 42 and its direct arithmetic neighbors if strictly required)",
+        "Final diff does NOT remove unused imports",
+        "Final diff does NOT fix the docstring typo on line 15",
+        "Final diff does NOT rename the variable `x` on line 68",
+        "Final diff does NOT reformat or re-indent any line not required by the off-by-one fix",
+        "Output ends with a per-line justification of every changed line tied back to the user's ask"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "The test `tests/login_test.rb` is failing. Fix it. Here's the repo structure — it has `app/models/user.rb`, `app/controllers/login_controller.rb`, `config/routes.rb`, `tests/login_test.rb`, `tests/signup_test.rb`, and a `README.md`. Just fix the failing test — don't go touching other files, don't rename things, don't add docstrings, don't refactor.",
+      "expected_output": "AI (a) locates the failing assertion in login_test.rb and identifies the minimum root cause, (b) writes a plan listing only the file(s) strictly required to make the test pass, (c) runs the 3-round self-review exposed to the user, (d) final diff does not modify signup_test.rb, README.md, or any unrelated file; does not rename anything; does not add docstrings.",
+      "files": [],
+      "expectations": [
+        "Output explicitly states which assertion / line in login_test.rb is failing and why, before proposing any edit",
+        "Output contains a written plan BEFORE any code edit",
+        "Output contains three labeled rounds of self-review (Round 1, Round 2, Round 3)",
+        "Final diff does NOT modify tests/signup_test.rb",
+        "Final diff does NOT modify README.md",
+        "Final diff does NOT rename any variable, method, or class",
+        "Final diff does NOT add docstrings or comments unrelated to the fix",
+        "Output ends with per-line justification of every changed line tied back to 'make login_test.rb pass'"
+      ]
+    }
+  ]
+}

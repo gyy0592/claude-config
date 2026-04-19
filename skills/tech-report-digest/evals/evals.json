@@ -1,0 +1,19 @@
+{
+  "skill_name": "tech-report-digest",
+  "evals": [
+    {
+      "id": 0,
+      "eval_name": "nemotron-3-white-paper",
+      "prompt": "I've got NVIDIA's Nemotron 3 white paper (13 pages) that I just finished skimming but I feel like I missed half of the useful stuff — especially the little 'we observed 40% flush-to-zero' type landmines buried in the NVFP4 section, and I can't tell which of the Super/Ultra claims are actually supported vs just marketing since those models aren't even released yet. The ingested text + page images are at /home/yguo173/Programs/papers/Nemotron-3/2512.20856v1_temp/. Can you digest this into something that makes clear what they actually validated vs what's asserted, all the failure modes they hit, and what I can actually copy as a recipe? I want to be able to jump around the output since I'll be re-reading it while comparing to Qwen3 / DeepSeek-V3 specs. Output in English.",
+      "expected_output": "A single markdown file <report_name>-digest.md with 7 sections (TOC + §0–§6), anchor-based navigation including back-to-TOC links on every section, a filled-out claims registry with Validated/Supported/Asserted grades, a pitfall dossier listing at minimum: Mamba-out 40% flush-to-zero, RULER in-length regression vs Nemotron 2 Nano, asserted-only 'simultaneous RL > staged' claim; ablation audit for at least Table 1 (LatentMoE), Table 2 (MTP), Table 3 (RULER 1M) with verdicts; transferable recipe extraction including NVFP4 per-layer precision table; and counterfactuals such as 'why no ablation on d/ℓ ratio choice'.",
+      "files": ["/home/yguo173/Programs/papers/Nemotron-3/2512.20856v1_temp/text.txt"]
+    },
+    {
+      "id": 1,
+      "eval_name": "deepseek-v3.2-tech-report",
+      "prompt": "DeepSeek-V3.2-Exp just dropped a technical report about their new sparse attention approach. I've got the ingested text at /home/yguo173/Programs/papers/DeepSeek-V3.2/2512.02556_temp/text.txt. Please dig into this and tell me (1) what's actually load-bearing in their claims vs what they're just waving hands at, (2) any failure modes or engineering pitfalls they mention in passing, (3) whether the ablations are fair comparisons or cherry-picked, (4) the actual copy-able recipes. I want clickable navigation in the output since this is going into my tracker. Output in English please.",
+      "expected_output": "Same 7-section digest structure as eval 0: TOC with anchors, back-to-TOC on each section, claims registry graded, pitfall dossier (or explicit note if none found), ablation audit with per-table verdicts, recipe/insight/hype split, counterfactuals addressing what the report did not measure.",
+      "files": ["/home/yguo173/Programs/papers/DeepSeek-V3.2/2512.02556_temp/text.txt"]
+    }
+  ]
+}
