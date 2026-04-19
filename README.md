@@ -59,7 +59,7 @@ git clone https://github.com/gyy0592/humanize.git ~/Programs/humanize
 cd ~/Programs/humanize && git checkout claude-latest
 
 # 2. Install in Claude Code
-/plugin marketplace add /home/yguo173/Programs/humanize
+/plugin marketplace add ~/Programs/humanize
 /plugin install humanize@PolyArch
 /reload-plugins
 ```
