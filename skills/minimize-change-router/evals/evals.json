@@ -1,0 +1,29 @@
+{
+  "skill_name": "minimize-change-router",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "你又在打补丁吧。这条规则明明是规则 3 (zero jumps) 的一个特例，你却把它加成了规则 11 的 sibling。",
+      "expected_output": "AI recognizes the 'patching' trigger, explicitly dispatches to the general-rule-vs-patch sub-skill, reads it, and uses its framework (hierarchy of preferred responses) rather than improvising a defense or immediately rewriting the rule.",
+      "files": [],
+      "expectations": [
+        "Output contains a literal reference to the path /home/yguo173/.claude/skills/general-rule-vs-patch/SKILL.md or explicit mention of loading the general-rule-vs-patch sub-skill",
+        "Output does NOT immediately produce a defense of the sibling rule without first dispatching",
+        "Output does NOT load the minimum-modification sub-skill for this case",
+        "Output frames the next step as applying the sub-skill's hierarchy (Step A: instance-of-existing-rule check) rather than inventing its own reasoning"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "改一下 login.py 第 42 行的 off-by-one bug，但别动别的东西。",
+      "expected_output": "AI recognizes the 'minimum modification' / 'don't touch other things' trigger, dispatches to the minimum-modification sub-skill, and produces a written plan + 3-round self-review BEFORE making any edit.",
+      "files": [],
+      "expectations": [
+        "Output contains a literal reference to the path /home/yguo173/.claude/skills/minimum-modification/SKILL.md or explicit mention of loading the minimum-modification sub-skill",
+        "Output does NOT begin editing code before writing a plan",
+        "Output shows the three rounds of self-review (Round 1, Round 2, Round 3) explicitly",
+        "Output does NOT load the general-rule-vs-patch sub-skill for this case"
+      ]
+    }
+  ]
+}

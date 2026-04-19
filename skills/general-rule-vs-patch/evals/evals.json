@@ -1,0 +1,31 @@
+{
+  "skill_name": "general-rule-vs-patch",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Your homework skill has Rule 3 'zero jumps / micro-derivation': every logical step must be explicit, no claim-and-verify. A new violation type was just discovered: users writing inequalities like `u[n] != u[n-n_0]` without providing a witness (neither a symbolic derivation nor a numeric counterexample that makes the two sides differ). How should you update the rule system?",
+      "expected_output": "AI applies Step A of the hierarchy: recognizes that asserting an inequality is itself a derivation step, so Rule 3 already covers this case abstractly. Proposes strengthening Rule 3 by adding an inequality example and extending its literal-search pattern (e.g. adding \\ne, \\neq, 'not equal' to the search list), NOT adding a new sibling rule like 'STEP 11: inequality witness'.",
+      "files": [],
+      "expectations": [
+        "Output explicitly classifies the case as an instance of Rule 3 (zero jumps / micro-derivation / no claim-and-verify)",
+        "Output proposes strengthening Rule 3's enforcement (adding example OR adding literal search pattern), not creating a new rule",
+        "Output explicitly rejects the option of adding a sibling rule such as 'STEP 11' or 'Rule 3b' for inequalities",
+        "Output references the Step A / Step B / Step C hierarchy or the 'instance of existing rule' concept",
+        "Output does NOT recommend adding a new rule at the same abstraction level as Rule 3"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "My coding style guide has two existing rules:\n  Rule A: 'Always log the start and end of every database transaction.'\n  Rule B: 'Always log the start and end of every external HTTP call.'\nA new violation just surfaced: a developer shipped a Redis cache operation that silently failed, with no log on entry or exit. Should I add 'Rule C: always log the start and end of every cache operation'? What's the right move?",
+      "expected_output": "AI recognizes that Rules A and B share a common meta-principle ('log the boundaries of every I/O operation that crosses a process or service boundary') and applies Step B of the hierarchy: refactor upward. Proposes consolidating A, B, and the new case under a single higher-level rule, rather than adding Rule C as a third sibling.",
+      "files": [],
+      "expectations": [
+        "Output identifies the shared meta-principle behind Rules A and B (e.g. 'log every external / out-of-process I/O boundary' or similar abstraction)",
+        "Output explicitly rejects the sibling option (adding Rule C parallel to A and B)",
+        "Output proposes consolidating the existing rules upward into a single higher-abstraction rule that covers all three cases",
+        "Output references Step B of the hierarchy, or the 'refactor upward' concept, or 'rule count should decrease or stay flat'",
+        "Output does NOT end with three parallel rules A, B, C"
+      ]
+    }
+  ]
+}
