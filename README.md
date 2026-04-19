@@ -36,10 +36,41 @@ bash setup_codex.sh
 cp settings.json ~/.claude/settings.json
 
 # Run these inside Claude Code (slash commands, not terminal)
-/plugin marketplace add humania-org/humanize
 /plugin marketplace add openai/codex-plugin-cc
-/plugin install humanize@humania
 /plugin install codex@openai-codex
+
+# For humanize plugin, see section below for clean installation
+```
+
+#### Humanize Plugin Management
+
+**Clean old installations:**
+```bash
+# Inside Claude Code - remove old humanize installations
+/plugin uninstall humanize@humania  # if exists
+/plugin uninstall humanize@PolyArch  # if exists
+/plugin marketplace remove humania   # if exists
+```
+
+**Install from local git repo:**
+```bash
+# 1. Clone/update your fork
+git clone https://github.com/gyy0592/humanize.git ~/Programs/humanize
+cd ~/Programs/humanize && git checkout claude-latest
+
+# 2. Install in Claude Code
+/plugin marketplace add /home/yguo173/Programs/humanize
+/plugin install humanize@PolyArch
+/reload-plugins
+```
+
+**Update workflow:**
+```bash
+cd ~/Programs/humanize
+git fetch upstream dev
+git rebase upstream/dev  # keeps Claude features + latest upstream
+git push origin claude-latest --force-with-lease
+# Reinstall in Claude Code if needed
 ```
 
 ### 4. Install custom skills
