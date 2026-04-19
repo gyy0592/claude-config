@@ -36,10 +36,41 @@ bash setup_codex.sh
 cp settings.json ~/.claude/settings.json
 
 # 以下为斜杠命令，在 Claude Code 内执行
-/plugin marketplace add humania-org/humanize
 /plugin marketplace add openai/codex-plugin-cc
-/plugin install humanize@humania
 /plugin install codex@openai-codex
+
+# humanize 插件安装见下方专门章节
+```
+
+#### Humanize 插件管理
+
+**清理旧安装：**
+```bash
+# 在 Claude Code 内 - 移除旧的 humanize 安装
+/plugin uninstall humanize@humania  # 如果存在
+/plugin uninstall humanize@PolyArch  # 如果存在
+/plugin marketplace remove humania   # 如果存在
+```
+
+**从本地 git 仓库安装：**
+```bash
+# 1. 克隆/更新你的 fork
+git clone https://github.com/gyy0592/humanize.git ~/Programs/humanize
+cd ~/Programs/humanize && git checkout claude-latest
+
+# 2. 在 Claude Code 中安装
+/plugin marketplace add /home/yguo173/Programs/humanize
+/plugin install humanize@PolyArch
+/reload-plugins
+```
+
+**更新工作流：**
+```bash
+cd ~/Programs/humanize
+git fetch upstream dev
+git rebase upstream/dev  # 保持 Claude 功能 + 最新上游更新
+git push origin claude-latest --force-with-lease
+# 如需要可在 Claude Code 中重新安装
 ```
 
 ### 4. 安装自定义 Skills
