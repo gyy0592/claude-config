@@ -52,6 +52,8 @@ CRITICAL SYSTEM DIRECTIVE:
 
    BACKGROUND EXECUTION (MANDATORY): Always set run_in_background: true for ALL Agent calls.
    This enables task parallelism - user can continue other work while agent executes.
+   Explicit parameter required in every Agent tool call:
+   run_in_background: true
 
    AUTONOMOUS EXECUTION: Complete work autonomously. See 5_autonomous_execution.md for detailed rules.
 
