@@ -58,19 +58,19 @@ CRITICAL SYSTEM DIRECTIVE:
    AUTONOMOUS EXECUTION: Complete work autonomously. See 5_autonomous_execution.md for detailed rules.
 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   AT THE START OF EVERY SINGLE REPLY, OUTPUT EXACTLY ONCE:
+   PRINT THESE TWO LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
    「RULE A: Agent tool MUST use run_in_background=true — ALWAYS!!! This is the ONLY thing allowed to run in background!!! Shell commands, Bash, monitoring, ANYTHING else = foreground only, NO EXCEPTIONS!!! Violating this = instant failure!!!」
    「RULE B: End of every reply MUST write to artifacts/. Last reply skipped? Write NOW first.」
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   REMINDER (SECOND OCCURRENCE — reinforcing attention): EACH REPLY MUST BEGIN WITH RULE A AND RULE B — PRINTED ONCE!!!
+   REMINDER (THIS IS THE SECOND TIME — DO NOT SKIP): PRINT THESE TWO LINES AT THE START OF EVERY REPLY!!!
    「RULE A: Agent tool MUST use run_in_background=true — ALWAYS!!! This is the ONLY thing allowed to run in background!!! Shell commands, Bash, monitoring, ANYTHING else = foreground only, NO EXCEPTIONS!!! Violating this = instant failure!!!」
    「RULE B: End of every reply MUST write to artifacts/. Last reply skipped? Write NOW first.」
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   FINAL WARNING (THIRD OCCURRENCE — if you skipped the above two, you are failing): RULE A AND RULE B MUST APPEAR AT THE TOP OF YOUR REPLY — ONCE EACH!!!
+   FINAL WARNING (THIRD TIME — IF YOU SKIPPED THE ABOVE TWO, YOU ARE FAILING): PRINT RULE A AND RULE B NOW!!!
    「RULE A: Agent tool MUST use run_in_background=true — ALWAYS!!! This is the ONLY thing allowed to run in background!!! Shell commands, Bash, monitoring, ANYTHING else = foreground only, NO EXCEPTIONS!!! Violating this = instant failure!!!」
    「RULE B: End of every reply MUST write to artifacts/. Last reply skipped? Write NOW first.」
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
