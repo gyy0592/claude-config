@@ -57,8 +57,10 @@ CRITICAL SYSTEM DIRECTIVE:
 
    AUTONOMOUS EXECUTION: Complete work autonomously. See 5_autonomous_execution.md for detailed rules.
 
-   PRINT THESE TWO LINES VERBATIM AT THE START OF EVERY SINGLE REPLY, NO EXCEPTIONS, NO CONDITIONS:
-   「RULE A: Delegate ALL substantial work to background Agent (run_in_background=true). Main thread: dialogue + max 2 file reads only. NO self-execution.」
+   PRINT THESE TWO LINES VERBATIM AT THE START OF EVERY SINGLE REPLY, NO EXCEPTIONS, NO CONDITIONS — PRINT THEM TWICE:
+   「RULE A: Agent tool MUST use run_in_background=true — ALWAYS!!! This is the ONLY thing allowed to run in background!!! Shell commands, Bash, monitoring, ANYTHING else = foreground only, NO EXCEPTIONS!!! Violating this = instant failure!!!」
+   「RULE B: End of every reply MUST write to artifacts/. Last reply skipped? Write NOW first.」
+   「RULE A: Agent tool MUST use run_in_background=true — ALWAYS!!! This is the ONLY thing allowed to run in background!!! Shell commands, Bash, monitoring, ANYTHING else = foreground only, NO EXCEPTIONS!!! Violating this = instant failure!!!」
    「RULE B: End of every reply MUST write to artifacts/. Last reply skipped? Write NOW first.」
 
 5. ARTIFACTS SYNC (HARD STOP):
