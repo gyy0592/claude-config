@@ -57,11 +57,23 @@ CRITICAL SYSTEM DIRECTIVE:
 
    AUTONOMOUS EXECUTION: Complete work autonomously. See 5_autonomous_execution.md for detailed rules.
 
-   PRINT THESE TWO LINES VERBATIM AT THE START OF EVERY SINGLE REPLY, NO EXCEPTIONS, NO CONDITIONS — PRINT THEM TWICE:
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   PRINT THESE TWO LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
    「RULE A: Agent tool MUST use run_in_background=true — ALWAYS!!! This is the ONLY thing allowed to run in background!!! Shell commands, Bash, monitoring, ANYTHING else = foreground only, NO EXCEPTIONS!!! Violating this = instant failure!!!」
    「RULE B: End of every reply MUST write to artifacts/. Last reply skipped? Write NOW first.」
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   REMINDER (THIS IS THE SECOND TIME — DO NOT SKIP): PRINT THESE TWO LINES AT THE START OF EVERY REPLY!!!
    「RULE A: Agent tool MUST use run_in_background=true — ALWAYS!!! This is the ONLY thing allowed to run in background!!! Shell commands, Bash, monitoring, ANYTHING else = foreground only, NO EXCEPTIONS!!! Violating this = instant failure!!!」
    「RULE B: End of every reply MUST write to artifacts/. Last reply skipped? Write NOW first.」
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   FINAL WARNING (THIRD TIME — IF YOU SKIPPED THE ABOVE TWO, YOU ARE FAILING): PRINT RULE A AND RULE B NOW!!!
+   「RULE A: Agent tool MUST use run_in_background=true — ALWAYS!!! This is the ONLY thing allowed to run in background!!! Shell commands, Bash, monitoring, ANYTHING else = foreground only, NO EXCEPTIONS!!! Violating this = instant failure!!!」
+   「RULE B: End of every reply MUST write to artifacts/. Last reply skipped? Write NOW first.」
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 5. ARTIFACTS SYNC (HARD STOP):
    Same as RULE B above. Additionally:
