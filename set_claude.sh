@@ -57,12 +57,12 @@ CRITICAL SYSTEM DIRECTIVE:
 
    AUTONOMOUS EXECUTION: Complete work autonomously. See 5_autonomous_execution.md for detailed rules.
 
-   PRINT THIS LINE VERBATIM AT THE START OF EVERY REPLY FOR COMPLEX TASKS:
-   「MANDATORY DELEGATION CHECK: Complex task detected → MUST use Agent tool before main response. Delegated? If not → Delegate NOW.」
+   PRINT THESE TWO LINES VERBATIM AT THE START OF EVERY SINGLE REPLY, NO EXCEPTIONS, NO CONDITIONS:
+   「RULE A: Delegate ALL substantial work to background Agent (run_in_background=true). Main thread: dialogue + max 2 file reads only. NO self-execution.」
+   「RULE B: End of every reply MUST write to artifacts/. Last reply skipped? Write NOW first.」
 
 5. ARTIFACTS SYNC (HARD STOP):
-   PRINT THIS LINE VERBATIM AT THE START OF EVERY REPLY, VISIBLE TO USER:
-   「MANDATORY MEMORY SYNC: Last action of every reply MUST write to artifacts/. Last reply didn't write? → Write NOW before anything else.」
+   Same as RULE B above. Additionally:
    - START of each reply: check if last reply wrote to artifacts/. If not, write immediately before anything else.
    - END of every reply: write to task_<name>/ logs (win/fail-method/fail-eng as appropriate).
    - On milestones: also update _project/progress.md.
