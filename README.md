@@ -73,6 +73,32 @@ git push origin claude-latest --force-with-lease
 # Reinstall in Claude Code if needed
 ```
 
+#### Anthropics Official Skills
+
+```bash
+# Register the marketplace
+/plugin marketplace add anthropics/skills
+
+# Install document creation suite (Excel, Word, PowerPoint, PDF)
+/plugin install document-skills@anthropic-agent-skills
+
+# Install showcase/example skills (13 skills: frontend-design, mcp-builder, skill-creator, canvas-design, etc.)
+/plugin install example-skills@anthropic-agent-skills
+
+# Install Claude API/SDK documentation skill
+/plugin install claude-api@anthropic-agent-skills
+
+/reload-plugins
+```
+
+**Skills included:**
+
+| Plugin | Slash Commands |
+|---|---|
+| `document-skills` | `/document-skills:xlsx`, `/document-skills:docx`, `/document-skills:pptx`, `/document-skills:pdf` |
+| `example-skills` | `/example-skills:frontend-design`, `/example-skills:mcp-builder`, `/example-skills:skill-creator`, `/example-skills:canvas-design`, and [9 more](https://github.com/anthropics/skills) |
+| `claude-api` | `/claude-api:claude-api` — build LLM apps with Anthropic SDK |
+
 ### 4. Install custom skills
 
 ```bash

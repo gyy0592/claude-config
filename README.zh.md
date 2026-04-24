@@ -73,6 +73,32 @@ git push origin claude-latest --force-with-lease
 # 如需要可在 Claude Code 中重新安装
 ```
 
+#### Anthropics 官方 Skills
+
+```bash
+# 注册 marketplace
+/plugin marketplace add anthropics/skills
+
+# 安装文档创作套件（Excel、Word、PowerPoint、PDF）
+/plugin install document-skills@anthropic-agent-skills
+
+# 安装示例/展示技能集（共 13 个：frontend-design、mcp-builder、skill-creator、canvas-design 等）
+/plugin install example-skills@anthropic-agent-skills
+
+# 安装 Claude API/SDK 文档技能
+/plugin install claude-api@anthropic-agent-skills
+
+/reload-plugins
+```
+
+**包含的 Skills：**
+
+| 插件 | 斜杠命令 |
+|---|---|
+| `document-skills` | `/document-skills:xlsx`、`/document-skills:docx`、`/document-skills:pptx`、`/document-skills:pdf` |
+| `example-skills` | `/example-skills:frontend-design`、`/example-skills:mcp-builder`、`/example-skills:skill-creator`、`/example-skills:canvas-design` 等 [共 13 个](https://github.com/anthropics/skills) |
+| `claude-api` | `/claude-api:claude-api` — 使用 Anthropic SDK 构建 LLM 应用 |
+
 ### 4. 安装自定义 Skills
 
 ```bash
