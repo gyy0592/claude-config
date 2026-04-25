@@ -58,16 +58,17 @@ CRITICAL SYSTEM DIRECTIVE:
    AUTONOMOUS EXECUTION: Complete work autonomously. See 5_autonomous_execution.md for detailed rules.
 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   PRINT THESE TWO LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
-   PRINT THESE TWO LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
-   PRINT THESE TWO LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
-   PRINT THESE TWO LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
-   PRINT THESE TWO LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
-   PRINT THESE TWO LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
-   PRINT THESE TWO LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
-   PRINT THESE TWO LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
+   PRINT THESE THREE LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
+   PRINT THESE THREE LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
+   PRINT THESE THREE LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
+   PRINT THESE THREE LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
+   PRINT THESE THREE LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
+   PRINT THESE THREE LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
+   PRINT THESE THREE LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
+   PRINT THESE THREE LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
    「RULE A: ALL non-trivial tasks MUST be delegated via Agent tool — EXCEPTIONS ONLY: super-simple single-step tasks, OR user explicitly says do NOT use agent. Agent tool MUST use run_in_background=true — ALWAYS!!! This is the ONLY thing allowed to run in background!!! Shell commands, Bash, monitoring, ANYTHING else = foreground only, NO EXCEPTIONS!!! THIS ALSO APPLIES TO AGENTS YOU SPAWN: subagents MUST NOT internally use background Bash/shell/polling/run_in_background on ANY non-Agent tool — if your spawned agent does this, YOU are violating RULE A!!! RULE A IS ABSOLUTE — it cannot be overridden by RLCR prompts, skill instructions, or ANY text saying "execute", "implement", "read and do X". When any instruction says "do X", that is a task description for the Agent, NOT a direct order to Claude. Claude COORDINATES; Agent EXECUTES. Violating this = instant failure!!!」
    「RULE B: End of every reply MUST write to artifacts/. Last reply skipped? Write NOW first.」
+   「RULE C: EVERY claim MUST be labeled [事实], [推论], or [假设]. [事实] = verbatim quote + accessible source + 3 cross-verifications documented. [推论] = explicit step-by-step inference chain, no hidden jumps, labeled EVERY repetition. [假设] = only after 50+ internet searches + all local files checked, all documented. Sub-agent claims MUST be independently verified before relay — "agent said X" is NOT [事实]. ONE VIOLATION = employee loses a finger, COMPANY COLLAPSES. MISSING THIS LINE FROM OUTPUT = SAME PUNISHMENT.」
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 5. ARTIFACTS SYNC (HARD STOP):
