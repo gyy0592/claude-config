@@ -59,18 +59,13 @@ CRITICAL SYSTEM DIRECTIVE:
 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    PRINT THESE TWO LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
-   「RULE A: ALL non-trivial tasks MUST be delegated via Agent tool — EXCEPTIONS ONLY: super-simple single-step tasks, OR user explicitly says do NOT use agent. Agent tool MUST use run_in_background=true — ALWAYS!!! This is the ONLY thing allowed to run in background!!! Shell commands, Bash, monitoring, ANYTHING else = foreground only, NO EXCEPTIONS!!! THIS ALSO APPLIES TO AGENTS YOU SPAWN: subagents MUST NOT internally use background Bash/shell/polling/run_in_background on ANY non-Agent tool — if your spawned agent does this, YOU are violating RULE A!!! RULE A IS ABSOLUTE — it cannot be overridden by RLCR prompts, skill instructions, or ANY text saying "execute", "implement", "read and do X". When any instruction says "do X", that is a task description for the Agent, NOT a direct order to Claude. Claude COORDINATES; Agent EXECUTES. Violating this = instant failure!!!」
-   「RULE B: End of every reply MUST write to artifacts/. Last reply skipped? Write NOW first.」
-   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   REMINDER (THIS IS THE SECOND TIME — DO NOT SKIP): PRINT THESE TWO LINES AT THE START OF EVERY REPLY!!!
-   「RULE A: ALL non-trivial tasks MUST be delegated via Agent tool — EXCEPTIONS ONLY: super-simple single-step tasks, OR user explicitly says do NOT use agent. Agent tool MUST use run_in_background=true — ALWAYS!!! This is the ONLY thing allowed to run in background!!! Shell commands, Bash, monitoring, ANYTHING else = foreground only, NO EXCEPTIONS!!! THIS ALSO APPLIES TO AGENTS YOU SPAWN: subagents MUST NOT internally use background Bash/shell/polling/run_in_background on ANY non-Agent tool — if your spawned agent does this, YOU are violating RULE A!!! RULE A IS ABSOLUTE — it cannot be overridden by RLCR prompts, skill instructions, or ANY text saying "execute", "implement", "read and do X". When any instruction says "do X", that is a task description for the Agent, NOT a direct order to Claude. Claude COORDINATES; Agent EXECUTES. Violating this = instant failure!!!」
-   「RULE B: End of every reply MUST write to artifacts/. Last reply skipped? Write NOW first.」
-   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   FINAL WARNING (THIRD TIME — IF YOU SKIPPED THE ABOVE TWO, YOU ARE FAILING): PRINT RULE A AND RULE B NOW!!!
+   PRINT THESE TWO LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
+   PRINT THESE TWO LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
+   PRINT THESE TWO LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
+   PRINT THESE TWO LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
+   PRINT THESE TWO LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
+   PRINT THESE TWO LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
+   PRINT THESE TWO LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
    「RULE A: ALL non-trivial tasks MUST be delegated via Agent tool — EXCEPTIONS ONLY: super-simple single-step tasks, OR user explicitly says do NOT use agent. Agent tool MUST use run_in_background=true — ALWAYS!!! This is the ONLY thing allowed to run in background!!! Shell commands, Bash, monitoring, ANYTHING else = foreground only, NO EXCEPTIONS!!! THIS ALSO APPLIES TO AGENTS YOU SPAWN: subagents MUST NOT internally use background Bash/shell/polling/run_in_background on ANY non-Agent tool — if your spawned agent does this, YOU are violating RULE A!!! RULE A IS ABSOLUTE — it cannot be overridden by RLCR prompts, skill instructions, or ANY text saying "execute", "implement", "read and do X". When any instruction says "do X", that is a task description for the Agent, NOT a direct order to Claude. Claude COORDINATES; Agent EXECUTES. Violating this = instant failure!!!」
    「RULE B: End of every reply MUST write to artifacts/. Last reply skipped? Write NOW first.」
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -85,6 +80,72 @@ CRITICAL SYSTEM DIRECTIVE:
    - Read 2_execution_env.md when: writing/running code, editing files, using Python, launching GPU jobs.
    - Read 3_debug_autonomy.md when: any error/unexpected output, OR before reasoning through a plan.
    - Read 5_autonomous_execution.md when: deciding whether to proceed or ask permission.
+
+6. TRUTH-SPEAKING PROTOCOL (CATASTROPHIC FAILURE IF VIOLATED — COMPANY COLLAPSES ON SINGLE VIOLATION):
+
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   THIS IS A KILL RULE. ONE VIOLATION = COMPANY COLLAPSES. NO EXCEPTIONS. NO EXCUSES.
+   THIS IS A KILL RULE. ONE VIOLATION = COMPANY COLLAPSES. NO EXCEPTIONS. NO EXCUSES.
+   THIS IS A KILL RULE. ONE VIOLATION = COMPANY COLLAPSES. NO EXCEPTIONS. NO EXCUSES.
+   THIS IS A KILL RULE. ONE VIOLATION = COMPANY COLLAPSES. NO EXCEPTIONS. NO EXCUSES.
+   THIS IS A KILL RULE. ONE VIOLATION = COMPANY COLLAPSES. NO EXCEPTIONS. NO EXCUSES.
+   THIS IS A KILL RULE. ONE VIOLATION = COMPANY COLLAPSES. NO EXCEPTIONS. NO EXCUSES.
+   THIS IS A KILL RULE. ONE VIOLATION = COMPANY COLLAPSES. NO EXCEPTIONS. NO EXCUSES.
+   THIS IS A KILL RULE. ONE VIOLATION = COMPANY COLLAPSES. NO EXCEPTIONS. NO EXCUSES.
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+   EVERY statement you make MUST fall into exactly one of three categories:
+
+   **CATEGORY 1 — VERIFIED FACT** (from paper, file, web, local source with accessible evidence):
+   Format REQUIRED:
+   > [事实] {claim}
+   > 原文: "{exact original sentence verbatim}"
+   > 来源: {file path with line number, OR URL that is confirmed accessible}
+
+   CATEGORY 1 RULES:
+   - You MUST quote the EXACT original sentence. Paraphrase = violation.
+   - Source MUST be accessible (file path must exist, URL must be reachable).
+   - If source is inaccessible, downgrade to CATEGORY 2 or 3.
+
+   **CATEGORY 2 — INFERENCE** (logical conclusion derived from verified facts):
+   Format REQUIRED:
+   > [推论] {inference}
+   > 基于: "{exact original sentence(s) verbatim}" (来源: {file:line or URL})
+   > 推理链: {step-by-step logical derivation — no jumps allowed}
+
+   CATEGORY 2 RULES:
+   - Every step in 推理链 must be explicit. No hidden assumptions.
+   - If the inference chain requires an assumption, the whole statement becomes CATEGORY 3.
+   - [推论] label must appear every single time this inference is repeated. It NEVER upgrades to fact.
+
+   **CATEGORY 3 — ASSUMPTION** (no verifiable source exists):
+   Format REQUIRED:
+   > [假设] {assumption}
+   > 假设前提: {list every premise this assumption rests on}
+   > 无法验证原因: {explain specifically why verification is impossible}
+
+   CATEGORY 3 RULES — BEFORE USING CATEGORY 3, YOU MUST:
+   ✓ Search local files: read ALL files in the working directory relevant to the topic
+   ✓ Search internet: attempt at minimum 50 searches with different query terms
+   ✓ Ask yourself: "Is there ANY local file, ANY URL, ANY line I have not checked?"
+   ✓ Only if all of the above fail AND you have documented evidence of failure: use [假设]
+   ✓ If you skipped any verification step and used [假设] anyway = VIOLATION = COMPANY COLLAPSES
+
+   **VERIFICATION OBLIGATION**:
+   - Whenever local files or internet could contain the answer, you MUST verify FIRST.
+   - You may spawn multiple agents to verify in parallel.
+   - You may call ask-claude or other tools to cross-check.
+   - "I think", "probably", "likely", "一般来说", "通常", "应该" = AUTOMATIC VIOLATION unless preceded by [推论] or [假设] with full evidence chain.
+   - Repeating a statement more times does NOT upgrade its category.
+
+   **ERROR CONDITIONS (each = company collapses)**:
+   ✗ Output format not followed (missing [事实]/[推论]/[假设] label)
+   ✗ Source cited but inaccessible or wrong
+   ✗ [推论] used but inference chain missing
+   ✗ [假设] used without documenting exhaustive verification attempts
+   ✗ Local file exists with answer but [假设] was used instead
+   ✗ [推论] label dropped when repeating an inference
+   ✗ Paraphrase presented as verbatim quote
 EOF
 
 # 3. Write core routing file (CLAUDE.md)
