@@ -1,155 +1,289 @@
 ---
-name: gen-report-concise
-description: Generate a concise experiment report for flame_moonshot training runs. Use this skill when the user asks to write a report, summarize an experiment, document results, 写报告, 整理实验, 总结实验结果, or invokes /gen-report or /gen-report-concise.
+name: gen-report
+description: Generate a comprehensive experiment report with full output discovery, visualization generation, and paper-style figure analysis. Use when the user asks to write a report, summarize an experiment, document results, 写报告, 整理实验, 总结实验结果, or invokes /gen-report.
 ---
 
-# gen-report-concise
+# gen-report
 
-生成精简实验报告（4节结构），自动从日志/配置/CSV 收集数据填充。
+生成完整实验报告。报告结构：**理论 → 实现 → 实验结果分析**。要求覆盖所有现有输出文件，并对每个图表做论文级别讲解。
 
 ## 输出位置
 
-`report/report_<exp_name>_<YYYYMMDD>.md`（保存在当前 repo 的 `report/` 目录）
+`report/project_report_zh.md`（或用户指定路径）
 
 ---
 
-## Step 1 — 确认实验目标
+## Phase 0 — 确认实验目标
 
-从上下文推断实验名称和目录。若不明确，问用户：
-- 实验名（如 `kda_680M`、`transformer_154M`）
-- 实验根目录（默认：`/nfs/ridgerzhu/flame_moonshot/exp/`）
+从上下文推断项目根目录和报告主题。若不明确，问用户。
 
 ---
 
-## Step 2 — 并行收集数据（所有读取必须同时发起）
+## Phase 1 — 代码扫描：发现所有可能的输出文件（必须执行）
 
-一次性并行读取以下内容：
+**目的**：通过读源码，预判实验会生成哪些文件，再去实际检查是否存在。
 
-### 2a. 训练日志
-- 路径：`<EXP_DIR>/train.err`（或 `logs/` 下对应的 `.out`/`.err`）
-- 提取：最新 `step`、`loss`、`tps`、`gnorm`、`memory`
-- **每个指标必须记录：来源文件路径 + 行号 + step 编号**
+### 1a. 扫描所有脚本/代码（并行）
+- 递归列出 `code/` 或同等目录下的所有 `.py` 文件
+- 对每个脚本，提取：
+  - 所有写文件的路径（`open()`、`np.save`、`to_csv`、`savefig`、`json.dump` 等）
+  - 所有 `output_dir`、`OUT_DIR`、`save_path` 等变量的值
+- 列出推断出的**完整输出文件列表**（路径 + 文件类型 + 生成哪个脚本）
 
-### 2b. 模型配置
-- 路径：`<EXP_DIR>/snapshot/configs/<config>.json`（优先）或 `configs/<config>.json`
-- 提取：`hidden_size`、`num_layers`、`num_heads`、`vocab_size`、模型类型
-
-### 2c. 训练配置
-- 路径：`<EXP_DIR>/snapshot/flame/models/fla.toml` 或训练脚本
-- 提取：`lr`、`batch_size`、`seq_len`、`grad_accum`、`total_tokens`、优化器
-
-### 2d. CSV 指标（若存在）
-- 路径：`<EXP_DIR>/metrics.csv` 或 `<EXP_DIR>/train_metrics.csv`
-- 提取：loss 曲线最后5行
-
-### 2e. artifacts 上下文
-- 读取 `artifacts/progress.md`（了解实验背景）
-- 读取 `artifacts/success-experiment-recent.md`（了解对比基线）
+### 1b. 扫描配置文件
+- 读取所有 `config.yaml`、`*.toml`、`*.json` 配置
+- 提取：输出路径配置、数据集路径、关键超参数
 
 ---
 
-## Step 3 — 指标汇报规范（强制）
+## Phase 2 — 实际输出盘点：逐目录检查（必须执行）
 
-填入每个指标时必须满足：
-1. **数学定义**：给出计算公式（如 `tps = batch_tokens / step_time`）
-2. **物理意义**：说明高/低值含义
-3. **数据来源**：文件路径 + 行号 + step 编号
+**目的**：确认哪些输出文件真实存在于磁盘上。
 
-禁止写"约"、"大约"、"应该"——所有数值必须来自实际读取的文件。
+### 2a. 列出所有输出目录的内容
+```bash
+# 对每个发现的输出目录执行：
+ls -lh <output_dir>/
+find <output_dir>/ -type f | sort
+```
+
+### 2b. 分类现有输出
+将实际存在的文件分三类：
+- **图像文件**（`.png`、`.jpg`、`.svg`）：直接可插入
+- **表格/数值文件**（`.csv`、`.jsonl`、`.json`、`.npz`、`.npy`）：需读取数值 + 考虑可视化
+- **文本日志**（`.log`、`.err`、`.out`、`.md`）：提取关键数值
+
+### 2c. 读取所有数值文件
+- 每个 CSV：读取全部或最后20行，记录关键列和数值范围
+- 每个 JSON/JSONL：读取并解析关键字段
+- 每个 NPZ：用 `np.load` 列出所有 key、shape、dtype、min/max/mean
 
 ---
 
-## Step 4 — 填充模板
+## Phase 3 — 可视化生成（对纯数据文件强制执行）
 
-使用以下结构生成报告（严格替换 `{{}}` 占位符，删除未使用的块）：
+**目的**：将没有对应图像的数值数据转化为图表，插入报告。
+
+### 规则
+- 对每个只有数据没有图的重要数据文件，**必须生成对应图表**
+- 图表保存到 `report/figures/` 目录（相对于 repo 根目录）
+- 使用 Python + matplotlib，风格：`plt.style.use('seaborn-v0_8-whitegrid')`，figsize 合理，标注 xlabel/ylabel/title/legend
+
+### 可视化脚本规范
+```python
+# 每个可视化脚本必须包含：
+import matplotlib
+matplotlib.use('Agg')  # 无 GUI 环境必须
+import matplotlib.pyplot as plt
+import numpy as np
+
+# ... 读取数据 ...
+
+fig, ax = plt.subplots(figsize=(10, 6))
+# ... 绘图 ...
+ax.set_xlabel('...')
+ax.set_ylabel('...')
+ax.set_title('...')
+ax.legend()
+plt.tight_layout()
+plt.savefig('report/figures/<name>.png', dpi=150, bbox_inches='tight')
+plt.close()
+print("Saved: report/figures/<name>.png")
+```
+
+### 执行方式
+- 将脚本写入 `report/figures/gen_<name>.py`
+- 用 Bash 执行：`python report/figures/gen_<name>.py`
+- 执行后验证文件存在：`ls -lh report/figures/<name>.png`
+
+---
+
+## Phase 4 — 逻辑顺序规划
+
+在写报告前，先在内部规划叙事顺序：
+
+```
+理论动机（为什么做这个实验）
+    ↓
+核心假设（用什么方法验证）
+    ↓
+实现细节（怎么实现的，关键工程决策）
+    ↓
+实验结果（按逻辑因果顺序，不按文件顺序）
+    ├── 数据采集/预处理结果
+    ├── 中间分析结果（差分、统计等）
+    ├── 注入/干预效果
+    └── 最终对比结论
+    ↓
+综合结论与局限性
+```
+
+---
+
+## Phase 5 — 填充报告模板
+
+使用以下结构。**所有 `{{}}` 占位符必须替换为真实内容，不得留空**。
 
 ```markdown
-# {{PROJECT_NAME}} — Concise Report
+# {{PROJECT_NAME}} — 综合实验报告
 
-**Last update: {{YYYY-MM-DD HH:MM TZ}}**
-
----
-
-## 0) 核心结论 (Takeaway)
-
-在 **{{SYSTEM_NAME}}** 上，**{{CORE_METHOD}}** 相比 **{{BASELINE}}** 带来 **{{KEY_IMPROVEMENT}}**，代价为 **{{KNOWN_TRADEOFF}}**。
+**生成时间：** {{YYYY-MM-DD}}
+**项目根目录：** `{{REPO_ROOT}}`
 
 ---
 
-## 1) 目标与核心逻辑 (Motivation & Logic)
+## 摘要
 
-**目标**：{{GOAL}}
+{{2-3句话：核心假设、实验做了什么、最关键的结论}}
 
-**核心假设**：{{HYPOTHESIS}}（即：{{WHY_IT_SHOULD_WORK}}）
+---
 
-**核心公式**（仅列支撑本实验的 1-2 个）：
+## 1. 理论动机与核心假设
 
-**(F1) {{FORMULA_1_NAME}}**
+### 1.1 问题定义
+
+{{描述实验试图回答的科学问题}}
+
+### 1.2 核心假设
+
+{{明确陈述假设。格式："我们假设 X，因为 Y，验证方法是 Z"}}
+
+### 1.3 核心公式（若有）
 
 $$
-{{FORMULA_1}}
+{{公式}}
 $$
 
-直觉：{{FORMULA_1_INTUITION}}（高值 → {{HIGH_MEANING}}；低值 → {{LOW_MEANING}}）
+**直觉解释**：{{高值/低值意味着什么，物理意义}}
 
 ---
 
-## 2) 复现与执行 (Reproducibility)
+## 2. 实现架构
 
-**代码与环境**
-- Repo / CWD：`{{REPO_ROOT}}`
-- Commit：`{{GIT_COMMIT}}`
+### 2.1 实验流程
 
-**数据与配置**
-- Dataset：`{{DATASET_PATH}}`
-- Config：`{{CONFIG_PATH}}`
+{{按阶段描述整体流程，用简洁的文字 + 列表}}
 
-**执行与产出**
+### 2.2 模型与数据
 
-\`\`\`bash
-# 运行命令
-{{RUN_CMD}}
+| 属性 | 值 |
+|------|-----|
+| {{ATTR_1}} | {{VAL_1}} |
+| {{ATTR_2}} | {{VAL_2}} |
 
-# 核心输出目录（logs / CSV / PNG）
-OUTPUT_DIR="{{OUTPUT_DIR}}"
-\`\`\`
+### 2.3 关键工程决策
 
----
+{{描述实现中非显而易见的选择，以及选择的原因}}
+- **决策1**：{{决策内容}} — **原因**：{{为什么这样做，有何替代方案}}
+- **决策2**：...
 
-## 3) 实验结果与深度分析 (Results & AI Insight)
+### 2.4 运行配置
 
-### 3.1 {{PHENOMENON_1_NAME}}
-
-**数据溯源**：`{{CSV_OR_LOG_PATH_1}}`，第 {{LINE_NUM}} 行，step={{STEP_NUM}}
-
-**AI 深度分析**
-
-- **趋势拆解**：{{TREND_ANALYSIS_1}}
-- **因果归因**：{{CAUSAL_ANALYSIS_1}}
-- **异常诊断**：{{ANOMALY_1}}（若无异常则删去此行）
-
----
-
-## 4) 综合结论与 Trade-off
-
-| 维度 | {{METHOD}} | {{BASELINE}} | Delta |
-|------|-----------|-------------|-------|
-| {{METRIC_1}} | {{VAL_M1}} | {{VAL_B1}} | {{DELTA_1}} |
-| {{METRIC_2}} | {{VAL_M2}} | {{VAL_B2}} | {{DELTA_2}} |
-| {{METRIC_3}} | {{VAL_M3}} | {{VAL_B3}} | {{DELTA_3}} |
-
-**结论**：{{FINAL_CONCLUSION}}
-
-**下一步**：{{NEXT_STEP}}
+```yaml
+{{粘贴关键配置，来源：config.yaml 或等效文件}}
 ```
 
 ---
 
-## Step 5 — 保存
+## 3. 实验结果分析
 
-将填充完毕的报告写入：
-```
-report/report_<exp_name>_<YYYYMMDD>.md
+> 本节覆盖所有已生成的输出文件。每个子节对应一类输出。
+
+### 3.X {{现象/结果名称}}
+
+**数据来源**：`{{文件路径}}`（{{文件类型}}，{{行数/shape}}）
+
+![图X：{{图标题}}]({{相对于报告文件的图片路径}})
+
+**图X说明**：
+- **横轴（x轴）**：{{含义、单位}}
+- **纵轴（y轴）**：{{含义、单位}}
+- **图例**：{{每条线/每个颜色代表什么}}
+- **颜色编码**（若有）：{{颜色 → 含义的映射}}
+
+**结果分析**：
+- **观察到的现象**：{{描述图中最显著的模式，数值要具体}}
+- **因果解释**：{{为什么会出现这个现象，与假设的关系}}
+- **与预期的对比**：{{符合/不符合假设，偏差有多大}}
+- **异常/亮点**：{{值得特别注意的点，若无则删去此行}}
+
+---
+
+## 4. 综合结论
+
+### 4.1 假设验证结果
+
+| 假设 | 验证结果 | 支持证据 |
+|------|---------|---------|
+| {{HYPOTHESIS_1}} | 支持/不支持/部分支持 | {{图X / 表Y / 数值Z}} |
+
+### 4.2 关键数值汇总
+
+| 指标 | 值 | 来源 |
+|------|-----|------|
+| {{METRIC_1}} | {{VAL_1}} | `{{文件:行号}}` |
+
+### 4.3 局限性
+
+- {{局限1：数据规模/运行时间/失败的实验等}}
+
+### 4.4 下一步
+
+- {{下一步1}}
+
+---
+
+## 附录：文件位置参考
+
+| 文件/目录 | 路径 | 说明 |
+|----------|------|------|
+| {{FILE_1}} | `{{PATH_1}}` | {{DESC_1}} |
 ```
 
-写入后告知用户路径，并输出 **0) 核心结论** 内容供快速确认。
+---
+
+## Phase 6 — 图片插入规范（强制）
+
+### 路径规则
+- 使用**相对路径**，相对于报告文件所在目录
+- 已有图片（如 `stage2_output/*.png`）：`../stage2_output/heatmap_delta_gsm8k.png`
+- 新生成图片（存放在 `report/figures/`）：`figures/gen_xxx.png`
+
+### 每张图的完整格式（缺一不可）
+```markdown
+![图N：{{简短标题}}]({{相对路径}})
+
+**图N说明**：
+- **横轴**：{{含义 + 单位}}
+- **纵轴**：{{含义 + 单位}}
+- **图例**：{{每个系列的含义}}
+- **颜色/标记**：{{若有颜色编码，逐一说明}}
+
+**结果分析**：
+- **现象**：{{数值具体，如"层6的p值为2.09e-8，是所有层中最显著的"}}
+- **解释**：{{因果，与假设的关联}}
+- **结论**：{{这张图支持/否定/部分支持什么}}
+```
+
+### 强制覆盖规则
+- 实验目录下所有 `.png` 文件必须全部出现在报告中
+- 每个数值文件（CSV/NPZ/JSON），若无对应图，必须生成图后插入
+- 不允许"数据存在但报告里没有图"的情况
+
+---
+
+## Phase 7 — 保存与验证
+
+1. 确保 `report/figures/` 目录存在（`mkdir -p report/figures`）
+2. 将报告写入目标路径
+3. 验证所有图片路径可访问：逐一检查 `report/` 下图片路径是否指向实际文件
+4. 告知用户：报告路径 + 插入了哪些图（新生成 vs 已有）+ 核心结论摘要
+
+---
+
+## 指标汇报规范（全局强制）
+
+- 所有数值必须来自实际读取的文件，禁止推断或估算
+- 每个数值必须标注：来源文件路径 + 行号/key
+- 禁止使用"约"、"大约"、"可能"、"应该"
+- 图中数值与文字描述必须一致，不允许矛盾
