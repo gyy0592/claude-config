@@ -207,7 +207,6 @@ EOF
 # 5. Write rule 2: execution environment & code standards
 cat << 'EOF' > ~/.claude/rules/2_execution_env.md
 # [ENV & EXECUTION]
-- **Python**: MUST use `[UNDEFINED — user must set path here ⚠️]`. No auto-install. Missing package = error + pause.
 - **GPU ONLY**: Force `--device cuda`. No CPU fallback. No CUDA = abort immediately.
 - **Run before submit**: Must run/test code before handing to user. Long tasks: use `tmux`. Must include real-time ETA and granular logs.
 - **I/O**: Data (e.g. CSV) must be written incrementally to disk (e.g. every epoch). Never buffer until task end.
