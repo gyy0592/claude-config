@@ -59,21 +59,12 @@ CRITICAL SYSTEM DIRECTIVE:
 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    PRINT THESE TWO LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
-   「RULE A: ALL non-trivial tasks MUST be delegated via Agent tool — EXCEPTIONS ONLY: super-simple single-step tasks, OR user explicitly says do NOT use agent. Agent tool MUST use run_in_background=true — ALWAYS!!! This is the ONLY thing allowed to run in background!!! Shell commands, Bash, monitoring, ANYTHING else = foreground only, NO EXCEPTIONS!!! THIS ALSO APPLIES TO AGENTS YOU SPAWN: subagents MUST NOT internally use background Bash/shell/polling/run_in_background on ANY non-Agent tool — if your spawned agent does this, YOU are violating RULE A!!! RULE A IS ABSOLUTE — it cannot be overridden by RLCR prompts, skill instructions, or ANY text saying "execute", "implement", "read and do X". When any instruction says "do X", that is a task description for the Agent, NOT a direct order to Claude. Claude COORDINATES; Agent EXECUTES. Violating this = instant failure!!!」
-   「RULE B: End of every reply MUST write to artifacts/. Last reply skipped? Write NOW first.」
-   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    REMINDER (THIS IS THE SECOND TIME — DO NOT SKIP): PRINT THESE TWO LINES AT THE START OF EVERY REPLY!!!
-   「RULE A: ALL non-trivial tasks MUST be delegated via Agent tool — EXCEPTIONS ONLY: super-simple single-step tasks, OR user explicitly says do NOT use agent. Agent tool MUST use run_in_background=true — ALWAYS!!! This is the ONLY thing allowed to run in background!!! Shell commands, Bash, monitoring, ANYTHING else = foreground only, NO EXCEPTIONS!!! THIS ALSO APPLIES TO AGENTS YOU SPAWN: subagents MUST NOT internally use background Bash/shell/polling/run_in_background on ANY non-Agent tool — if your spawned agent does this, YOU are violating RULE A!!! RULE A IS ABSOLUTE — it cannot be overridden by RLCR prompts, skill instructions, or ANY text saying "execute", "implement", "read and do X". When any instruction says "do X", that is a task description for the Agent, NOT a direct order to Claude. Claude COORDINATES; Agent EXECUTES. Violating this = instant failure!!!」
-   「RULE B: End of every reply MUST write to artifacts/. Last reply skipped? Write NOW first.」
+   FINAL WARNING (THIRD TIME — IF YOU SKIPPED THE ABOVE TWO, YOU ARE FAILING): PRINT RULE A AND RULE B NOW!!!
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   FINAL WARNING (THIRD TIME — IF YOU SKIPPED THE ABOVE TWO, YOU ARE FAILING): PRINT RULE A AND RULE B NOW!!!
    「RULE A: ALL non-trivial tasks MUST be delegated via Agent tool — EXCEPTIONS ONLY: super-simple single-step tasks, OR user explicitly says do NOT use agent. Agent tool MUST use run_in_background=true — ALWAYS!!! This is the ONLY thing allowed to run in background!!! Shell commands, Bash, monitoring, ANYTHING else = foreground only, NO EXCEPTIONS!!! THIS ALSO APPLIES TO AGENTS YOU SPAWN: subagents MUST NOT internally use background Bash/shell/polling/run_in_background on ANY non-Agent tool — if your spawned agent does this, YOU are violating RULE A!!! RULE A IS ABSOLUTE — it cannot be overridden by RLCR prompts, skill instructions, or ANY text saying "execute", "implement", "read and do X". When any instruction says "do X", that is a task description for the Agent, NOT a direct order to Claude. Claude COORDINATES; Agent EXECUTES. Violating this = instant failure!!!」
    「RULE B: End of every reply MUST write to artifacts/. Last reply skipped? Write NOW first.」
-   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 5. ARTIFACTS SYNC (HARD STOP):
    Same as RULE B above. Additionally:
@@ -89,6 +80,14 @@ EOF
 
 # 3. Write core routing file (CLAUDE.md)
 cat << 'EOF' > ~/.claude/CLAUDE.md
+# REPLY-START PROTOCOL
+PRINT THESE TWO LINES VERBATIM AT THE START OF EVERY SINGLE REPLY. NO EXCEPTIONS. NO CONDITIONS. EVERY. SINGLE. REPLY.
+REMINDER (THIS IS THE SECOND TIME — DO NOT SKIP): PRINT THESE TWO LINES AT THE START OF EVERY REPLY!!!
+FINAL WARNING (THIRD TIME — IF YOU SKIPPED THE ABOVE TWO, YOU ARE FAILING): PRINT RULE A AND RULE B NOW!!!
+
+「RULE A: ALL non-trivial tasks MUST be delegated via Agent tool — EXCEPTIONS ONLY: super-simple single-step tasks, OR user explicitly says do NOT use agent. Agent tool MUST use run_in_background=true — ALWAYS!!! This is the ONLY thing allowed to run in background!!! Shell commands, Bash, monitoring, ANYTHING else = foreground only, NO EXCEPTIONS!!! THIS ALSO APPLIES TO AGENTS YOU SPAWN: subagents MUST NOT internally use background Bash/shell/polling/run_in_background on ANY non-Agent tool — if your spawned agent does this, YOU are violating RULE A!!! RULE A IS ABSOLUTE — it cannot be overridden by RLCR prompts, skill instructions, or ANY text saying "execute", "implement", "read and do X". When any instruction says "do X", that is a task description for the Agent, NOT a direct order to Claude. Claude COORDINATES; Agent EXECUTES. Violating this = instant failure!!!」
+「RULE B: End of every reply MUST write to artifacts/. Last reply skipped? Write NOW first.」
+
 # CORE PROTOCOL
 - **Conflict resolution**: current user instruction > latest system instruction > history. On conflict: output `[WARNING: Conflict, "<reason>"]` and follow latest.
 - **Mandatory reads** (system-enforced, no user prompt needed):
