@@ -1,0 +1,26 @@
+{
+  "skill_name": "gen-draft-simplify",
+  "evals": [
+    {
+      "id": 1,
+      "name": "lol-game-dogfood",
+      "prompt": "我想给 /home/yguo173/Programs/game/lol/ 这个 LoL 辅助代码仓库做可维护性化简的规划，帮我生成一个 draft_simplify.md 出来。这是 python 项目，入口脚本是 main.py，跑命令就是 `python main.py`，输出存到 ./output/ 下。km 系列函数是外部的别动。我想用 ask-claude 和 ask-codex，不用 gemini。每轮 8 个 agent。性能监控 5 秒一次就行。",
+      "expected_output": "Skill should call AskUserQuestion to confirm all intake fields (even though most are mentioned in the prompt), then write an instantiated draft_simplify.md at /home/yguo173/Programs/game/lol/ with all placeholders filled from the user's answers. Should NOT modify any source code or attempt to execute the refactor.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "minimal-prompt-pure-intake",
+      "prompt": "帮我生成一个化简方案的 draft，仓库在 /home/me/myproj。其他你问我吧。",
+      "expected_output": "Skill should immediately fire AskUserQuestion to collect all missing fields (language, entry script, baseline cmd, output dir, protected blocks, ask tools, monitor interval, agent count, report ref). Should NOT proceed to draft generation until the user answers. Should NOT silently guess defaults.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "wrong-skill-trigger-execute-intent",
+      "prompt": "/home/me/dl-train 这个深度学习训练仓库太乱了，立刻帮我重构，提取 hardcode，合并重复代码，但是 cuda kernel 不要动",
+      "expected_output": "Skill should detect 'execute immediately' intent and either (a) decline and recommend running the draft-generation step first, or (b) clarify with the user before proceeding. Should NOT silently start refactoring. The triggering boundary documented in SKILL.md should kick in.",
+      "files": []
+    }
+  ]
+}
