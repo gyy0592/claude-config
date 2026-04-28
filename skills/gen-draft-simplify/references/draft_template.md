@@ -44,7 +44,21 @@
 
 ### C. 每次修改的双通过门 [HARD RULE]
 11. **ask 工具脑内对比**：对每个修改点，agent 必须从 `{{ASK_TOOLS}}` 中至少调用一个工具，**调用方式必须是 Bash 直调对应 shell 脚本**：`bash {{ASK_TOOL_SCRIPT_DIR}}/ask-<tool_name>.sh "<完整 prompt>"`。**禁止通过 Skill tool 调用 humanize:ask-***——humanize plugin 当前的 Skill tool 集成只返回 driver 文档不真执行模型（2026-04-27 minimal-unit eval 实测）。喂入的 prompt 必须包含「原始函数 + 修改后函数 + 调用上下文 + `unknown_funcs.md` 中相关条目」，要求逐行推理两者输入输出是否等价；完整推理链落盘到 `mindtest/<修改标识>.md`。Prompt 含 inner `"` 或 `{}` 的大段源码时，建议先写到临时文件，再用 `bash {{ASK_TOOL_SCRIPT_DIR}}/ask-<tool_name>.sh "$(cat /tmp/prompt.txt)"` 形式喂入，避免 shell 引号转义出错。
-12. **独立测试脚本**：每个修改点对应一个独立测试脚本（位置：`tests/simplify/<修改标识>_test.py`），同时引入原实现与新实现，对若干代表性输入跑两边并 `np.allclose`/逐字节比对。脚本必须永久保留作为回归证据。
+12. **独立测试脚本（函数级 OLD vs NEW，禁止 full-pipeline 冒充）**：每个修改点对应一个独立测试脚本（位置：`tests/simplify/<修改标识>_test.py`），**仅对被修改函数本身做 OLD vs NEW 对比**。测试 input 必须是该函数的**直接调用参数**（不是 pipeline 入口的 sample 输入），通过以下任一方式获取，并在脚本 docstring 里说明 input 来源：
+    - (a) 静态阅读该函数所有调用点代码，推断 input args 的 dtype / shape / 值域 / 坐标系 / 单位 / 约定；
+    - (b) 在原 baseline 跑期间用 hook / monkey-patch 在该函数 entry 处 dump 真实 input args 落盘到 `tests/simplify/fixtures/<修改标识>.npz`，测试 load 进来；
+    - (c) 用代码上下文里已有的 fixture / sample 数据。
+    
+    OLD 与 NEW 在按 dtype `np.allclose`（容差表见 baseline manifest）一致即通过。脚本永久保留作为回归证据。
+    
+    **禁止该测试脚本调用 `{{BASELINE_CMD}}` / 全 pipeline 入口 / 任何 stage runner** —— per-modification 测试与 round-end 全量重跑是两个层级，不允许冒充。验证粒度强制三层（详见下条 C.12.bis）。
+
+12.bis. **验证粒度分层 [HARD RULE]**：simplify 等价验证强制分三层，AC 与 task 起草必须按层归类，**禁止跨层冒充**：
+    - **Tier 1（per-modification 函数级，C.12）**：每改一个函数立即跑 `tests/simplify/<id>_test.py`，秒级完成；OLD vs NEW 在该函数直接 input args 上做 `np.allclose`。粒度细，定位精确，不依赖 pipeline。
+    - **Tier 2（round-end 全 pipeline）**：每轮关闭前一次 `{{BASELINE_CMD}}` 全 pipeline 重跑，对照 round-0 baseline manifest，覆盖 `{{BASELINE_OUTPUT_DIR}}`。粒度粗，验证整体合规，单次耗时长。
+    - **Tier 3（用户里程碑）**：用户指定关键节点（如最终签收前最后一轮）追加一次 Tier 2 全量重跑。
+    
+    **禁止把 Tier 1 写成 Tier 2/3 的措辞**（如"每次 refactor 合入后重跑 `{{BASELINE_CMD}}`"）— 这是 plan/AC 起草时反复出现的语义错误，会让每次小改都触发数小时的全 pipeline 跑，工程不可行且定位粒度错。AC 描述若把 per-modification 等价的 positive test 写成全 pipeline 重跑 = 起草错误，必须修正。
 13. **写盘前提**：测试脚本通过 **AND** mindtest 推理结论为"等价" 同时满足才允许覆盖原文件。任一失败 → 立即拒绝、回滚、log 到 `task_<round>/log-fail-method.md`。
 14. **原地覆盖，无 backup 目录**：版本回溯一律走 git。
 
