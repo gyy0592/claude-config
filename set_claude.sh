@@ -452,9 +452,9 @@ export CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING=1
 THINKINGVARS
 fi
 
-# 10. Write ~/.claude/settings.json — merge in showThinkingSummaries
+# 10. Write ~/.claude/settings.json — idempotent merges
 python3 - << 'PYEOF'
-import json, os, sys
+import json, os
 
 path = os.path.expanduser("~/.claude/settings.json")
 try:
@@ -463,16 +463,51 @@ try:
 except (FileNotFoundError, json.JSONDecodeError):
     cfg = {}
 
-if cfg.get("showThinkingSummaries") is True:
-    print("settings.json: showThinkingSummaries already set")
-    sys.exit(0)
+changed = False
 
-cfg["showThinkingSummaries"] = True
-cfg["effortLevel"] = "high"
-with open(path, "w") as f:
-    json.dump(cfg, f, indent=2)
-    f.write("\n")
-print("settings.json: showThinkingSummaries enabled")
+# Reasoning settings
+if cfg.get("showThinkingSummaries") is not True:
+    cfg["showThinkingSummaries"] = True
+    changed = True
+if cfg.get("effortLevel") != "high":
+    cfg["effortLevel"] = "high"
+    changed = True
+
+# PostToolUse(Bash) hook: append every run_in_background=true Bash launch to
+# /tmp/claude-bg.log. The humanize-watchdog skill reads this file to enumerate
+# live background shells, since the public PostToolUse Bash tool_response schema
+# does not surface shell_id directly. Detection is by command-prefix match so
+# re-runs of set_claude.sh stay idempotent even if the user adds other Bash hooks.
+BG_HOOK_CMD = (
+    "jq -c 'select(.tool_input.run_in_background==true) | "
+    "{ts: now, id: .tool_use_id, resp: .tool_response, cmd: .tool_input.command}' "
+    ">> /tmp/claude-bg.log"
+)
+hooks = cfg.setdefault("hooks", {})
+post_tool = hooks.setdefault("PostToolUse", [])
+bg_hook_present = any(
+    grp.get("matcher") == "Bash" and any(
+        h.get("command", "").startswith(
+            "jq -c 'select(.tool_input.run_in_background==true)"
+        )
+        for h in grp.get("hooks", [])
+    )
+    for grp in post_tool
+)
+if not bg_hook_present:
+    post_tool.append({
+        "matcher": "Bash",
+        "hooks": [{"type": "command", "command": BG_HOOK_CMD}],
+    })
+    changed = True
+
+if changed:
+    with open(path, "w") as f:
+        json.dump(cfg, f, indent=2)
+        f.write("\n")
+    print("settings.json: updated")
+else:
+    print("settings.json: already up to date")
 PYEOF
 
 # Refresh shell hash
