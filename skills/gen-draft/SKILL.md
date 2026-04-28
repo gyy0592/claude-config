@@ -5,6 +5,8 @@ description: "Generate a high-level draft document (draft.md) from a user's task
 
 # Gen Draft — Entry Point
 
+> **Before any `AskUserQuestion` call, load and apply `~/.claude/rules/6_user_facing_questions.md`** (mandatory plain-language guard — four-piece set + jargon self-scan).
+
 The draft pipeline has **two mandatory phases**. They are sequential and cannot be merged.
 
 ## Phase 1: Gather (ALWAYS first)

@@ -5,6 +5,8 @@ description: "Generate a project-specific draft_simplify.md for a code repositor
 
 # gen-draft-simplify — Generate a project-specific simplify-refactor draft
 
+> **Before any `AskUserQuestion` call, load and apply `~/.claude/rules/6_user_facing_questions.md`** (mandatory plain-language guard — four-piece set + jargon self-scan).
+
 ## What this skill does and does not do
 
 **Does**:

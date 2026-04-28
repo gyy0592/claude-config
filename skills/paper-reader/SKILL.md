@@ -5,6 +5,8 @@ description: Reads an academic paper end to end and produces two files — a rea
 
 # paper-reader (main orchestrator)
 
+> **Before any `AskUserQuestion` call, load and apply `~/.claude/rules/6_user_facing_questions.md`** (mandatory plain-language guard — four-piece set + jargon self-scan).
+
 ## Goal
 
 Read an academic paper and produce two markdown files:
