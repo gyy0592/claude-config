@@ -1837,6 +1837,10 @@ cat << 'DISCIPLINARY_SCRIPT' > "${CLAUDE_CONFIG_DIR}/disciplinary_check.sh"
 #   不需要审查 → exit 0，stdout 为空（Claude 正常停止）
 #   所有错误路径 → exit 0 + stderr 记录（绝不让 Stop hook 崩溃）
 
+# ── 从 stdin 读取 Claude Code 传来的 hook 上下文 JSON ──
+HOOK_INPUT=$(cat)
+HOOK_SESSION_ID=$(printf '%s' "$HOOK_INPUT" | jq -r '.session_id // empty' 2>/dev/null || echo "")
+
 FORCE=false
 if [ "${1:-}" = "--force" ]; then
     FORCE=true
@@ -1853,6 +1857,17 @@ LOG_FILE="$JW_DIR/disciplinary.log"
 # 默认间隔：5 分钟（300 秒）；有死罪时改为 2 分钟（120 秒）
 DEFAULT_INTERVAL=300
 
+# ── Session 过滤：只处理 start-jw.sh 指定的目标 session ──
+# 白名单逻辑：session 文件存在时，只有明确匹配才允许继续（防止 jq 失败时误审）
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+JW_SESSION_FILE="$PROJECT_DIR/.humanize/jw-session-id"
+if [ "$FORCE" = false ] && [ -f "$JW_SESSION_FILE" ]; then
+    TARGET_SESSION=$(cat "$JW_SESSION_FILE" 2>/dev/null || echo "")
+    if [ -z "$HOOK_SESSION_ID" ] || [ "$HOOK_SESSION_ID" != "$TARGET_SESSION" ]; then
+        exit 0  # 无法确认是目标 session（或非目标），一律跳过
+    fi
+fi
+
 # ── 时间门控：未到审查时间直接 exit 0 静默（--force 时跳过）──
 if [ "$FORCE" = false ]; then
     INTERVAL=$(cat "$INTERVAL_FILE" 2>/dev/null || echo "$DEFAULT_INTERVAL")
@@ -1868,13 +1883,12 @@ fi
 date +%s > "$LAST_CHECK_FILE" 2>/dev/null || true
 
 # ── 定位当前 session JSONL ──
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 PROJECT_SLUG=$(echo "$PROJECT_DIR" | sed 's|/|-|g')
 SESSIONS_DIR="$HOME/.claude/projects/$PROJECT_SLUG"
 
 SESSION_FILE=""
-if [ -n "${CLAUDE_SESSION_ID:-}" ] && [ -f "$SESSIONS_DIR/${CLAUDE_SESSION_ID}.jsonl" ]; then
-    SESSION_FILE="$SESSIONS_DIR/${CLAUDE_SESSION_ID}.jsonl"
+if [ -n "$HOOK_SESSION_ID" ] && [ -f "$SESSIONS_DIR/${HOOK_SESSION_ID}.jsonl" ]; then
+    SESSION_FILE="$SESSIONS_DIR/${HOOK_SESSION_ID}.jsonl"
 else
     SESSION_FILE=$(ls -t "$SESSIONS_DIR"/*.jsonl 2>/dev/null | head -1 || true)
 fi
@@ -2015,8 +2029,14 @@ else
     echo "$DEFAULT_INTERVAL" > "$INTERVAL_FILE" 2>/dev/null || true
 fi
 
-# ── 构造严格单行 JSON 输出到 stdout（Stop hook 协议）──
-# 用环境变量传递 RESPONSE（避免 """$RESPONSE""" 对反斜杠的错误解释）
+# ── 仅当有违规时输出 block JSON（Stop hook 协议）──
+# CLEAN 时 exit 0 stdout 为空；有违规（CAPITAL/MINOR_ONLY）时才输出 block
+if ! echo "$RESPONSE" | grep -qE "VERDICT: (CAPITAL|MINOR_ONLY)"; then
+    echo "[纪委 $(date -u +%H:%M:%SZ)] CLEAN — no violations detected" >> "$LOG_FILE" 2>/dev/null || true
+    exit 0
+fi
+
+# 用环境变量传递 RESPONSE（避免反斜杠解释错误）
 export _JW_RESPONSE="$RESPONSE"
 python3 - <<JSONEOF 2>/dev/null || exit 0
 import json, os
@@ -2062,13 +2082,15 @@ echo "0" > "$JW_DIR/last_check"
 echo "$INTERVAL" > "$JW_DIR/interval"
 echo "[start-jw $(date -u +%H:%M:%SZ)] Reset last_check=0, interval=$INTERVAL" >> "$JW_DIR/disciplinary.log" 2>/dev/null || true
 
-# ── 幂等写入 Stop hook 到 settings.json ──
+# ── 幂等写入 Stop hook + PostToolUse hook 到 settings.json ──
 HOOK_CMD="bash $DISCIPLINARY"
+CAPTURE_CMD="bash $SCRIPT_DIR/jw-capture-session.sh"
 python3 - <<PYEOF
 import json, os, sys
 
 settings_path = os.path.expanduser("~/.claude/settings.json")
 hook_cmd = "$HOOK_CMD"
+capture_cmd = "$CAPTURE_CMD"
 
 try:
     with open(settings_path) as f:
@@ -2077,9 +2099,9 @@ except (FileNotFoundError, json.JSONDecodeError):
     cfg = {}
 
 hooks = cfg.setdefault("hooks", {})
-stop_hooks = hooks.setdefault("Stop", [])
 
-# 检查是否已存在（幂等）
+# ── Stop hook（幂等）──
+stop_hooks = hooks.setdefault("Stop", [])
 already_present = any(
     isinstance(entry, dict) and any(
         "disciplinary_check.sh" in h.get("command", "")
@@ -2091,28 +2113,53 @@ already_present = any(
 
 if already_present:
     print("[start-jw] Stop hook already present in settings.json, no change needed")
-    sys.exit(0)
+else:
+    stop_hooks.append({
+        "hooks": [
+            {"type": "command", "command": hook_cmd}
+        ]
+    })
+    print(f"[start-jw] Stop hook registered: {hook_cmd}")
 
-# 添加 Stop hook 条目
-stop_hooks.append({
-    "hooks": [
-        {"type": "command", "command": hook_cmd}
-    ]
-})
+# ── PostToolUse hook（幂等）用于捕获 session_id ──
+pt_hooks = hooks.setdefault("PostToolUse", [])
+capture_present = any(
+    isinstance(entry, dict) and any(
+        "jw-capture-session" in h.get("command", "")
+        for h in entry.get("hooks", [])
+        if isinstance(h, dict)
+    )
+    for entry in pt_hooks
+)
+
+if capture_present:
+    print("[start-jw] PostToolUse capture hook already present, no change needed")
+else:
+    pt_hooks.append({
+        "hooks": [
+            {"type": "command", "command": capture_cmd}
+        ]
+    })
+    print(f"[start-jw] PostToolUse capture hook registered: {capture_cmd}")
 
 with open(settings_path, "w") as f:
     json.dump(cfg, f, indent=2)
     f.write("\n")
 
-print(f"[start-jw] Stop hook registered: {hook_cmd}")
 print(f"[start-jw] settings.json updated: {settings_path}")
 PYEOF
+
+# ── 创建 session 绑定信号文件 ──
+PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+mkdir -p "$PROJECT_ROOT/.humanize"
+echo "$PROJECT_ROOT/.humanize/jw-session-id" > "$PROJECT_ROOT/.humanize/.pending-jw-session"
 
 echo "[start-jw] 纪委已启动（Stop hook 模式）"
 echo "  disciplinary_check.sh 将在每次 Claude 回复结束后自动触发"
 echo "  时间门控: 默认 ${INTERVAL}s，有死罪时 120s"
 echo "  日志: $JW_DIR/disciplinary.log"
 echo "  关闭: $SCRIPT_DIR/stop-jw.sh"
+echo "  等待下一个工具调用后 session_id 将自动绑定..."
 START_JW_SCRIPT
 
 chmod +x "${CLAUDE_CONFIG_DIR}/start-jw.sh"
@@ -2136,8 +2183,9 @@ except (FileNotFoundError, json.JSONDecodeError):
     sys.exit(0)
 
 hooks = cfg.get("hooks", {})
-stop_hooks = hooks.get("Stop", [])
 
+# ── 移除 Stop hook ──
+stop_hooks = hooks.get("Stop", [])
 before_count = len(stop_hooks)
 new_stop_hooks = [
     entry for entry in stop_hooks
@@ -2151,14 +2199,28 @@ new_stop_hooks = [
     )
 ]
 
-if len(new_stop_hooks) == before_count:
-    print("[stop-jw] No disciplinary_check.sh Stop hook found, nothing to remove")
-    sys.exit(0)
-
 if new_stop_hooks:
     hooks["Stop"] = new_stop_hooks
-elif "Stop" in hooks:
+elif "Stop" in hooks and len(new_stop_hooks) < before_count:
     del hooks["Stop"]
+
+# ── 移除 PostToolUse capture hook（如果还在）──
+pt_hooks = hooks.get("PostToolUse", [])
+new_pt_hooks = [
+    entry for entry in pt_hooks
+    if not (
+        isinstance(entry, dict) and
+        any(
+            "jw-capture-session" in h.get("command", "")
+            for h in entry.get("hooks", [])
+            if isinstance(h, dict)
+        )
+    )
+]
+if new_pt_hooks:
+    hooks["PostToolUse"] = new_pt_hooks
+elif "PostToolUse" in hooks and len(new_pt_hooks) < len(pt_hooks):
+    del hooks["PostToolUse"]
 
 # 若 hooks 仅剩空键则不删除（保留其他 hook 类型）
 with open(settings_path, "w") as f:
@@ -2166,13 +2228,94 @@ with open(settings_path, "w") as f:
     f.write("\n")
 
 removed = before_count - len(new_stop_hooks)
-print(f"[stop-jw] Removed {removed} disciplinary_check.sh Stop hook entry(ies)")
+if removed > 0:
+    print(f"[stop-jw] Removed {removed} disciplinary_check.sh Stop hook entry(ies)")
+else:
+    print("[stop-jw] No disciplinary_check.sh Stop hook found, nothing to remove")
 print(f"[stop-jw] settings.json updated: {settings_path}")
 PYEOF
+
+# ── 清理 session 绑定文件 ──
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+rm -f "$PROJECT_DIR/.humanize/jw-session-id" 2>/dev/null || true
+rm -f "$PROJECT_DIR/.humanize/.pending-jw-session" 2>/dev/null || true
+echo "[stop-jw] session 绑定已清除"
 STOP_JW_SCRIPT
 
 chmod +x "${CLAUDE_CONFIG_DIR}/stop-jw.sh"
 echo "✅ stop-jw.sh 已创建并设为可执行: ${CLAUDE_CONFIG_DIR}/stop-jw.sh"
+
+# 18.9. 创建 jw-capture-session.sh — PostToolUse hook，一次性捕获 session_id
+cat << 'CAPTURE_SESSION_SCRIPT' > "${CLAUDE_CONFIG_DIR}/jw-capture-session.sh"
+#!/bin/bash
+# jw-capture-session.sh — PostToolUse hook（一次性）
+# 捕获 Claude Code 传来的 session_id，写入 .humanize/jw-session-id
+# 完成后自动注销自身 PostToolUse hook
+
+# 读 stdin（PostToolUse hook JSON）
+HOOK_INPUT=$(cat)
+SESSION_ID=$(printf '%s' "$HOOK_INPUT" | jq -r '.session_id // empty' 2>/dev/null || echo "")
+
+# 检查信号文件是否存在
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+PENDING_FILE="$PROJECT_DIR/.humanize/.pending-jw-session"
+
+if [ ! -f "$PENDING_FILE" ]; then
+    exit 0  # 没有待绑定的信号，直接退出
+fi
+
+if [ -z "$SESSION_ID" ]; then
+    exit 0  # 没有 session_id，退出
+fi
+
+# 读取目标写入路径
+TARGET_FILE=$(cat "$PENDING_FILE" 2>/dev/null || echo "")
+if [ -z "$TARGET_FILE" ]; then
+    exit 0
+fi
+
+# 写入 session_id（失败时保留 pending 文件，等下次重试）
+if ! echo "$SESSION_ID" > "$TARGET_FILE" 2>/dev/null; then
+    echo "[纪委][ERROR] 写入 $TARGET_FILE 失败，pending 文件保留等待重试" >&2
+    exit 1
+fi
+
+# 写入成功后删除信号文件（一次性消费）
+rm -f "$PENDING_FILE"
+
+# 注销自身 PostToolUse hook（已完成使命）
+python3 - <<PYEOF
+import json, os, tempfile
+settings_path = os.path.expanduser("~/.claude/settings.json")
+try:
+    with open(settings_path) as f:
+        cfg = json.load(f)
+except Exception:
+    exit(0)
+hooks = cfg.get("hooks", {})
+pt_hooks = hooks.get("PostToolUse", [])
+new_pt = [e for e in pt_hooks if not any(
+    "jw-capture-session" in h.get("command","")
+    for h in e.get("hooks",[]) if isinstance(h,dict)
+)]
+if len(new_pt) < len(pt_hooks):
+    if new_pt:
+        hooks["PostToolUse"] = new_pt
+    else:
+        del hooks["PostToolUse"]
+    # 原子写（防进程崩溃损坏 settings.json）
+    tmp = settings_path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(cfg, f, indent=2)
+        f.write("\n")
+    os.replace(tmp, settings_path)
+PYEOF
+
+echo "[纪委] session_id 已绑定：$SESSION_ID → $TARGET_FILE"
+CAPTURE_SESSION_SCRIPT
+
+chmod +x "${CLAUDE_CONFIG_DIR}/jw-capture-session.sh"
+echo "✅ jw-capture-session.sh 已创建并设为可执行: ${CLAUDE_CONFIG_DIR}/jw-capture-session.sh"
 
 # 19. 安装 wrapper 为 shell 函数（不是文件，避免 AI agent 用 rm 删除）
 #     仅删除我们自己 marker 之间的块，绝不动其他内容

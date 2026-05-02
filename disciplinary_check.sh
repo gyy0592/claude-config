@@ -7,6 +7,10 @@
 #   不需要审查 → exit 0，stdout 为空（Claude 正常停止）
 #   所有错误路径 → exit 0 + stderr 记录（绝不让 Stop hook 崩溃）
 
+# ── 从 stdin 读取 Claude Code 传来的 hook 上下文 JSON ──
+HOOK_INPUT=$(cat)
+HOOK_SESSION_ID=$(printf '%s' "$HOOK_INPUT" | jq -r '.session_id // empty' 2>/dev/null || echo "")
+
 FORCE=false
 if [ "${1:-}" = "--force" ]; then
     FORCE=true
@@ -23,6 +27,17 @@ LOG_FILE="$JW_DIR/disciplinary.log"
 # 默认间隔：5 分钟（300 秒）；有死罪时改为 2 分钟（120 秒）
 DEFAULT_INTERVAL=300
 
+# ── Session 过滤：只处理 start-jw.sh 指定的目标 session ──
+# 白名单逻辑：session 文件存在时，只有明确匹配才允许继续（防止 jq 失败时误审）
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+JW_SESSION_FILE="$PROJECT_DIR/.humanize/jw-session-id"
+if [ "$FORCE" = false ] && [ -f "$JW_SESSION_FILE" ]; then
+    TARGET_SESSION=$(cat "$JW_SESSION_FILE" 2>/dev/null || echo "")
+    if [ -z "$HOOK_SESSION_ID" ] || [ "$HOOK_SESSION_ID" != "$TARGET_SESSION" ]; then
+        exit 0  # 无法确认是目标 session（或非目标），一律跳过
+    fi
+fi
+
 # ── 时间门控：未到审查时间直接 exit 0 静默（--force 时跳过）──
 if [ "$FORCE" = false ]; then
     INTERVAL=$(cat "$INTERVAL_FILE" 2>/dev/null || echo "$DEFAULT_INTERVAL")
@@ -38,13 +53,12 @@ fi
 date +%s > "$LAST_CHECK_FILE" 2>/dev/null || true
 
 # ── 定位当前 session JSONL ──
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 PROJECT_SLUG=$(echo "$PROJECT_DIR" | sed 's|/|-|g')
 SESSIONS_DIR="$HOME/.claude/projects/$PROJECT_SLUG"
 
 SESSION_FILE=""
-if [ -n "${CLAUDE_SESSION_ID:-}" ] && [ -f "$SESSIONS_DIR/${CLAUDE_SESSION_ID}.jsonl" ]; then
-    SESSION_FILE="$SESSIONS_DIR/${CLAUDE_SESSION_ID}.jsonl"
+if [ -n "$HOOK_SESSION_ID" ] && [ -f "$SESSIONS_DIR/${HOOK_SESSION_ID}.jsonl" ]; then
+    SESSION_FILE="$SESSIONS_DIR/${HOOK_SESSION_ID}.jsonl"
 else
     SESSION_FILE=$(ls -t "$SESSIONS_DIR"/*.jsonl 2>/dev/null | head -1 || true)
 fi
@@ -185,8 +199,14 @@ else
     echo "$DEFAULT_INTERVAL" > "$INTERVAL_FILE" 2>/dev/null || true
 fi
 
-# ── 构造严格单行 JSON 输出到 stdout（Stop hook 协议）──
-# 用环境变量传递 RESPONSE（避免 """$RESPONSE""" 对反斜杠的错误解释）
+# ── 仅当有违规时输出 block JSON（Stop hook 协议）──
+# CLEAN 时 exit 0 stdout 为空；有违规（CAPITAL/MINOR_ONLY）时才输出 block
+if ! echo "$RESPONSE" | grep -qE "VERDICT: (CAPITAL|MINOR_ONLY)"; then
+    echo "[纪委 $(date -u +%H:%M:%SZ)] CLEAN — no violations detected" >> "$LOG_FILE" 2>/dev/null || true
+    exit 0
+fi
+
+# 用环境变量传递 RESPONSE（避免反斜杠解释错误）
 export _JW_RESPONSE="$RESPONSE"
 python3 - <<JSONEOF 2>/dev/null || exit 0
 import json, os
