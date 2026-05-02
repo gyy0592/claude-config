@@ -1,6 +1,11 @@
 #!/bin/bash
-# 纪委 (Disciplinary Inspector) — 由 Claude Code Stop hook 触发
-# 每 5 分钟审查 AI 下士是否遵守军纪；无死罪则延长到 30 分钟
+# 纪委 (Disciplinary Inspector) — 手动 start-jw.sh 启动后台 daemon 时调用
+# 也可直接运行：disciplinary_check.sh --force（跳过时间门控，立即审查）
+
+FORCE=false
+if [ "${1:-}" = "--force" ]; then
+    FORCE=true
+fi
 
 JW_DIR="/tmp/claude_jw"
 mkdir -p "$JW_DIR"
@@ -13,16 +18,18 @@ REPORT_FILE="$JW_DIR/report.md"
 DEFAULT_INTERVAL=300   # 5 分钟（有死罪/初始）
 CLEAN_INTERVAL=1800    # 30 分钟（无死罪）
 
-# ── 时间门控：未到审查时间直接退出 ──
-INTERVAL=$(cat "$INTERVAL_FILE" 2>/dev/null || echo "$DEFAULT_INTERVAL")
-NOW=$(date +%s)
-LAST=$(cat "$LAST_CHECK_FILE" 2>/dev/null || echo 0)
-ELAPSED=$((NOW - LAST))
-
-if [ "$ELAPSED" -lt "$INTERVAL" ]; then
-    exit 0
+# ── 时间门控：未到审查时间直接退出（--force 时跳过）──
+if [ "$FORCE" = false ]; then
+    INTERVAL=$(cat "$INTERVAL_FILE" 2>/dev/null || echo "$DEFAULT_INTERVAL")
+    NOW=$(date +%s)
+    LAST=$(cat "$LAST_CHECK_FILE" 2>/dev/null || echo 0)
+    ELAPSED=$((NOW - LAST))
+    if [ "$ELAPSED" -lt "$INTERVAL" ]; then
+        exit 0
+    fi
 fi
 
+NOW=$(date +%s)
 echo "$NOW" > "$LAST_CHECK_FILE"
 
 # ── 定位当前 session JSONL ──
