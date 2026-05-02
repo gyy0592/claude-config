@@ -1799,8 +1799,13 @@ echo "✅ init_corporal.sh 已创建并设为可执行: ${CLAUDE_CONFIG_DIR}/ini
 # 18.6. 创建 disciplinary_check.sh — 纪委自动审查脚本（Stop hook 触发）
 cat << 'DISCIPLINARY_SCRIPT' > "${CLAUDE_CONFIG_DIR}/disciplinary_check.sh"
 #!/bin/bash
-# 纪委 (Disciplinary Inspector) — 由 Claude Code Stop hook 触发
-# 每 5 分钟审查 AI 下士是否遵守军纪；无死罪则延长到 30 分钟
+# 纪委 (Disciplinary Inspector) — 手动 start-jw.sh 启动后台 daemon 时调用
+# 也可直接运行：disciplinary_check.sh --force（跳过时间门控，立即审查）
+
+FORCE=false
+if [ "${1:-}" = "--force" ]; then
+    FORCE=true
+fi
 
 JW_DIR="/tmp/claude_jw"
 mkdir -p "$JW_DIR"
@@ -1813,16 +1818,18 @@ REPORT_FILE="$JW_DIR/report.md"
 DEFAULT_INTERVAL=300   # 5 分钟（有死罪/初始）
 CLEAN_INTERVAL=1800    # 30 分钟（无死罪）
 
-# ── 时间门控：未到审查时间直接退出 ──
-INTERVAL=$(cat "$INTERVAL_FILE" 2>/dev/null || echo "$DEFAULT_INTERVAL")
-NOW=$(date +%s)
-LAST=$(cat "$LAST_CHECK_FILE" 2>/dev/null || echo 0)
-ELAPSED=$((NOW - LAST))
-
-if [ "$ELAPSED" -lt "$INTERVAL" ]; then
-    exit 0
+# ── 时间门控：未到审查时间直接退出（--force 时跳过）──
+if [ "$FORCE" = false ]; then
+    INTERVAL=$(cat "$INTERVAL_FILE" 2>/dev/null || echo "$DEFAULT_INTERVAL")
+    NOW=$(date +%s)
+    LAST=$(cat "$LAST_CHECK_FILE" 2>/dev/null || echo 0)
+    ELAPSED=$((NOW - LAST))
+    if [ "$ELAPSED" -lt "$INTERVAL" ]; then
+        exit 0
+    fi
 fi
 
+NOW=$(date +%s)
 echo "$NOW" > "$LAST_CHECK_FILE"
 
 # ── 定位当前 session JSONL ──
@@ -1975,6 +1982,95 @@ DISCIPLINARY_SCRIPT
 chmod +x "${CLAUDE_CONFIG_DIR}/disciplinary_check.sh"
 echo "✅ disciplinary_check.sh 已创建并设为可执行: ${CLAUDE_CONFIG_DIR}/disciplinary_check.sh"
 
+# 18.7. 创建 start-jw.sh — 手动启动纪委后台 daemon
+cat << 'START_JW_SCRIPT' > "${CLAUDE_CONFIG_DIR}/start-jw.sh"
+#!/bin/bash
+# 启动纪委后台 daemon（手动调用）
+# 用法: start-jw.sh [--project-dir <path>]
+# 报告: /tmp/claude_jw/report.md
+# 停止: stop-jw.sh
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+JW_DIR="/tmp/claude_jw"
+PID_FILE="$JW_DIR/daemon.pid"
+mkdir -p "$JW_DIR"
+
+# 解析参数
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --project-dir) PROJECT_DIR="$2"; shift 2 ;;
+        *) shift ;;
+    esac
+done
+
+# 已在运行则提示
+if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+    echo "纪委已在运行 (PID=$(cat "$PID_FILE"))"
+    echo "  报告: $JW_DIR/report.md"
+    echo "  停止: $(dirname "$0")/stop-jw.sh"
+    exit 0
+fi
+
+DISCIPLINARY="$SCRIPT_DIR/disciplinary_check.sh"
+if [ ! -x "$DISCIPLINARY" ]; then
+    echo "ERROR: disciplinary_check.sh not found at $DISCIPLINARY" >&2
+    exit 1
+fi
+
+# 重置时间戳使第一次立即执行
+echo "0" > "$JW_DIR/last_check"
+
+# 启动后台 daemon：每次审查后按判决结果 sleep（5 min 或 30 min）
+nohup bash -c "
+    while true; do
+        CLAUDE_PROJECT_DIR='$PROJECT_DIR' bash '$DISCIPLINARY' --force
+        INTERVAL=\$(cat '$JW_DIR/interval' 2>/dev/null || echo 300)
+        sleep \"\$INTERVAL\"
+    done
+" >> "$JW_DIR/daemon.log" 2>&1 &
+
+DAEMON_PID=$!
+echo "$DAEMON_PID" > "$PID_FILE"
+disown "$DAEMON_PID" 2>/dev/null || true
+
+echo "纪委已启动 (PID=$DAEMON_PID, project=$PROJECT_DIR)"
+echo "  报告: $JW_DIR/report.md"
+echo "  日志: $JW_DIR/daemon.log"
+echo "  停止: $(dirname "$0")/stop-jw.sh"
+START_JW_SCRIPT
+
+chmod +x "${CLAUDE_CONFIG_DIR}/start-jw.sh"
+echo "✅ start-jw.sh 已创建并设为可执行: ${CLAUDE_CONFIG_DIR}/start-jw.sh"
+
+# 18.8. 创建 stop-jw.sh — 停止纪委后台 daemon
+cat << 'STOP_JW_SCRIPT' > "${CLAUDE_CONFIG_DIR}/stop-jw.sh"
+#!/bin/bash
+# 停止纪委后台 daemon
+
+JW_DIR="/tmp/claude_jw"
+PID_FILE="$JW_DIR/daemon.pid"
+
+if [ ! -f "$PID_FILE" ]; then
+    echo "纪委未运行"
+    exit 0
+fi
+
+PID=$(cat "$PID_FILE")
+# 先杀子进程（正在审查的 disciplinary_check.sh），再杀 daemon
+pkill -P "$PID" 2>/dev/null || true
+if kill "$PID" 2>/dev/null; then
+    rm "$PID_FILE"
+    echo "纪委已停止 (PID=$PID)"
+else
+    rm "$PID_FILE"
+    echo "纪委已不在运行（进程不存在），已清理 PID 文件"
+fi
+STOP_JW_SCRIPT
+
+chmod +x "${CLAUDE_CONFIG_DIR}/stop-jw.sh"
+echo "✅ stop-jw.sh 已创建并设为可执行: ${CLAUDE_CONFIG_DIR}/stop-jw.sh"
+
 # 19. 安装 wrapper 为 shell 函数（不是文件，避免 AI agent 用 rm 删除）
 #     仅删除我们自己 marker 之间的块，绝不动其他内容
 rm -f ~/.local/bin/claude 2>/dev/null
@@ -2058,26 +2154,21 @@ if not bg_hook_present:
     })
     changed = True
 
-# Stop hook: 纪委 disciplinary_check.sh — 每次 Claude 结束一轮回复后触发
-# 脚本内部有时间门控（默认 5 分钟），不会每次都真正审查
-config_dir = os.environ.get("CLAUDE_CONFIG_DIR_FOR_PY", "")
-DISCIPLINARY_SCRIPT = os.path.join(config_dir, "disciplinary_check.sh") if config_dir else \
-    os.path.expanduser("~/Programs/claude-config/disciplinary_check.sh")
-
-STOP_HOOK_CMD = f"bash -c '{DISCIPLINARY_SCRIPT} >> /tmp/claude_jw/hook.log 2>&1 &'"
-
-stop_hooks = hooks.setdefault("Stop", [])
-disciplinary_present = any(
-    "disciplinary_check.sh" in h.get("command", "")
-    for entry in stop_hooks
-    for h in ([entry] if "command" in entry else entry.get("hooks", []))
-    if isinstance(h, dict)
-)
-if not disciplinary_present:
-    stop_hooks.append({
-        "hooks": [{"type": "command", "command": STOP_HOOK_CMD}]
-    })
-    changed = True
+# 主动移除旧版 Stop hook（如已存在则清理，保持幂等）
+if "Stop" in hooks:
+    before = len(hooks["Stop"])
+    hooks["Stop"] = [
+        entry for entry in hooks["Stop"]
+        if not any(
+            "disciplinary_check.sh" in h.get("command", "")
+            for h in ([entry] if "command" in entry else entry.get("hooks", []))
+            if isinstance(h, dict)
+        )
+    ]
+    if not hooks["Stop"]:
+        del hooks["Stop"]
+    if len(hooks.get("Stop", [])) != before:
+        changed = True
 
 if changed:
     with open(path, "w") as f:
@@ -2109,6 +2200,8 @@ echo "Wrapper：shell 函数在 $SHELL_RC（不是文件）"
 echo "which claude → 真实 nvm binary（未变）"
 echo "-----------------------------------"
 echo "  ${CLAUDE_CONFIG_DIR}/init_corporal.sh (军营初始化脚本)"
-echo "  ${CLAUDE_CONFIG_DIR}/disciplinary_check.sh (纪委审查脚本，Stop hook 触发，报告写入 /tmp/claude_jw/report.md)"
+echo "  ${CLAUDE_CONFIG_DIR}/disciplinary_check.sh (纪委审查脚本，手动或 daemon 调用，--force 跳过时间门控)"
+echo "  ${CLAUDE_CONFIG_DIR}/start-jw.sh          (启动纪委后台 daemon，报告: /tmp/claude_jw/report.md)"
+echo "  ${CLAUDE_CONFIG_DIR}/stop-jw.sh           (停止纪委后台 daemon)"
 echo "-----------------------------------"
 echo "下次进入任何工作区，Claude 运行 init_corporal.sh 自动创建 militar_camp/ + 下士档案。"
