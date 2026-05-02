@@ -1,30 +1,12 @@
 #!/bin/bash
-# 启动纪委后台 daemon（手动调用）
-# 用法: start-jw.sh [--project-dir <path>]
-# 报告: /tmp/claude_jw/report.md
-# 停止: stop-jw.sh
+# 启动纪委：把 disciplinary_check.sh 注册为 Claude Code Stop hook（幂等）
+# 用法: start-jw.sh [--interval <秒>]
+# 关闭: stop-jw.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 JW_DIR="/tmp/claude_jw"
-PID_FILE="$JW_DIR/daemon.pid"
+SETTINGS="$HOME/.claude/settings.json"
 mkdir -p "$JW_DIR"
-
-# 解析参数
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --project-dir) PROJECT_DIR="$2"; shift 2 ;;
-        *) shift ;;
-    esac
-done
-
-# 已在运行则提示
-if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
-    echo "纪委已在运行 (PID=$(cat "$PID_FILE"))"
-    echo "  报告: $JW_DIR/report.md"
-    echo "  停止: $(dirname "$0")/stop-jw.sh"
-    exit 0
-fi
 
 DISCIPLINARY="$SCRIPT_DIR/disciplinary_check.sh"
 if [ ! -x "$DISCIPLINARY" ]; then
@@ -32,23 +14,68 @@ if [ ! -x "$DISCIPLINARY" ]; then
     exit 1
 fi
 
-# 重置时间戳使第一次立即执行
+# 解析参数
+INTERVAL=300
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --interval) INTERVAL="$2"; shift 2 ;;
+        *) shift ;;
+    esac
+done
+
+# 重置 last_check 为 0（触发立即首次审查）
 echo "0" > "$JW_DIR/last_check"
+echo "$INTERVAL" > "$JW_DIR/interval"
+echo "[start-jw $(date -u +%H:%M:%SZ)] Reset last_check=0, interval=$INTERVAL" >> "$JW_DIR/disciplinary.log" 2>/dev/null || true
 
-# 启动后台 daemon：每次审查后按判决结果 sleep（5 min 或 30 min）
-nohup bash -c "
-    while true; do
-        CLAUDE_PROJECT_DIR='$PROJECT_DIR' bash '$DISCIPLINARY' --force
-        INTERVAL=\$(cat '$JW_DIR/interval' 2>/dev/null || echo 300)
-        sleep \"\$INTERVAL\"
-    done
-" >> "$JW_DIR/daemon.log" 2>&1 &
+# ── 幂等写入 Stop hook 到 settings.json ──
+HOOK_CMD="bash $DISCIPLINARY"
+python3 - <<PYEOF
+import json, os, sys
 
-DAEMON_PID=$!
-echo "$DAEMON_PID" > "$PID_FILE"
-disown "$DAEMON_PID" 2>/dev/null || true
+settings_path = os.path.expanduser("~/.claude/settings.json")
+hook_cmd = "$HOOK_CMD"
 
-echo "纪委已启动 (PID=$DAEMON_PID, project=$PROJECT_DIR)"
-echo "  报告: $JW_DIR/report.md"
-echo "  日志: $JW_DIR/daemon.log"
-echo "  停止: $(dirname "$0")/stop-jw.sh"
+try:
+    with open(settings_path) as f:
+        cfg = json.load(f)
+except (FileNotFoundError, json.JSONDecodeError):
+    cfg = {}
+
+hooks = cfg.setdefault("hooks", {})
+stop_hooks = hooks.setdefault("Stop", [])
+
+# 检查是否已存在（幂等）
+already_present = any(
+    isinstance(entry, dict) and any(
+        "disciplinary_check.sh" in h.get("command", "")
+        for h in entry.get("hooks", [])
+        if isinstance(h, dict)
+    )
+    for entry in stop_hooks
+)
+
+if already_present:
+    print("[start-jw] Stop hook already present in settings.json, no change needed")
+    sys.exit(0)
+
+# 添加 Stop hook 条目
+stop_hooks.append({
+    "hooks": [
+        {"type": "command", "command": hook_cmd}
+    ]
+})
+
+with open(settings_path, "w") as f:
+    json.dump(cfg, f, indent=2)
+    f.write("\n")
+
+print(f"[start-jw] Stop hook registered: {hook_cmd}")
+print(f"[start-jw] settings.json updated: {settings_path}")
+PYEOF
+
+echo "[start-jw] 纪委已启动（Stop hook 模式）"
+echo "  disciplinary_check.sh 将在每次 Claude 回复结束后自动触发"
+echo "  时间门控: 默认 ${INTERVAL}s，有死罪时 120s"
+echo "  日志: $JW_DIR/disciplinary.log"
+echo "  关闭: $SCRIPT_DIR/stop-jw.sh"
