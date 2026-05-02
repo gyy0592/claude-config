@@ -13,6 +13,9 @@ skills/*-workspace/
 # Codex credentials (never commit real keys)
 codex_info.yaml
 
+# Per-session military camp runtime state (never commit)
+militar_camp/
+
 # Local test outputs / scratch (paper-reader runs, drafts, logs)
 artifacts/
 logs/
