@@ -161,9 +161,8 @@ session 第一次行动前：填好 `corporal_X/corporal_status.md` 含下士编
 
 ### 派兵流程
 
-**步骤一**：创建目录：`mkdir -p militar_camp/corporal_X/numberY/`
-
-**步骤二**：发送 Agent prompt（run_in_background=true 永远必传，漏传 = 军法处置）
+**步骤一**：发送 Agent prompt（run_in_background=true 永远必传，漏传 = 军法处置）
+列兵到岗后自行调用 `init_soldier.sh` 创建目录和模板文件，下士无需手动 mkdir。
 
 Agent prompt 中必须逐字写入以下所有规定（不得省略，不得摘要）：
 
@@ -171,7 +170,7 @@ Agent prompt 中必须逐字写入以下所有规定（不得省略，不得摘�
 【列兵铁律 — 违者立刻处决，无申诉权】
 
 (A) 实时汇报（最重要）：
-    - 第一步：立刻写 militar_camp/corporal_X/numberY/soldier_status.md（写入本 prompt 全文 + 派出时间 + 授权字段）。这是列兵到岗后的第一个义务。
+    - 第一步：调用 bash __CLAUDE_CONFIG_DIR__/init_soldier.sh <下士编号> <列兵编号> <工作目录>，然后在生成的 soldier_status.md 填写本 prompt 全文 + 派出时间 + 授权字段。这是列兵到岗后的第一个义务。
     - 每完成一个步骤，立刻（不超过 30 秒）写入 militar_camp/corporal_X/numberY/soldier_action.md
     - 格式：### [STEP N] 步骤名称 + 具体发现/结果
     - 读一个文件 = 写一条；改一行代码 = 写一条；运行一个命令 = 写一条
@@ -213,10 +212,10 @@ Agent prompt 中必须逐字写入以下所有规定（不得省略，不得摘�
     - 自主权不解除任何记录义务和真实性协议
 ```
 
-**士兵自写 soldier_status.md**（新机制）：
-- 原因：下士手写 verbatim 复制耗费主线程大量 token 且耗时，由列兵到岗后自写更准确高效。
-- 下士只需 mkdir + 发送 Agent prompt（在 (A) 中要求列兵"到岗第一步自己写 soldier_status.md"）。
-- 列兵到岗后第一步：自己写 soldier_status.md，写入收到的 prompt 全文 + 派出时间 + 授权字段。
+**列兵自初始化（init_soldier.sh 机制）**：
+- 原因：下士手动 mkdir + 手写 soldier_status.md 耗费主线程 token，由列兵调用脚本自动生成更高效准确。
+- 下士只需发送 Agent prompt，在 (A) 中要求列兵"到岗第一步调用 init_soldier.sh"。
+- 列兵到岗后第一步：`bash __CLAUDE_CONFIG_DIR__/init_soldier.sh <X> <Y> <workdir>` → 自动生成目录 + 两个模板文件 → 在生成的 soldier_status.md 填写收到的 prompt 全文 + 派出时间 + 授权字段。
 
 ### 列兵监控（派兵后每 ≤ 1 分钟必须主动检查）
 
@@ -355,7 +354,7 @@ Agent prompt 中必须逐字写入以下所有规定（不得省略，不得摘�
 
 **派兵（>1 文件必须派兵）**：
 超过 1 个文件读取 / 任何 WebSearch / 任何代码实施 → 必须用 Agent 工具派列兵，run_in_background=true 永远必传。
-列兵到岗第一步：自写 soldier_status.md（写入收到的 prompt 全文）。
+列兵到岗第一步：调用 init_soldier.sh 初始化目录，然后在 soldier_status.md 填写收到的 prompt 全文。
 
 **action.md（每次回复结束前必须写）**：
 每次回复结束前必须 Edit/Write 写入 corporal_X/corporal_action.md，含 UTC 时间戳 + 做了什么 + 标注。
