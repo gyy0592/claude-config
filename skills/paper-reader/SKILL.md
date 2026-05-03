@@ -5,6 +5,9 @@ description: Reads an academic paper end to end and produces two files — a rea
 
 # paper-reader (main orchestrator)
 
+## Mandatory sub-skill: truth-confirm
+Before finalizing any output, and on every user follow-up, invoke truth-confirm to verify all claims. See ~/.claude/skills/truth-confirm/truth-confirm.md
+
 ## Goal
 
 Read an academic paper and produce two markdown files:
@@ -73,6 +76,27 @@ After ingestion and before the overview, scan the paper for non-universal prereq
 
 **What happens if there are no non-universal concepts:** Skip the AskUserQuestion phase. Write an empty knowledge_map (just the header) and continue. Do not ask the user pointless questions.
 
+### Step 1.6 — Figure identification and copy
+
+Immediately after ingest (before writing any output), scan `text.txt` for figure and table labels. Identify:
+
+1. **Architecture / model diagram** — the figure that shows the overall method structure (usually "Figure 1" or "Figure 2" in the method section). Note its page number.
+2. **Algorithm pseudocode boxes** — any `Algorithm N` blocks. Note their page numbers.
+3. **Result tables** — tables reporting benchmark numbers (accuracy, speed, memory). Note their page numbers.
+4. **Any other figure directly referenced in a method chunk** — ablation figures, training curves if discussed in the text.
+
+Then:
+- Copy each relevant page PNG from `<paper_name>_temp/page-NN.png` to the output folder (same directory as `<paper_name>-output.md`) with a descriptive name: `fig-architecture.png`, `fig-algorithmN.png`, `fig-tableN.png`, etc.
+- Keep a mental **figure_map**: `{figure_label → {file: "fig-xxx.png", destination: "pipeline-intro / StageX / results-section"}}`.
+
+**Why before the overview:** The overview (Step 1.5) references figures by name; the deep read embeds them inline. If you don't copy them first, both steps have to go back and redo this — wasting a pass.
+
+**Naming convention:**
+- Architecture / model diagram → `fig-architecture.png`
+- Algorithm N → `fig-algorithm-N.png`
+- Table N (benchmark results) → `fig-table-N.png`
+- Other figures → `fig-<short-description>.png`
+
 ### Step 1.5 — Overview (paper-overview)
 
 After ingestion and before the deep read, produce a reader-friendly overview of the entire paper by invoking `paper-overview`. This step:
@@ -106,6 +130,16 @@ Write this list at the top of `<paper_name>-output.md` as a visible table of con
 For each chunk in order:
 
 1. **Write the chunk.** Use `contrib-extract` for contribution chunks or `pipeline-walk` for pipeline chunks. Append the chunk to `<paper_name>-output.md` — never overwrite existing chunks. Before writing any non-universal concept, look it up in `knowledge_map.md` and apply the expansion rule: `known` → one-line reference; `partial` → definition + intuition + one formula; `unknown` → full canonical-form derivation chain. If the concept is not in knowledge_map, treat it as `unknown`.
+1a. **Embed figures inline at their designated locations.** For each chunk, consult the figure_map from Step 1.6:
+   - If this chunk is the **first pipeline chunk** (i.e., writing `## Pipeline` section header or Stage 1): embed the architecture figure as a blockquote callout immediately before Stage 1, with a one-sentence description of what the figure shows:
+     ```
+     > **[Figure N: Architecture Diagram] — read before Stage 1**
+     > ![caption](./fig-architecture.png)
+     > **图解：** [one sentence describing the key components visible in the figure]
+     ```
+   - If this chunk discusses an **Algorithm N**: embed `![Algorithm N](./fig-algorithm-N.png)` immediately after the step that introduces the algorithm, with a one-line caption pointing to the key line(s) being discussed.
+   - After the **final pipeline chunk** (Stage N): append a dedicated `## 实验结果图表` section embedding all result table figures in order, each with a `[事实]` citation anchoring at least one key number to `text.txt`.
+   - **Never embed a figure in the middle of a formula derivation** — place it immediately before or after the derivation block it illustrates.
 2. **Verify formulas against the image channel.** For every equation you wrote, open the corresponding `page-NN.png` with the `Read` tool and verify the symbols/subscripts. If the text channel mangled anything, correct it using the image as ground truth.
 3. **Source-fidelity check.** Re-read the corresponding section(s) of the paper paragraph by paragraph. Verify that every design decision, design rationale, quantitative specific, hyperparameter-to-hypothesis mapping, and contrast-with-standard-practice in the paper is present in the chunk. If anything is missing, add it to the chunk now, before running the self-checks. (See `contrib-extract`'s source-fidelity check section for the full checklist.)
 4. **Recursive self-check loop.** Run all three self-checks on the chunk. If any check triggers a modification, re-run ALL three checks on the modified chunk. Repeat until a full pass produces zero modifications. The reason for re-running all three: a `zero-jump-check` patch may insert new formulas that need `math-explain` treatment; a `math-explain` expansion may add text that needs `concise-complete` pruning; a `concise-complete` rewrite may create a new seam that `zero-jump-check` must audit.
@@ -174,8 +208,15 @@ _self-check pass (C1):_
 
 ## Pipeline
 
+> **[Figure N: Architecture Diagram] — read before Stage 1**
+> ![Figure N caption](./fig-architecture.png)
+> **图解：** [one sentence: what the boxes/arrows represent]
+
 ### Stage 1: <name>
 <pipeline-walk block: motivation / intuition+scenario / canonical-form-first derivation / term dissection / bridge to next stage>
+
+> ![Algorithm N](./fig-algorithm-N.png)    ← only if this stage discusses Algorithm N
+> **关键行：** [one sentence pointing to the specific line(s) the text just explained]
 
 _self-check pass (Stage 1):_
 - math-explain: ...
@@ -183,6 +224,18 @@ _self-check pass (Stage 1):_
 - concise-complete: ...
 
 ### Stage 2: ...
+
+## 实验结果图表
+
+![Table 1: <caption>](./fig-table-1.png)
+
+[事实] <one key number from Table 1>
+原文: "<exact quote>"
+来源: <paper_name>_temp/text.txt:<line>
+
+![Table 2: <caption>](./fig-table-2.png)
+
+...
 ```
 
 ## Hard rules (repeat because they matter)
@@ -195,6 +248,7 @@ _self-check pass (Stage 1):_
 - **Non-universal concepts need derivation chains.** If the paper uses a specialized tool (SAE, normalizing flow, score matching, etc.), derive or define it from something the reader knows before using it. This is enforced by both math-explain (canonical-form-first) and zero-jump-check (concept-prerequisite gap).
 - **Paper equation numbers must be cited.** When the paper numbers an equation, reference that number in the output so the reader can cross-check.
 - **Image channel is ground truth for every formula.** Don't trust `pdftotext` output for an equation you haven't cross-referenced against the page PNG.
+- **Figures must be embedded in output.md — text descriptions alone don't count.** Architecture diagrams, algorithm pseudocode, and result tables exist to be *seen*, not described. If a figure is relevant to a chunk, it must be copied to the output folder and embedded with `![](./fig-xxx.png)` at the designated location. A figure described in words but not shown is a missing figure.
 - **Contributions first, then full pipeline. Always.** No abbreviated mode. No "skip the pipeline".
 - **Append only.** Earlier chunks are preserved as written; corrections are appended, not overwritten.
 - **Self-check passes are visible.** The user must be able to see what was audited and what was fixed, for every chunk. If the recursive loop ran multiple iterations, show each iteration.
@@ -212,3 +266,4 @@ Each rule exists because skipping it produces a specific, visible failure:
 - **Without the image channel**, text-channel subscript errors propagate into the explanation unchecked.
 - **Without append-only**, the user loses visibility into what changed and why.
 - **Without prereq-probe**, expansion depth is guessed: too shallow strands the novice reader at the first specialized concept; too deep wastes the expert reader's time with derivations they already own. prereq-probe eliminates the guess.
+- **Without figure embedding**, the reader must mentally reconstruct the architecture from text alone — the exact failure mode that architecture diagrams exist to prevent. An output.md with no figures forces the reader to keep the PDF open alongside, which defeats the purpose of a self-contained deep read.
