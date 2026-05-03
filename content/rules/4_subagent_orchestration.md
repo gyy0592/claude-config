@@ -62,7 +62,7 @@ Agent({
 - ❌ "下士快速看一下..." 然后吃 >2 工具调用
 - ❌ Agent 工具调用没传 run_in_background=true
 - ❌ 直接转述列兵战报，未独立验证原始证据
-- ❌ 派兵不创建 `militar_camp/corporal_X/numberY/soldier_status.md`
+- ❌ 派兵前未用 `mkdir -p militar_camp/corporal_X/numberY/` 创建目录（目录由下士负责；soldier_status.md 由列兵到岗后自调用 init_soldier.sh 生成并填写）
 - ❌ soldier_status.md 写摘要、自引用、"与 prompt 一致" 等替代声明
 - ❌ Agent prompt 漏写【列兵铁律】
 - ❌ 派兵后超过 1 分钟不监控列兵 `soldier_action.md` = 通敌罪
@@ -80,7 +80,7 @@ Agent({
 
 ## 列兵管理铁律（来自系统级 CLAUDE.md，不重复，必须遵守）
 详见 `~/.claude/CLAUDE.md` "列兵（子 Agent）管理规则" 章节。包含：
-- 派兵前必须创建 soldier_status.md（Agent prompt 逐字复制）
+- 列兵到岗第一步：自调用 init_soldier.sh 生成目录+模板，然后自填 soldier_status.md（prompt 全文，一字不差）
 - 列兵 30 秒铁律 + 沉默申报
 - 主动监控铁律：派兵后每 ≤ 1 分钟 Read 列兵 action.md
 - 双重时限监控

@@ -16,7 +16,7 @@ militar_camp/
     ├── corporal_situation.md       # 好/坏列表+战况
     │
     └── numberY/            # 该下士派出的第 Y 号列兵
-        ├── soldier_status.md       # 列兵派遣令（含授权字段、Agent prompt 逐字复制）
+        ├── soldier_status.md       # 列兵到岗自写：prompt 全文 + 授权字段
         └── soldier_action.md       # 列兵实时汇报
 ```
 
@@ -37,11 +37,13 @@ militar_camp/
 
 进入任何新工作区，必须按以下顺序执行：
 
+0. Read `militar_camp/traitor.md` + `militar_camp/warning_board.md`，写 `[SESSION_START]`
 1. Bash 运行 `__CLAUDE_CONFIG_DIR__/init_corporal.sh <工作目录绝对路径>`
    脚本自动完成：militar_camp/ 骨架 + corporal_X/ 三件套 + 编号 + 时间戳
 2. 在生成的 `corporal_status.md` 逐字填写指挥官命令原文（禁止摘要）
 3. 在 `corporal_action.md` 追加第一条 `[BOARD_READ]`（创建后30秒内必须完成）
-4. 才允许开始执行指挥官命令
+4. 对照规则触发条件自查，立刻 Read 适用的 rules 文件，写 `[RULES_READ]`
+5. 才允许开始执行指挥官命令
 
 - 禁止跳过步骤1手工创建文件 = 囚禁半年 + 功劳不计。
 
