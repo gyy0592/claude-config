@@ -5,6 +5,8 @@ description: "Generate a project-specific draft_simplify.md for a code repositor
 
 # gen-draft-simplify — Generate a project-specific simplify-refactor draft
 
+> **Before any `AskUserQuestion` call, load and apply `~/.claude/rules/6_user_facing_questions.md`** (mandatory plain-language guard — four-piece set + jargon self-scan).
+
 ## What this skill does and does not do
 
 **Does**:
@@ -72,6 +74,7 @@ If the user invokes `/gen-draft` for a non-refactor task, that is the generic ge
 - ❌ Adding rules to the draft that are not in the template (the template's 24 rules are calibrated; ad-hoc additions create drift across projects)
 - ❌ Removing rules from the draft because "they don't apply to this project" — if a rule truly doesn't apply, the user should say so explicitly, then mark it as inapplicable in the draft rather than deleting it
 - ❌ Starting any actual refactor work after writing the draft. Stop at Step 4.
+- ❌ Pre-listing specific candidate files / regions / partition assignments in the draft (e.g. "重点候选区: file_a.py / file_b.py", "natural partition: Stage1 / Stage2 / ...", "delete benchmarks/v0..v7"). The draft describes WHAT and WHY only — constraints, gates, methodology. Discovery of WHERE belongs to the simplify execution loop's subagents scanning under those constraints. Template B.6 already states "判定由 agent 自行做"; instantiation must not pre-decide on the agent's behalf.
 
 ## Files in this skill
 

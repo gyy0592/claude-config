@@ -5,6 +5,8 @@ description: "Standards for writing experiment code and scripts — config-drive
 
 # Experiment Run Skill (v2)
 
+> **Before any `AskUserQuestion` call, load and apply `~/.claude/rules/6_user_facing_questions.md`** (mandatory plain-language guard — four-piece set + jargon self-scan).
+
 When a user asks you to run any code task (training, evaluation, data processing, inference, analysis, or anything else that produces outputs), follow this skill to ensure the run is config-driven, reproducible, and well-recorded.
 
 The core idea: every run should be a self-contained capsule in `exp/` that a stranger could pick up months later and fully understand what was run, with what parameters, what code, and what happened.

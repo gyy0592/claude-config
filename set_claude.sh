@@ -346,6 +346,77 @@ cat << 'EOF' > ~/.claude/rules/5_autonomous_execution.md
 4. Complete ALL work before reporting back to user
 EOF
 
+cat << 'EOF' > ~/.claude/rules/6_user_facing_questions.md
+# [USER-FACING QUESTION PHRASING — MANDATORY GUARD]
+
+## When this rule applies
+Whenever you are about to invoke `AskUserQuestion`, present a multi-choice prompt, run an intake/launcher, or otherwise ask the user to pick between options.
+
+## The four-piece set (REQUIRED for every question text)
+
+Every question MUST contain all four:
+
+### 1. What — in plain language
+Describe the concrete thing being decided.
+
+BANNED unless inline-defined on first use in the same question:
+- Internal IDs invented by the AI or skill (e.g. `AC-1`, `DEC-3`, `OPTION_2A`, `PROTECTED_BLOCKS`, `ROUND_AGENT_COUNT`)
+- Acronyms longer than 2 letters that are not common English (e.g. `LOC`, `LM head`, `MoE`, `OMP`)
+- Domain-specific jargon (e.g. `call-graph`, `weighted-decode`, `score matching`, `lock`)
+
+When such a term is unavoidable, inline-define it the first time it appears, in the same question:
+> "lock (= the next agent is forbidden from modifying this code)"
+
+### 2. Why now — one sentence
+Explain why this answer is needed at this point in the workflow.
+
+- Banned: process-internal reasons ("for AC-3", "to satisfy convergence", "round 1 needs this").
+- Required: a user-facing reason ("to decide whether the next step rewrites this file or skips it").
+
+### 3. Option A consequence — concrete
+- File names: list them. No globs (`v0.py`, `v1.py`, ..., not `v0..v7`).
+- File counts: write the number ("8 files, ~800 lines").
+- Line counts when relevant.
+- A short docstring/comment quote when it answers "what is this file for".
+- Consequence: what changes in the codebase / runtime / output if A is picked.
+
+### 4. Option B (and C, D...) consequence — same shape
+
+## Self-scan pass (REQUIRED before sending the question)
+
+Re-read the draft and answer:
+- [ ] Every internal ID inline-defined?
+- [ ] Every acronym longer than 2 letters expanded?
+- [ ] Every option lists files / counts / lines / consequences?
+- [ ] Would a non-technical reader (not the author of the skill) understand this question?
+
+If any answer is no, rewrite. Refuse to send a question that fails this scan.
+
+## Positive example
+
+> Should the first cleanup pass delete the 14 temporary benchmark scripts under `code/benchmarks/`? They are `v0_baseline.py` through `v7_full.py` (8 files) plus `test_A_baseline_v3.py` through `test_F_bs8_full.py` (6 files), about 800 lines total. Their docstrings say "Expected ~98% util" — they were one-off scripts written to tune GPU utilization. The best configuration was already merged into `code/stage1/run_batch.py`, and no other `.py` file imports them.
+>
+> - **Delete now**: 800 lines removed. Risk: if your paper draft, Jupyter notebooks, or README mention the file names by hand (e.g. "see v3_router_hooks.py"), those text references would break. The static analyzer (which only follows Python imports) cannot detect mentions inside `.md` / `.ipynb` / `.txt`.
+> - **Keep them**: no risk to external mentions; the 800 lines stay in the repo as inert code.
+
+Why it works:
+- Concrete file list and line count
+- Docstring quoted as "what is this"
+- Both options' consequences stated
+- "Static analyzer" is inline-defined ("only follows Python imports")
+
+## Negative example
+
+> Delete `code/benchmarks/v0..v7 + test_A..F` in round 1 directly, or defer? The static analyzer only finds code references and cannot detect text references in paper draft / notebook / external README.
+
+Why it fails:
+- `v0..v7 + test_A..F` is a glob, not a concrete list
+- "round 1" is undefined
+- Missing "what each file is for"
+- Per-option consequences not stated
+- A non-technical reader can only respond with "what is this?"
+EOF
+
 # 8. Install wrapper as shell function in rc file (immune to rm by AI agents).
 #    Only remove our own marker-delimited block, never touch anything else.
 rm -f ~/.local/bin/claude 2>/dev/null
@@ -381,9 +452,9 @@ export CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING=1
 THINKINGVARS
 fi
 
-# 10. Write ~/.claude/settings.json — merge in showThinkingSummaries
+# 10. Write ~/.claude/settings.json — idempotent merges
 python3 - << 'PYEOF'
-import json, os, sys
+import json, os
 
 path = os.path.expanduser("~/.claude/settings.json")
 try:
@@ -392,16 +463,51 @@ try:
 except (FileNotFoundError, json.JSONDecodeError):
     cfg = {}
 
-if cfg.get("showThinkingSummaries") is True:
-    print("settings.json: showThinkingSummaries already set")
-    sys.exit(0)
+changed = False
 
-cfg["showThinkingSummaries"] = True
-cfg["effortLevel"] = "high"
-with open(path, "w") as f:
-    json.dump(cfg, f, indent=2)
-    f.write("\n")
-print("settings.json: showThinkingSummaries enabled")
+# Reasoning settings
+if cfg.get("showThinkingSummaries") is not True:
+    cfg["showThinkingSummaries"] = True
+    changed = True
+if cfg.get("effortLevel") != "high":
+    cfg["effortLevel"] = "high"
+    changed = True
+
+# PostToolUse(Bash) hook: append every run_in_background=true Bash launch to
+# /tmp/claude-bg.log. The humanize-watchdog skill reads this file to enumerate
+# live background shells, since the public PostToolUse Bash tool_response schema
+# does not surface shell_id directly. Detection is by command-prefix match so
+# re-runs of set_claude.sh stay idempotent even if the user adds other Bash hooks.
+BG_HOOK_CMD = (
+    "jq -c 'select(.tool_input.run_in_background==true) | "
+    "{ts: now, id: .tool_use_id, resp: .tool_response, cmd: .tool_input.command}' "
+    ">> /tmp/claude-bg.log"
+)
+hooks = cfg.setdefault("hooks", {})
+post_tool = hooks.setdefault("PostToolUse", [])
+bg_hook_present = any(
+    grp.get("matcher") == "Bash" and any(
+        h.get("command", "").startswith(
+            "jq -c 'select(.tool_input.run_in_background==true)"
+        )
+        for h in grp.get("hooks", [])
+    )
+    for grp in post_tool
+)
+if not bg_hook_present:
+    post_tool.append({
+        "matcher": "Bash",
+        "hooks": [{"type": "command", "command": BG_HOOK_CMD}],
+    })
+    changed = True
+
+if changed:
+    with open(path, "w") as f:
+        json.dump(cfg, f, indent=2)
+        f.write("\n")
+    print("settings.json: updated")
+else:
+    print("settings.json: already up to date")
 PYEOF
 
 # Refresh shell hash

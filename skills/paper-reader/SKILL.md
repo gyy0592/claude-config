@@ -8,6 +8,8 @@ description: Reads an academic paper end to end and produces two files — a rea
 ## Mandatory sub-skill: truth-confirm
 Before finalizing any output, and on every user follow-up, invoke truth-confirm to verify all claims. See ~/.claude/skills/truth-confirm/truth-confirm.md
 
+> **Before any `AskUserQuestion` call, load and apply `~/.claude/rules/6_user_facing_questions.md`** (mandatory plain-language guard — four-piece set + jargon self-scan).
+
 ## Goal
 
 Read an academic paper and produce two markdown files:

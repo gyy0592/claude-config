@@ -5,6 +5,8 @@ description: Scans a paper for non-universal prerequisite concepts, builds a dep
 
 # prereq-probe
 
+> **Before any `AskUserQuestion` call, load and apply `~/.claude/rules/6_user_facing_questions.md`** (mandatory plain-language guard — four-piece set + jargon self-scan).
+
 ## Why this skill exists
 
 A paper that improves MoE routing does not re-derive MoE from scratch. If the reader does not know MoE, every explanation of the improvement is incomprehensible — no amount of zero-jump patching inside the paper's own content can fix a gap that exists *before* the paper begins. Conversely, if the reader already knows MoE, inserting a full derivation wastes time and bloats the output.
