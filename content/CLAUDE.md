@@ -77,9 +77,19 @@ session 开始第一轮回复，必须 Read：
    脚本自动完成：militar_camp/ 骨架创建（若不存在）+ corporal_X/ 三件套生成 + 编号 + 时间戳填入
 2. 在生成的 `corporal_status.md` 逐字填写指挥官命令原文（禁止摘要、禁止改写）
 3. 在 `corporal_action.md` 追加第一条 `[BOARD_READ]` 记录（创建文件后 30 秒内完成）
-4. 才允许开始执行指挥官命令
+4. **按需读规则文件（绝对强制 — 开始执行前必须完成）**：对照下方触发条件，判断本任务涉及哪些场景，立刻 Read 对应文件：
+   - 涉及写入 militar_camp/、记录战果 → Read `~/.claude/rules/1_artifacts_memory.md`
+   - 涉及写/跑代码、编辑文件、启 GPU 任务 → Read `~/.claude/rules/2_execution_env.md`
+   - 涉及任何错误/意外输出，或拟订计划 → Read `~/.claude/rules/3_debug_autonomy.md`
+   - 涉及复杂任务、多步工作、派兵 → Read `~/.claude/rules/4_subagent_orchestration.md`
+   - 涉及决定自主执行还是请示 → Read `~/.claude/rules/5_autonomous_execution.md`
+   - 涉及给指挥官选项题 / AskUserQuestion → Read `~/.claude/rules/6_user_facing_questions.md`
+   - 触犯军纪或指挥官指出违规 → Read `~/.claude/rules/7_crimes_penalties.md`
+   在 corporal_action.md 写：`[RULES_READ] 已读：<文件列表>，理由：<本任务触发条件>`
+5. 才允许开始执行指挥官命令
 
 **禁止跳过步骤1手工创建文件** = 手工创建必然出错 = 囚禁半年 + 功劳不计。
+**步骤4不得跳过** = 跳过 = 带着无知上战场 = 失职罪。
 
 </session_start>
 
