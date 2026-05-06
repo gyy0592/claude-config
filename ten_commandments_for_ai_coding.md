@@ -2,6 +2,29 @@
 
 # Ten Commandments for AI-Assisted Coding
 
+**#0 (Highest Priority): Every Task or Symptom Must Pass Through the "Measure → Hypothesize → Eliminate" Intermediate Layer — Never Act Directly**
+
+* **Breakdown**:
+  1. **Measure first, act later**: When facing any problem, goal, or unexpected result, the first step is to identify and list all observable metrics, obtain actual data using tools, and write results to a file (e.g., `metrics2monitor.md`). Jumping straight to modifying code or configuration without measuring is strictly forbidden.
+  2. **Generate a hypothesis space from measurements — always multiple**: Every measurement result must map to multiple possible causes, written as a hypothesis list. Jumping directly from an observation to a single conclusion is strictly forbidden.
+  3. **Independently verify and structurally record each hypothesis**: Check each one separately, recording "evidence + conclusion (confirmed/eliminated)" per item. Write to `monitor_spec.md` or equivalent — every check item must appear independently. Holistic conclusions ("looks fine overall," "seems normal") are strictly forbidden.
+  4. **Only then act**: Execute targeted action after root cause is identified through systematic elimination.
+
+* **Rationale**: AI only has text pattern-matching capability. Training data is dominated by patterns like "slow code → look at code → fix code." The intermediate expert layer — "first measure system metrics → branch into multiple hypotheses → systematically eliminate" — is implicit domain knowledge that experienced engineers execute automatically but never write down. AI cannot fit this layer from training data. Without forcing it, AI goes straight to the most obvious surface action, making blind modifications without knowing the actual root cause, then claiming "solved." The deeper purpose of forced structured output (every check item must appear as an independent entry with evidence and conclusion written to a file): AI cannot claim "passed" for an item it has not yet written, eliminating "feels-like-it-works" lazy compliance.
+
+* **Positive example (GPU training running slowly)**:
+  1. Measure first: run `nvidia-smi` → record each GPU's utilization and memory; write to `metrics2monitor.md`
+  2. Utilization: 30% (low) → immediately branch into hypotheses: A) DataLoader single-process bottleneck? B) Parallelism underused in torchrun? C) Multi-GPU communication overhead? D) CPU-bound?
+  3. Check each → inspect `num_workers` (=0) → check `htop` (CPU saturated) → root cause confirmed: DataLoader single-process
+  4. Write pass/fail + reason for each hypothesis → write to `monitor_spec.md`
+  5. Fix: `num_workers=8`, rerun → utilization rises to 85% → record verification result
+
+* **Negative example (AI as headless fly)**:
+  1. Code runs slowly → directly open training script
+  2. Scan code: "this for loop might be inefficient" → vectorize it
+  3. Report: "Code optimized, should be faster now"
+  4. Reality: bottleneck was DataLoader; code change was meaningless; utilization still 30%; root cause never found
+
 **#1: Plans Must Be Highly Abstract — No Implementation Details Allowed**
 
 * **Breakdown**: The planning phase establishes only system architecture, data flow, and core steps. The AI must provide higher-dimensional abstract descriptions and maintain deliberate vagueness in the plan. Concrete code snippets or low-level API calls are strictly forbidden.
