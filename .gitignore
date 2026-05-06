@@ -25,3 +25,6 @@ paper_reader_outputs_zh/
 paper-reader-workspace/
 test_papers/
 humanize_analysis.md
+
+# Codex/Humanize cache for ask-codex skill
+.humanize/
