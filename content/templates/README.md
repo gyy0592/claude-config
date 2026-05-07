@@ -1,7 +1,7 @@
 # militar_camp/ — 军营档案目录
 
-本目录由 `__CLAUDE_CONFIG_DIR__/set_claude.sh` 部署的全局军纪管理。
-任何工作区初次被 Claude 进入时自动按 `~/.claude/rules/templates/` 生成此目录骨架。
+本目录由 `set_claude.sh` / `set_codex.sh` 部署的全局军纪管理。
+任何工作区初次被 Claude Code / Codex CLI 进入时，自动按 `<repo>/content/templates/` 生成此目录骨架。
 
 ## 目录结构
 
@@ -13,7 +13,7 @@ militar_camp/
 ├── traitor.md              # 叛徒+正面教材榜（共享）— 出发前必读
 │
 └── corporal_X/             # 每个 session 一个下士（X = 1, 2, 3, ...）
-    ├── corporal_status.md          # 下士身份+指挥官命令原文
+    ├── corporal_status.md          # 下士身份+指挥官命令原文+观察项清单
     ├── corporal_action.md          # 下士操作流水（实时追加）
     ├── corporal_situation.md       # 好/坏列表+战况
     │
@@ -22,26 +22,23 @@ militar_camp/
         └── soldier_action.md       # 列兵实时汇报
 ```
 
+## 编号规则
+
+- **下士编号**：每个 session = 一个新下士。session 1 → corporal_1，session 2 → corporal_2，依此类推。
+- **列兵编号**：在 `corporal_X/` 下顺序编号 number1, number2, ...
+
 ## 使用规则（绝对强制）
 
 详见：
-- `~/.claude/CLAUDE.md`（系统级总纲）
-- `~/.claude/rules/1_artifacts_memory.md`（militar_camp 文件管理）
-- `~/.claude/rules/3_debug_autonomy.md`（bug 诊断流程）
-- `~/.claude/rules/4_subagent_orchestration.md`（子 Agent 派遣）
-- `~/.claude/rules/5_autonomous_execution.md`（自主权机制）
+- `<repo>/CLAUDE.md`（本仓库主路由 — 启动注入 ≤ 8 KB）
+- `<repo>/content/memory/INDEX.md`（按需 Read 入口；含 lessons / violations / workflows / soldier_protocol 索引）
 
-## 编号规则
-- **下士编号**：每个 session = 一个新下士。session 1 → corporal_1，session 2 → corporal_2，依此类推
-- **列兵编号**：在 `corporal_X/` 下顺序编号 number1, number2, ...
+## 每次回复开头强制阅读（不仅仅出发前 — 每轮都要读）
 
-## 每次回复开头强制阅读（不仅仅出发前！每轮！每轮！每轮！）
-任何列兵/下士**每次回复开头**必须 Read：
+任何列兵 / 下士每次回复开头必须 Read：
 1. `warning_board.md`
 2. `reward_board.md`
 3. 所属下士的 `corporal_situation.md`
-
-**警示：只在出发前读一次是不够的！每轮都要读！因为 warning_board 随时可能有新警示！**
 
 并在自己的 action.md 每次回复第一条写：
 ```
@@ -51,6 +48,7 @@ militar_camp/
 未写 = 囚禁半年 + 功劳不计。
 
 ## 写入规则
-- **追加 only**，永不覆盖
-- **步步写**，禁止批量等任务完成
-- 用电报式短句 + [事实]/[推论]/[假设] 标注
+
+- **追加 only**，永不覆盖。
+- **步步写**，禁止批量等任务完成。
+- 用电报式短句 + [事实] / [推论] / [假设] 标注（标注规则详见 content/memory/INDEX.md → 路由到具体 memory 文件）。

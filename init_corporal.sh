@@ -7,7 +7,9 @@
 # ██████████████████████████████████████████████████████
 
 WORK_DIR="${1:-.}"
-TEMPLATE_DIR="$HOME/.claude/rules/templates"
+# v2：模板目录改为相对脚本所在 repo 根（init_corporal.sh 在 repo 根，dirname 直接得 repo 根）
+REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
+TEMPLATE_DIR="$REPO_ROOT/content/templates"
 CAMP_DIR="$WORK_DIR/militar_camp"
 TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M UTC")
 

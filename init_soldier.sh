@@ -15,7 +15,8 @@ SOLDIER_NUM="${2:?用法：init_soldier.sh <下士编号> <列兵编号> [工作
 WORKDIR="${3:-$(pwd)}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TEMPLATE_DIR="$HOME/.claude/rules/templates"
+# v2：模板目录改为相对脚本所在 repo 根（init_soldier.sh 在 repo 根，SCRIPT_DIR 即 repo 根）
+TEMPLATE_DIR="$SCRIPT_DIR/content/templates"
 SOLDIER_DIR="$WORKDIR/militar_camp/corporal_${CORPORAL_NUM}/number${SOLDIER_NUM}"
 
 # 创建目录
