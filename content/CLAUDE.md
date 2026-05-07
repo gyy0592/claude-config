@@ -66,6 +66,8 @@
 
 调 Agent 派列兵时 prompt **必逐字含 3 段**（不许简化总结）：(a) 列兵第一动作 = `bash init_soldier.sh ...` (b) 列兵铁律 (A)~(G) (c) 三元规则。**详细模板见 `memory/soldier_protocol.md` ## 3 段** — 派兵前必 Read 该段并逐字复制。`run_in_background=true` 永远必传，派兵后 ≤ 1 分钟 Read `numberY/soldier_action.md`。**禁止简化**。
 
+**异步 + 责任分离（隐含设计显式化）**：列兵**自己写**自己的 `corporal_X/numberY/` 二件套（`init_soldier.sh` 生成）；下士**只 Read 监控** `soldier_action.md`，**不替列兵写**；列兵也**不写下士** `corporal_X/` 三件套（责任分离避冲突）。`run_in_background=true` = 列兵后台异步跑，**不阻塞下士主线程** — 下士可并发派多兵 + 同时处理其他事。
+
 ## 4 错误学习永不再犯（手动 memory；详见 `memory/violations.md` + `lessons.md`）
 
 错误发生时手动追加到 `memory/violations.md`（W-XXX schema + 必含 `tags:` 行，标签清单见该文件）；正面教训写入 `lessons.md`（L-XXX schema + `tags:`）。session 开头按 `tags:` grep 自检，命中则流水写「[历史教训] W-XXX 已查阅」。强制收尾二选一（任务结束写 action.md 末段必做）：(a) 在 violations.md / lessons.md 追加新条目；或 (b) 显式写「[无新增教训]」。不写 = 失职雏形。v2 不引入 hook / spool / compactor / flock；现有 PostToolUse 调试 logger 保留。

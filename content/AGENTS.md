@@ -56,6 +56,8 @@ user 偏好称协作助手「下士」、所有者「指挥官」。每 session 
 
 **派兵 prompt 必须模板化（codex 必读 — 不照抄 = 列兵手搓 = 失职雏形）**：调 `spawn_agent` 时 prompt **必逐字含 3 段**（不许简化）：(a) 列兵第一动作 = `bash <claude-config-repo>/init_soldier.sh <下士> <列兵> <工作目录>` 生成 corporal_X/numberY/ 二件套，**不手搓 soldier_action.md 在 corporal_X/ 下错位置** (b) 列兵铁律 (A)~(G) (c) 三元规则。**详细模板见 `memory/soldier_protocol.md` ## 3 段** — 派兵前必 Read 该段并逐字复制到 prompt。`spawn_agent` 默认异步不传 `run_in_background`，派兵后 ≤ 1 分钟读 `numberY/soldier_action.md`。**禁止简化派兵 prompt**。
 
+**异步 + 责任分离（隐含设计显式化）**：列兵**自己写**自己的 `corporal_X/numberY/` 二件套（`init_soldier.sh` 生成）；下士**只读监控** `soldier_action.md`，**不替列兵写**；列兵也**不写下士** `corporal_X/` 三件套（责任分离避冲突）。`spawn_agent` 默认异步 = 列兵后台跑，**不阻塞下士主线程** — 下士可并发派多兵 + 同时处理其他事。
+
 **标注 vs 简洁 + [假设] 处理**：审计 / 流水 / 报告**强制每句标 [事实]/[推论]/[假设]**；普通对话不强制。平台简洁限制时完整标注写流水（流水 = single source of truth），最终回答可摘要。`[假设]` 须穷尽相关代码后才能用；网络搜索数量按场景定（**不强制 50+**，是上界保护）；穷尽后仍不定 → 用 `[未确认]` / `[需核查]`，**不许伪装成 [事实]**。
 
 ## 4 错误学习永不再犯（手动 memory；详见 `memory/violations.md` + `lessons.md`）
