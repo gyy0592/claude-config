@@ -139,7 +139,18 @@ chmod +x "${CLAUDE_CONFIG_DIR}/set_tg.sh"             2>/dev/null || true
 # ── 7. 清理 v1 shell wrapper（v2 不再需要 wrapper）────────────
 "${SED_I[@]}" '/^# <<< claude-config-begin >>>/,/^# <<< claude-config-end >>>/d' "$SHELL_RC"
 rm -f ~/.local/bin/claude 2>/dev/null || true
-echo "[清理] ✓ SHELL_RC 中 claude wrapper 段已删（v2 不需要 wrapper）"
+
+# 宽容清理 — 即使 begin/end 标记被用户手动删过，也清掉 v1 wrapper 残留行
+# （v2 不再需要 --append-system-prompt-file 或 system_override.txt 引用）
+if grep -qE 'append-system-prompt-file|system_override\.txt' "$SHELL_RC" 2>/dev/null; then
+    cp "$SHELL_RC" "$SHELL_RC.v1.bak.$(date +%s)"
+    "${SED_I[@]}" '/append-system-prompt-file/d' "$SHELL_RC"
+    "${SED_I[@]}" '/system_override\.txt/d' "$SHELL_RC"
+    echo "[清理] ✓ SHELL_RC 中 v1 wrapper 残留行已删（含 --append-system-prompt-file / system_override.txt 引用；备份在 $SHELL_RC.v1.bak.*）"
+    echo "[清理] ⚠ 如残留孤立的 'claude() {' 或 '}' 注释行，请手动 sed 清理"
+else
+    echo "[清理] ✓ SHELL_RC 无 v1 wrapper 残留"
+fi
 
 # ── 8. 添加 Humanize pipeline + 性能调优环境变量 ─────────────
 if ! grep -q "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS" "$SHELL_RC" 2>/dev/null; then
