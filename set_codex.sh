@@ -47,18 +47,14 @@ echo "源仓库：${CODEX_CONFIG_DIR}"
 echo ""
 echo "── 体检阶段 ──────────────────────────────────────────────"
 
-# (硬性) wc -c content/AGENTS.md ≤ 8192 字节（启动注入预算；codex 专属源）
+# (硬性) content/AGENTS.md 必须存在 — 字节无硬上限（指挥官 2026-05-07 决策：三元规则 + 10 项 codex 冲突修复需要更多 token；codex 默认 project_doc_max_bytes 通过 config.toml 设为 262144 = 256 KiB）
 AGENTS_SRC="${CONTENT_DIR}/AGENTS.md"
 if [ ! -f "$AGENTS_SRC" ]; then
     echo "[体检-硬性] ✗ ${AGENTS_SRC} 不存在"
     exit 1
 fi
 AGENTS_BYTES=$(wc -c < "$AGENTS_SRC")
-if [ "$AGENTS_BYTES" -gt 8192 ]; then
-    echo "[体检-硬性] ✗ content/AGENTS.md = ${AGENTS_BYTES} 字节，超 8192 限制"
-    exit 1
-fi
-echo "[体检-硬性] ✓ content/AGENTS.md = ${AGENTS_BYTES} 字节（≤ 8192）"
+echo "[体检-信息性] content/AGENTS.md = ${AGENTS_BYTES} 字节（无硬上限）"
 
 # (硬性) Python3 存在（config.toml 幂等合并需要）
 if ! command -v python3 >/dev/null 2>&1; then

@@ -47,18 +47,14 @@ if ! command -v ln >/dev/null 2>&1; then
 fi
 echo "[体检-硬性] ✓ ln 命令存在"
 
-# (硬性) wc -c CLAUDE.md ≤ 8192 字节（plan ## 7 启动注入预算）
+# (硬性) content/CLAUDE.md 必须存在 — 字节无硬上限（指挥官 2026-05-07 决策：三元规则强化需要更多 token，去掉 8192 硬卡）
 CLAUDE_V2_SRC="${CONTENT_DIR}/CLAUDE.md"
 if [ ! -f "$CLAUDE_V2_SRC" ]; then
     echo "[体检-硬性] ✗ ${CLAUDE_V2_SRC} 不存在"
     exit 1
 fi
 CLAUDE_V2_BYTES=$(wc -c < "$CLAUDE_V2_SRC")
-if [ "$CLAUDE_V2_BYTES" -gt 8192 ]; then
-    echo "[体检-硬性] ✗ CLAUDE.md = ${CLAUDE_V2_BYTES} 字节，超 8192 限制"
-    exit 1
-fi
-echo "[体检-硬性] ✓ CLAUDE.md = ${CLAUDE_V2_BYTES} 字节（≤ 8192）"
+echo "[体检-信息性] CLAUDE.md = ${CLAUDE_V2_BYTES} 字节（无硬上限）"
 
 # (可降级) 软链接能力
 SYMLINK_OK=1
