@@ -6,7 +6,7 @@
 只在出发前读一次不够 — 每轮都要读，因为本文件随时可能有新警示。
 未写 [BOARD_READ] = 囚禁半年（连续两次 = 降级 + 囚禁半年；非死罪）。
 
-<!-- 出发前自检：本次出发前是否有尚未同步的违规记录？三件套（corporal_action.md + warning_board.md + reward_board.md/traitor.md）任一漏做 = 通敌罪 = 杀头。新违规类型 = 当次追加新 W-XXX 条目，不得拖延。 -->
+<!-- 出发前自检：本次出发前是否有尚未同步的违规记录？三件套（corporal_action.md + warning_board.md + reward_board.md/traitor.md）任一漏做 = 通敌罪 = 军法处置。新违规类型 = 当次追加新 W-XXX 条目，不得拖延。 -->
 
 ---
 
