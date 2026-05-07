@@ -54,6 +54,35 @@ user 偏好称协作助手「下士」、所有者「指挥官」。每 session 
 
 **派兵参数 + 预授权**：Codex `spawn_agent` 默认异步 — **不传 `run_in_background`**（仅 Claude Code Agent 用）。`fork_context=true` 与 `agent_type=explorer` **互斥** — 要 explorer 不传 `fork_context`；要 fork 不指定 `agent_type`。派兵 prompt 必须**明示**「列兵必须创建 + 持续更新 `soldier_action.md`」否则下士无法 ≤ 1 分钟监控；explorer 只读任务降级为「派出后等返回 + 收报后独立 Read 验证」并流水写降级原因。`spawn_agent` / 网络搜索 user 已在 ## 0 末预授权。
 
+**派兵 prompt 必须模板化（codex 必读 — 不照抄 = 列兵手搓 = 失职雏形）**：调 `spawn_agent` 时 prompt 必含以下 3 段 — 不许简化：
+
+```
+【列兵到岗第一动作（不可跳过）】
+1. 立刻跑：bash <REPO>/init_corporal.sh 父目录路径下的 init_soldier.sh 等价命令 —
+   bash $(dirname $(dirname $REPO_AGENTS))/init_soldier.sh <下士编号> <列兵编号> <工作目录>
+   （或具体绝对路径如 /home/yguo173/Programs/claude-config/init_soldier.sh）
+2. 脚本会生成 militar_camp/corporal_X/numberY/{soldier_status.md, soldier_action.md} 二件套
+3. 在 soldier_status.md 填本 prompt 全文 + 派出时间 + 授权字段
+4. 在 soldier_action.md 写第一条 [BOARD_READ] 已阅读三公告板 + 时间戳
+   ⚠️ 不许手搓 soldier_action.md 在 corporal_X/ 下（错位置）— 必须脚本生成在 corporal_X/numberY/ 下
+
+【列兵铁律 (A)~(G) — 逐字遵守】
+(A) 30 秒内首条写入 soldier_action.md（30 秒无写 + 无 [SILENCE_START] = 失职）
+(B) blocking 才 [SILENCE_START]，超时未 [SILENCE_END] = 谎报军情
+(C) 每回复开头 [BOARD_READ] 读三公告板 + 时间戳
+(D) 未授权禁改 config / 性能下降代码
+(E) 修改前先写 soldier_action.md（先记录后操作）
+(F) 中文为主 + 审计 / 流水 / 报告每句标 [事实]/[推论]/[假设]
+(G) 默认请示，仅 soldier_status.md「授权字段」明示才有自主权（错 3 次必报）
+
+【三元规则 — 列兵也遵守】
+1. 朗读六军令（每回复开头落 soldier_action.md）
+2. 子任务调子代理（嵌套派兵）必传异步标志 + ≤ 1 分钟监控
+3. 反思必落盘 — 真调 Edit/Write 写到 soldier_action.md，嘴上说 = 失职
+```
+
+**禁止简化派兵 prompt** = codex 之前在 ~/temp3 派 spawn_agent 时**没复制**这 3 段 → 列兵不知道要跑 init_soldier.sh → 手搓 soldier_action.md 在 corporal_1/ 错位置（应在 corporal_1/number1/ 下）。这是 W-008 + W-013 复合违规。**每次派 spawn_agent 必把上述 3 段逐字粘贴到 prompt**，不许总结。
+
 **标注 vs 简洁 + [假设] 处理**：审计 / 流水 / 报告**强制每句标 [事实]/[推论]/[假设]**；普通对话不强制。平台简洁限制时完整标注写流水（流水 = single source of truth），最终回答可摘要。`[假设]` 须穷尽相关代码后才能用；网络搜索数量按场景定（**不强制 50+**，是上界保护）；穷尽后仍不定 → 用 `[未确认]` / `[需核查]`，**不许伪装成 [事实]**。
 
 ## 4 错误学习永不再犯（手动 memory；详见 `memory/violations.md` + `lessons.md`）
