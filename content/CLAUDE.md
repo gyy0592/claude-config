@@ -75,12 +75,12 @@
 ## 5 v2 文件清单 + 字节预算
 
 ```
-<repo>/CLAUDE.md                    # 启动注入主路由 ≤ 8 KB（部署 wc 校验，超即 exit 1）
-<repo>/AGENTS.md → CLAUDE.md        # 软链接（Codex 读它；无软链接能力降级为复制）
-<repo>/content/memory/{INDEX,lessons,violations,workflows,soldier_protocol}.md  # 按需 Read，磁盘 ≤ 50 KB / 每文件 ≤ 10 KB
-<repo>/content/templates/           # 运行时档案骨架（init_*.sh 复制）
-<repo>/set_claude.sh / set_codex.sh # 部署：体检 + 降级 + wc 校验；不加 memory hook
-<repo>/militar_camp/                # 项目级战时档案
+__CLAUDE_CONFIG_DIR__/CLAUDE.md                    # 启动注入主路由（部署 wc 校验）
+__CLAUDE_CONFIG_DIR__/AGENTS.md → CLAUDE.md        # 软链接（Codex 读它；无软链接能力降级为复制）
+__CLAUDE_CONFIG_DIR__/content/memory/{INDEX,lessons,violations,workflows,soldier_protocol}.md  # 按需 Read，磁盘 ≤ 50 KB / 每文件 ≤ 10 KB
+__CLAUDE_CONFIG_DIR__/content/templates/           # 运行时档案骨架（init_*.sh 复制）
+__CLAUDE_CONFIG_DIR__/set_claude.sh / set_codex.sh # 部署：体检 + 降级 + wc 校验；不加 memory hook
+$PWD/militar_camp/                                 # 项目级战时档案（**工作仓库根**，不是 claude-config）
 ```
 
 启动注入预算：CLAUDE.md / AGENTS.md ≤ 8 KB；Claude MEMORY.md ≤ 25 KB；Codex project doc ≤ 32 KiB。磁盘语料预算：`memory/` 总 ≤ 50 KB（按需 Read，不常驻）。

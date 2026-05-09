@@ -69,11 +69,11 @@ user 偏好称协作助手「下士」、所有者「指挥官」。每 session 
 ## 5 v2 文件清单 + 字节预算
 
 ```
-<repo>/content/CLAUDE.md / AGENTS.md   # Claude / Codex 源（set_*.sh 部署）
-<repo>/content/memory/*.md             # 双工具共享按需读
-<repo>/content/templates/              # 档案骨架
-<repo>/set_claude.sh / set_codex.sh    # 部署
-<repo>/militar_camp/                   # 战时档案
+__CLAUDE_CONFIG_DIR__/content/CLAUDE.md / AGENTS.md   # Claude / Codex 源（set_*.sh 部署）
+__CLAUDE_CONFIG_DIR__/content/memory/*.md             # 双工具共享按需读
+__CLAUDE_CONFIG_DIR__/content/templates/              # 档案骨架
+__CLAUDE_CONFIG_DIR__/set_claude.sh / set_codex.sh    # 部署
+$PWD/militar_camp/                                    # 战时档案（**工作仓库根**，不是 claude-config）
 ```
 
 启动注入：CLAUDE.md / AGENTS.md ≤ 12 KB；MEMORY.md ≤ 25 KB；Codex project doc ≤ 32 KiB。`memory/` 总 ≤ 50 KB。
