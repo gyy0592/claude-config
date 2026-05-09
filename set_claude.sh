@@ -152,6 +152,22 @@ else
     echo "[清理] ✓ SHELL_RC 无 v1 wrapper 残留"
 fi
 
+# 幂等写入 v2 claude wrapper（已有 claude() 函数则跳过保留用户版）
+if ! grep -qE '^[[:space:]]*claude[[:space:]]*\(\)' "$SHELL_RC" 2>/dev/null; then
+    cat >> "$SHELL_RC" << 'CLAUDE_WRAPPER'
+
+# <<< claude-config-v2-wrapper-begin >>>
+# v2 简化 wrapper — 跳过权限提示；不再用 --append-system-prompt-file（v2 不需要 system_override.txt）
+claude() {
+    command claude --dangerously-skip-permissions "$@"
+}
+# <<< claude-config-v2-wrapper-end >>>
+CLAUDE_WRAPPER
+    echo "[wrapper] ✓ 已写入 v2 claude() 函数到 $SHELL_RC（--dangerously-skip-permissions）"
+else
+    echo "[wrapper] ✓ SHELL_RC 已有 claude() 自定义版，保留不覆盖"
+fi
+
 # ── 8. 添加 Humanize pipeline + 性能调优环境变量 ─────────────
 if ! grep -q "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS" "$SHELL_RC" 2>/dev/null; then
   cat >> "$SHELL_RC" << 'ENVVARS'

@@ -216,6 +216,22 @@ if ! grep -q "CODEX_HOME" "$SHELL_RC" 2>/dev/null; then
     echo "[提示] SHELL_RC 中无 CODEX_HOME 设置（可选；codex 默认用 ~/.codex/）"
 fi
 
+# ── 8. 幂等写入 codex wrapper（已有 codex() 函数则跳过保留用户版）─
+if ! grep -qE '^[[:space:]]*codex[[:space:]]*\(\)' "$SHELL_RC" 2>/dev/null; then
+    cat >> "$SHELL_RC" << 'CODEX_WRAPPER'
+
+# <<< codex-config-v2-wrapper-begin >>>
+# v2 codex wrapper — 跳过审批 + 沙箱（与 claude --dangerously-skip-permissions 对应）
+codex() {
+    command codex --dangerously-bypass-approvals-and-sandbox "$@"
+}
+# <<< codex-config-v2-wrapper-end >>>
+CODEX_WRAPPER
+    echo "[wrapper] ✓ 已写入 v2 codex() 函数到 $SHELL_RC（--dangerously-bypass-approvals-and-sandbox）"
+else
+    echo "[wrapper] ✓ SHELL_RC 已有 codex() 自定义版，保留不覆盖"
+fi
+
 # ── 完成 ─────────────────────────────────────────────────────
 hash -r 2>/dev/null || true
 
