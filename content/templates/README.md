@@ -1,3 +1,4 @@
+<!-- 模板版本 = v1.0 (claude-config) -->
 # militar_camp/ — 军营档案目录
 
 本目录由 `set_claude.sh` / `set_codex.sh` 部署的全局军纪管理。
