@@ -1,4 +1,4 @@
-<!-- 模板版本 = v1.0 (claude-config) -->
+<!-- 模板版本 = v1.1 (claude-config) -->
 # militar_camp/ — 军营档案目录
 
 本目录由 `set_claude.sh` / `set_codex.sh` 部署的全局军纪管理。
@@ -31,7 +31,7 @@ militar_camp/
 ## 使用规则（绝对强制）
 
 详见：
-- `<repo>/CLAUDE.md`（本仓库主路由 — 启动注入 ≤ 8 KB）
+- `<repo>/CLAUDE.md`（本仓库主路由 — 字节数无硬上限）
 - `<repo>/content/memory/INDEX.md`（按需 Read 入口；含 lessons / violations / workflows / soldier_protocol 索引）
 
 ## 每次回复开头强制阅读（不仅仅出发前 — 每轮都要读）

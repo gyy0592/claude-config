@@ -129,10 +129,7 @@ fi
 # ── 5. 赋执行权限（与 set_claude.sh 同段）────────────────────
 chmod +x "${CODEX_CONFIG_DIR}/init_corporal.sh"
 chmod +x "${CODEX_CONFIG_DIR}/init_soldier.sh"
-chmod +x "${CODEX_CONFIG_DIR}/disciplinary_check.sh" 2>/dev/null || true
-chmod +x "${CODEX_CONFIG_DIR}/start-jw.sh"           2>/dev/null || true
-chmod +x "${CODEX_CONFIG_DIR}/stop-jw.sh"            2>/dev/null || true
-chmod +x "${CODEX_CONFIG_DIR}/jw-capture-session.sh" 2>/dev/null || true
+chmod +x "${CODEX_CONFIG_DIR}/set_monitor_time.sh"   2>/dev/null || true
 chmod +x "${CODEX_CONFIG_DIR}/set_tg.sh"             2>/dev/null || true
 
 # ── 6. 写 ~/.codex/config.toml — 幂等合并（保留用户字段，仅未设时新增）─
@@ -239,10 +236,10 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo " Codex v2 部署完成！"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "启动注入（≤ 8 KB）："
+echo "启动注入："
 echo "  ~/.codex/AGENTS.md           (codex 入口；源 = content/AGENTS.md，codex 专属)"
 echo ""
-echo "按需读取（磁盘语料 ≤ 50 KB）："
+echo "按需读取："
 if [ "$SYMLINK_OK" -eq 1 ]; then
     echo "  ~/.codex/memory → ${CONTENT_DIR}/memory  (软链接，单源)"
 else
@@ -262,8 +259,7 @@ echo ""
 echo "工具脚本（已 chmod +x；与 set_claude.sh 共享）："
 echo "  ${CODEX_CONFIG_DIR}/init_corporal.sh         (军营初始化)"
 echo "  ${CODEX_CONFIG_DIR}/init_soldier.sh          (列兵自初始化)"
-echo "  ${CODEX_CONFIG_DIR}/disciplinary_check.sh    (纪委审查)"
-echo "  ${CODEX_CONFIG_DIR}/start-jw.sh / stop-jw.sh (纪委后台 daemon)"
+echo "  ${CODEX_CONFIG_DIR}/set_monitor_time.sh      (动态调整监控周期)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "下次 codex 进入任何工作区，运行 init_corporal.sh 自动创建 militar_camp/。"
 echo "（与 Claude Code 共享 militar_camp/ 战时档案；双工具切换无需重新初始化）"

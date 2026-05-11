@@ -4,11 +4,12 @@
 # 军方全局配置部署脚本 v2 — 短指令路由器架构
 # ██████████████████████████████████████████████████████████
 #
-# v2 改动：
-#   - 启动注入文件 ≤ 8 KB（仅 ~/.claude/CLAUDE.md + ~/CLAUDE.md）
+# v1.1 改动：
+#   - 启动注入文件无硬字节上限（指挥官明示「不计代价」）
 #   - 用户层 memory 走 content/memory/ 单源（按需 Read，不常驻）
-#   - 删除 system_override.txt + rules/ 7 文件 + claude shell wrapper
-#   - 新增体检（硬性 ln 检测 + 可降级软链接 + 信息性版本提示）
+#   - 暴力重复 prompt 加强（朗读 + 反思四模块 + 监控 5 分钟 + 事实优先 + 4 步开局）
+#   - 监控周期可由 set_monitor_time.sh 动态调整
+#   - skill 体系（如 censor）按 README ## 4 手动 ln -sfn 部署
 #
 # 修改规则文件请直接编辑 content/ 下对应文件，然后重新运行本脚本。
 
@@ -130,10 +131,7 @@ fi
 # ── 6. 赋执行权限（脚本已在 repo 中，直接 chmod）────────────
 chmod +x "${CLAUDE_CONFIG_DIR}/init_corporal.sh"
 chmod +x "${CLAUDE_CONFIG_DIR}/init_soldier.sh"
-chmod +x "${CLAUDE_CONFIG_DIR}/disciplinary_check.sh" 2>/dev/null || true
-chmod +x "${CLAUDE_CONFIG_DIR}/start-jw.sh"           2>/dev/null || true
-chmod +x "${CLAUDE_CONFIG_DIR}/stop-jw.sh"            2>/dev/null || true
-chmod +x "${CLAUDE_CONFIG_DIR}/jw-capture-session.sh" 2>/dev/null || true
+chmod +x "${CLAUDE_CONFIG_DIR}/set_monitor_time.sh"   2>/dev/null || true
 chmod +x "${CLAUDE_CONFIG_DIR}/set_tg.sh"             2>/dev/null || true
 
 # ── 7. 清理 v1 shell wrapper（v2 不再需要 wrapper）────────────
@@ -262,11 +260,11 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo " v2 部署完成！"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "启动注入（≤ 8 KB）："
+echo "启动注入："
 echo "  ~/.claude/CLAUDE.md          (系统级总纲，源 = content/CLAUDE.md)"
 echo "  ~/CLAUDE.md                  (双重保障，与系统级一致)"
 echo ""
-echo "按需 Read（磁盘语料 ≤ 50 KB）："
+echo "按需 Read："
 if [ "$SYMLINK_OK" -eq 1 ]; then
     echo "  ~/.claude/memory → ${CONTENT_DIR}/memory  (软链接，单源)"
 else
@@ -280,7 +278,6 @@ echo ""
 echo "工具脚本（已 chmod +x）："
 echo "  ${CLAUDE_CONFIG_DIR}/init_corporal.sh         (军营初始化)"
 echo "  ${CLAUDE_CONFIG_DIR}/init_soldier.sh          (列兵自初始化)"
-echo "  ${CLAUDE_CONFIG_DIR}/disciplinary_check.sh    (纪委审查，可手动或 daemon 调用)"
-echo "  ${CLAUDE_CONFIG_DIR}/start-jw.sh / stop-jw.sh (纪委后台 daemon)"
+echo "  ${CLAUDE_CONFIG_DIR}/set_monitor_time.sh      (动态调整监控周期)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "下次进入任何工作区，Claude 运行 init_corporal.sh 自动创建 militar_camp/。"

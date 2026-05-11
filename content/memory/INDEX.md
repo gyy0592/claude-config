@@ -1,6 +1,6 @@
 # content/memory/ 索引（按需 Read，不常驻上下文）
 
-本目录承载「按需读、不每次自动注入」的长期教训 + 工作流细则。启动注入仅 `<repo>/CLAUDE.md`（≤ 8 KB）；本目录磁盘语料预算 ≤ 50 KB（每文件 ≤ 10 KB / ≤ 250 行）。主路由 `CLAUDE.md` 顶部明文「需要时 Read content/memory/INDEX.md」（不用 `@` 自动导入语法）。
+本目录承载「按需读、不每次自动注入」的长期教训 + 工作流细则。启动注入仅 `<repo>/CLAUDE.md`（**字节数无硬上限** — 指挥官明示「不计代价」）；本目录按需 Read 不常驻减负载。主路由 `CLAUDE.md` 顶部明文「需要时 Read content/memory/INDEX.md」（不用 `@` 自动导入语法）。
 
 ## 4 文件触发表
 

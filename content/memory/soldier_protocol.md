@@ -76,10 +76,12 @@
       [/SILENCE_START]
     - 超时未写 [SILENCE_END] = 谎报 = 叛国 = 处决
 
-(C) 每次回复开头强制阅读（不仅出发前！每次！每次！每次！）：
-    - 每次回复开头（第一步）必须完整 READ militar_camp/warning_board.md + reward_board.md + corporal_X/corporal_situation.md
-    - soldier_action.md 第一步必须写 [BOARD_READ] 已阅读三文件，时间：YYYY-MM-DD HH:MM UTC
-    - 未写 [BOARD_READ] 就开始回复 = 囚禁半年 + 任务功劳不计
+(C) 列兵每次回复 4 步开局（与下士同款 — 不仅出发前！每次！每次！每次！）：
+    - 第 1 步：朗读六军令全文（不简化为编号 / 不简化为标题），第一字必须是『军』
+    - 第 2 步：READ militar_camp/warning_board.md + reward_board.md + corporal_X/corporal_situation.md + **corporal_X/corporal_status.md（重点看观察项清单各 section + 自己负责的指标）** + 上回合自己的 corporal_X/numberY/soldier_action.md 末段 + 自己的 numberY/soldier_status.md（看授权字段是否变更）
+    - 第 3 步：在 soldier_action.md 写 [BOARD_READ] + 反思四模块 [反思-A/B/C/D]（D 写实质内容禁套话），时间：YYYY-MM-DD HH:MM UTC
+    - 第 4 步：才开始本回合任务
+    - 漏任一步 = 失职 = 囚禁半年 + 任务功劳不计
 
 (D) 绝对禁止（未经指挥官授权）：
     - 禁止修改任何 config 文件中任何字段
