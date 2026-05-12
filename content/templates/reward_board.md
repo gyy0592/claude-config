@@ -1,5 +1,10 @@
 <!-- template version = v1.2 (claude-config) -->
-# REWARD BOARD — Military Camp Reward Records
+<!-- ⚠️ v2-hook DEPRECATION NOTICE ⚠️ -->
+<!-- This template is NO LONGER copied by init_corporal.sh in v2. -->
+<!-- Functionality replaced by: militar_camp/successful_fixes.md -->
+<!-- File retained for backward-compat with old projects (1 release cycle). -->
+
+# REWARD BOARD — Military Camp Reward Records (DEPRECATED)
 
 Every Private / Corporal must Read this file at the start of every reply, and write in action.md:
 `[BOARD_READ] Read warning_board.md + reward_board.md + corporal_situation.md, time: YYYY-MM-DD HH:MM UTC`

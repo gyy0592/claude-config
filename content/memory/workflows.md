@@ -73,10 +73,26 @@ Any missing module invalidates; writing only "I reflected" one line or two-line 
 ```
 [ROOT CAUSE OBS-N] YYYY-MM-DD HH:MM UTC | Root cause hypothesis: <most likely cause> | Cite raw evidence: <output snippet or log line from previous [OBSERVE] entry>
 [RESOLVED OBS-N]   YYYY-MM-DD HH:MM UTC | Choice: fix / retry / escalate | Specific action: <what file changed / what command ran / who was escalated to>
-[RETEST OBS-N]     YYYY-MM-DD HH:MM UTC | Re-run measurement command: <same as above> | Retest [OBSERVE] entry number: <new [OBSERVE] number> | Retest conclusion: pass / still failing
+[RETEST OBS-N]     YYYY-MM-DD HH:MM UTC | Re-run measurement command: <same as above> | Retest [OBSERVE] entry number: <new [OBSERVE] number> | Retest conclusion: pass / still failing | **v2 3-Q check** (all must answer Yes for "pass"): (a) Did I actually RUN the test cmd? <Yes / No + why> (b) Did I WAIT for results to return? <Yes / No + when> (c) Does output MATCH success criterion? <expected vs actual cited>
 ```
 
-Same observation item fails 3 consecutive times = mandatory escalation to Commander; no further brute-forcing. Missing any step / fabricating root cause evidence / running unrelated command masquerading as retest = False Military Report = Amputation + credits halved.
+**v2 NEW — 3-Q retest enforcement**: Any retest claiming "pass" must answer all three Qs explicitly in writing. Subjective "I think it's fixed" / "should be working now" = retest fails. Cannot hand back the turn.
+
+**v2 NEW — fix → ledger linkage**: Every [RETEST] passing entry triggers an ATT-N entry in `militar_camp/attempts_ledger.md` (verdict = worked). Every [RETEST] failing entry after 3rd attempt at same target triggers WRONG-WAY-N entry in `militar_camp/bitter_lessons.md`. Final stable fix after multiple attempts → FIX-N in `militar_camp/successful_fixes.md`.
+
+**v2 NEW — Monitor-tool verify-running** (after CronCreate): Within ≤1 min after `CronCreate */15 * * * *` for a long task, must use `Monitor` (or `TaskList`) tool to verify task status is `running`. Statuses to flag: `queued` (silent hang), `exited` (script error), `error` (immediate fail), `missing` (never started). Failed verify = report Commander immediately, do not wait for cron to discover.
+
+**v2 NEW — [INFERENCE] evidence requirements** (Decree 2 hardened):
+Any sentence labeled `[INFERENCE]` must be preceded (in action.md) by an EFFORT LOG containing:
+- WebSearch count + keywords used
+- Files Read line-by-line + path:line ranges
+- Experiments run + cmd + output snippet
+- Multi-round self-Q&A trace ("maybe X? no checked. maybe Y? no checked...")
+Then a 2nd meta-reflection: "Is this evidence complete? Any observable variable I missed? Was [INFERENCE] used too early?" — written conclusion. Only then can [INFERENCE] stand. Missing either = laziness = Dereliction of Duty.
+
+Same observation item fails 3 consecutive times = mandatory escalation to Commander; no further brute-forcing. EXCEPTION (v2 NEW): Before escalating, Read `$PWD/CLAUDE.md` (project-level). If contains "allow you to do anything" / "you have the authorization" / "no stop until X" → suspend stop, log `[AUTH_DETECTED]` + cite verbatim, keep trying.
+
+Missing any step / fabricating root cause evidence / running unrelated command masquerading as retest = False Military Report = Amputation + credits halved.
 
 ## 6 Performance Protection G1~G16 (absolutely mandatory — unauthorized changes universally forbidden)
 

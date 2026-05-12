@@ -1,11 +1,8 @@
-<!-- ⚠️ v2-hook DEPRECATION NOTICE ⚠️ -->
-<!-- This file has been MIGRATED to: -->
-<!--   AUTHORITATIVE SOURCE = content/templates/global_rules/lessons.md -->
-<!--   DEPLOY TARGET (auto-loaded) = ~/.claude/rules/lessons.md -->
-<!-- This local file retained 1 release cycle for backward compat. -->
-<!-- New L-XXX entries: write to ~/.claude/rules/lessons.md. -->
+# lessons.md — Cross-Project AI Behavior Wisdom (L-XXX, Global)
 
-# Lessons List — L-XXX Long-Term Positive Teaching Repository (DEPRECATED — see ~/.claude/rules/lessons.md)
+<!-- v2-hook DEPLOY TARGET: ~/.claude/rules/lessons.md -->
+<!-- Auto-loaded by Claude rules system every session (cross-project). -->
+<!-- Records general AI behavior lessons (L-XXX). For project-specific successful fixes, use militar_camp/successful_fixes.md instead. -->
 
 Read on demand: before writing comprehensive reflection entries / when referencing past "correct approaches" / grep by `tags:` at session start for related items. Each entry must contain a `tags:` line; old entries without tags are excluded from grep and must be updated to restore coverage.
 

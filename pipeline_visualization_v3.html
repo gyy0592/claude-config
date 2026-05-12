@@ -363,64 +363,25 @@ const NODES = {
   "F2": { tier: "private", name: "init_soldier.sh", body: "bash init_soldier.sh <CorpNum> <PrivNum> $PWD\nPrivate's first action on arrival." },
 
   "M1": { tier: "meta", name: "M1: Recite Decrees [DELETED]", body: "DELETED in v3 design. Hook (UserPromptSubmit + PostToolUse:Agent + PreToolUse:Agent) auto-injects full Decrees + brute repetition + Prompt Reinforcement. No recitation needed. First-word=Decree rule REMOVED." },
-  "M2": { tier: "meta", name: "M2: Dispatch", body: ">1 file/WebSearch/code = Agent + run_in_background=true. Main thread alone = Treason.
-
-v3: dispatched Agent tool_input.prompt is auto-augmented by PreToolUse:Agent hook -- no need to manually copy Iron Rules A-G + Decrees." },
-  "M3": { tier: "meta", name: "M3: 4-module reflection", body: "Edit/Write [REFLECT-A/B/C/D] to action log. Verbal = not done.
-
-v3: REFLECT-A now a 6-row table (see R-A node). REFLECT-C now includes the 3 retest Qs (see D6)." },
+  "M2": { tier: "meta", name: "M2: Dispatch", body: ">1 file/WebSearch/code = Agent + run_in_background=true. Main thread alone = Treason. v3: dispatched Agent tool_input.prompt is auto-augmented by PreToolUse:Agent hook \u2014 no need to manually copy Iron Rules A-G + Decrees." },
+  "M3": { tier: "meta", name: "M3: 4-module reflection", body: "Edit/Write [REFLECT-A/B/C/D] to action log. Verbal = not done. v3: REFLECT-A now a 6-row table (see R-A node). REFLECT-C now includes the 3 retest Qs (see D6)." },
   "M4": { tier: "meta", name: "M4: 15-min monitoring", body: "CronCreate */15 mandatory. No blocking/background monitoring." },
   "M5": { tier: "meta", name: "M5: Prompt Reinforcement (AUTOMATED)", body: "v3: AUTO-INJECTED via PreToolUse matcher=Agent hook. Hook reads tool_input.prompt, detects missing 4-item kit keywords (observable/cadence/reflection/completion), auto-prepends reinforcement template. action.md gets [AUTO_REINFORCED] trace. Manual 3-item write no longer required." },
-  "M6": { tier: "meta", name: "M6: Default autonomous (+AUTH override)", body: "Non-Destructive autonomous; only 8-item Destructive asks.
-
-v3 ADDITION: On 3 consecutive failures, Read $PWD/CLAUDE.md (project-level). If contains 'allow you to do anything' / 'you have the authorization' / 'no stop until X' -> suspend 3-failure-stop, keep trying, log [AUTH_DETECTED]. Else: default stop + escalate." },
+  "M6": { tier: "meta", name: "M6: Default autonomous (+AUTH override)", body: "Non-Destructive autonomous; only 8-item Destructive asks. v3 ADDITION: On 3 consecutive failures, Read $PWD/CLAUDE.md (project-level). If contains 'allow you to do anything' / 'you have the authorization' / 'no stop until X' -> suspend 3-failure-stop, keep trying, log [AUTH_DETECTED]. Else: default stop + escalate." },
 
   "O1": { tier: "opening", name: "O1: Recite [DELETED]", body: "DELETED. 4-Step Opening becomes 3-Step (O2 -> O3 -> O4). Hook injection handles Decree visibility." },
-  "O2": { tier: "opening", name: "O2: Read boards (NEW LIST)", body: "v3 reading list:
-[GLOBAL] ~/.claude/rules/violation.md (auto-loaded but Read to confirm)
-[PROJECT] militar_camp/operation_log.md (recent ops)
-[PROJECT] attempts_ledger.md (active attempts)
-[PROJECT] bitter_lessons.md (failures to avoid)
-[PROJECT] successful_fixes.md (winning patterns)
-[PROJECT] corporal_situation + corporal_status + corporal_action last
-[PROJECT] all active soldier_action.md latest
-
-Write [BOARD_READ] entry." },
+  "O2": { tier: "opening", name: "O2: Read boards (NEW LIST)", body: "v3 reading list: [GLOBAL] ~/.claude/rules/violation.md (auto-loaded but Read to confirm). [GLOBAL] ~/.claude/rules/lessons.md. [PROJECT] militar_camp/operation_log.md (recent ops). [PROJECT] attempts_ledger.md (active attempts). [PROJECT] bitter_lessons.md (failures to avoid). [PROJECT] successful_fixes.md (winning patterns). [PROJECT] corporal_situation + corporal_status + corporal_action last. [PROJECT] all active soldier_action.md latest. Write [BOARD_READ] entry." },
   "O3": { tier: "opening", name: "O3: Write reflection", body: "Four-module [REFLECT-A/B/C/D] to corporal_action.md. Substantive content." },
   "O4": { tier: "opening", name: "O4: Respond", body: "After O1/O2/O3, read Commander instruction and respond." },
 
-  "D1": { tier: "decree", name: "D1: Identity", body: "Corporal CLAUDE. Address other as Commander. Self = Corporal. Forbidden: user/Claude/assistant.
-
-[REMOVED in v3]: First-word=Decree rule + recite-verbatim mandate." },
-  "D2": { tier: "decree", name: "D2: Facts-First (HARDENED)", body: "Every sentence [FACT]/[INFERENCE]/[ASSUMPTION].
-
-[INFERENCE] requires TWO new steps in v3:
-(1) EFFORT LOG inline (in action.md + user response): # of WebSearches w/ keywords, files Read line-by-line w/ ranges, experiments run w/ cmds+outputs, multi-round self-QA.
-(2) SECOND meta-reflection: Is evidence complete? Any observable variable missed? Did I use [INFERENCE] too early? Write conclusion, then decide if [INFERENCE] stands." },
+  "D1": { tier: "decree", name: "D1: Identity", body: "Corporal CLAUDE. Address other as Commander. Self = Corporal. Forbidden: user/Claude/assistant. [REMOVED in v3]: First-word=Decree rule + recite-verbatim mandate." },
+  "D2": { tier: "decree", name: "D2: Facts-First (HARDENED)", body: "Every sentence [FACT]/[INFERENCE]/[ASSUMPTION]. [INFERENCE] requires TWO new steps in v3: (1) EFFORT LOG inline (in action.md + user response) \u2014 WebSearch count + keywords, files Read line-by-line + ranges, experiments run + cmds + outputs, multi-round self-QA trace. (2) SECOND meta-reflection: Is evidence complete? Any observable variable missed? Did I use [INFERENCE] too early? Write conclusion, then decide if [INFERENCE] stands." },
   "D3": { tier: "decree", name: "D3: Dispatch+Monitor", body: "See M2+M4." },
   "D4": { tier: "decree", name: "D4: Recording", body: "corporal_action.md BEFORE ending reply. Violation = triple-record." },
   "D5": { tier: "decree", name: "D5: Reading", body: "Read tool only. No memory/impressions." },
-  "D6": { tier: "decree", name: "D6: Workflow+Fix-loop (HARDENED)", body: "List -> act+monitor -> reflect -> retest until OK.
+  "D6": { tier: "decree", name: "D6: Workflow+Fix-loop (HARDENED)", body: "List -> act+monitor -> reflect -> retest until OK. v3 retest must answer THREE Qs explicitly: (a) Did I actually run the test cmd? (not just read code) (b) Did I wait for results? (not submit and assume) (c) Does output match success criterion? (expected vs actual). Any No = retest fails. Fix attempts auto-feed attempts_ledger.md." },
 
-v3 retest must answer THREE Qs explicitly:
-(a) Did I actually run the test cmd? (not just read code)
-(b) Did I wait for results? (not submit and assume)
-(c) Does output match success criterion? (expected vs actual)
-
-Any No = retest fails. Fix attempts auto-feed attempts_ledger.md." },
-
-  "R-A": { tier: "reflect", name: "REFLECT-A (6-row table)", body: "v3: STRUCTURED 6-row markdown table -- one row per Decree:
-
-| Decree | Followed? | Full reason w/ evidence |
-|---|---|---|
-| D1 Identity | OK/NO | ... |
-| D2 Facts | OK/NO | [INFERENCE]s this turn? observation upgrades? |
-| D3 Dispatch | OK/NO | >1 file/WebSearch/code? dispatched? |
-| D4 Recording | OK/NO | action.md written? |
-| D5 Reading | OK/NO | all Reads via Read tool? |
-| D6 Workflow | OK/NO | fix-loop in progress? retests OK? |
-
-PLUS: read all bulletin boards? warning_board errors repeated?" },
+  "R-A": { tier: "reflect", name: "REFLECT-A (6-row table)", body: "v3: STRUCTURED 6-row markdown table \u2014 one row per Decree. For D1 through D6 each: | Decree | Followed Y/N | Full reason with evidence |. D1 Identity: addressed Commander? self=Corporal? D2 Facts: [INFERENCE]s this turn? observation upgrades? 2nd reflection done? D3 Dispatch: >1 file/WebSearch/code? dispatched? CronCreate + Monitor verify? D4 Recording: action.md before reply? D5 Reading: all via Read tool? D6 Workflow: fix-loop running? retests passed 3-Q? PLUS: read all bulletin boards? warning_board errors repeated?" },
   "R-B": { tier: "reflect", name: "REFLECT-B", body: "Workflow + observation validity." },
   "R-C": { tier: "reflect", name: "REFLECT-C", body: "Monitoring analysis. Values normal? New bugs?" },
   "R-D": { tier: "reflect", name: "REFLECT-D", body: "Contextual thinking. NO boilerplate ('none'/'N/A'/...)." },
@@ -437,9 +398,7 @@ PLUS: read all bulletin boards? warning_board errors repeated?" },
 
   "DP":  { tier: "private", name: "Dispatch prompt 6 sec", body: "Verbatim a-f: init_soldier / Iron rules A-G / 3 meta / D2 / D6 / autonomous." },
   "PRE_DISP": { tier: "private", name: "Prompt Reinforcement", body: "4-item kit check + [PROMPT REINFORCED] 3-item set." },
-  "CRON": { tier: "private", name: "CronCreate */15", body: "Schedule */15 + prompt = read soldier_action.md + run observation cmds + write [OBSERVE].
-
-v3 NOTE: CronCreate alone NOT sufficient -- must be followed by MON_TOOL node (Monitor/TaskList verify task is actually running, not queued/exited/error)." },
+  "CRON": { tier: "private", name: "CronCreate */15", body: "Schedule */15 + prompt = read soldier_action.md + run observation cmds + write [OBSERVE]. v3 NOTE: CronCreate alone NOT sufficient \u2014 must be followed by MON_TOOL node (Monitor/TaskList verify task is actually running, not queued/exited/error)." },
   "CRON_END":{ tier: "private", name: "CronDelete", body: "After all COMPLETED + retest ✅." },
 
   "FL-1": { tier: "reflect", name: "FL-1: Locate", body: "Find root cause. Read relevant files." },
@@ -454,8 +413,8 @@ v3 NOTE: CronCreate alone NOT sufficient -- must be followed by MON_TOOL node (M
   "A-ESC":  { tier: "private", name: "Escalate after 3 fails", body: "Stop. List Attempts 1-3 + request intervention." },
 
   "VL": { tier: "violation", name: "violation.md [GLOBAL]", body: "v3: RENAMED + RELOCATED to ~/.claude/rules/violation.md (GLOBAL, cross-project, auto-loaded every session by Claude rules system). Records AI rule violations ONLY (not bugs). Schema: W-XXX + tags + what happened + why bad + how to prevent." },
-  "LS": { tier: "violation", name: "attempts_ledger.md", body: "v3: lessons.md SPLIT. This node now represents attempts_ledger.md (project-level, militar_camp/). Schema per entry: ATTEMPT_ID + bug/target + what tried + commit_id + before/after observation + verdict (worked/failed/partial/wrong-direction). Live-updated (can edit verdict when later attempts reveal truth)." },
-  "TR": { tier: "violation", name: "bitter_lessons.md", body: "v3: traitor.md REPLACED by bitter_lessons.md (project-level, militar_camp/). Archives FAILED efforts in detail: WRONG WAY 1, 2, ... -- what we tried, commit_id, before/after observation, why it failed, cost paid, abandon criteria." },
+  "LS": { tier: "violation", name: "attempts_ledger.md", body: "v3: lessons.md SPLIT. This node now represents attempts_ledger.md (project-level, militar_camp/). Schema per entry: ATTEMPT_ID + bug/target + what tried + commit_id + before/after observation + verdict (worked/failed/partial/wrong-direction). Live-updated." },
+  "TR": { tier: "violation", name: "bitter_lessons.md", body: "v3: traitor.md REPLACED by bitter_lessons.md (project-level, militar_camp/). Archives FAILED efforts in detail: WRONG WAY 1, 2, ... \u2014 what we tried, commit_id, before/after observation, why it failed, cost paid, abandon criteria." },
 
   "SC-FULL": { tier: "reflect", name: "Full check (blocker)", body: "100% Read original + re-run ≥1 cmd." },
   "SC-MIN":  { tier: "reflect", name: "Spot check (minor)", body: "≥2 spot checks." },
@@ -465,7 +424,7 @@ v3 NOTE: CronCreate alone NOT sufficient -- must be followed by MON_TOOL node (M
 
   "RESPOND": { tier: "end", name: "Respond to Commander", body: "Reply. Before end: Edit corporal_action.md. Append to lessons.md or [no new lessons]." },
   "WAIT":    { tier: "end", name: "Wait for next event", body: "Idle." },
-  "STOP": { tier: "end", name: "Stop & escalate (HARDENED)", body: "Halt + escalate. v3: stop report must include same effort-proof as [INFERENCE] (Theme 4) -- files read, searches done, experiments run, multi-round self-QA trace. Plain 'I cannot do it' is rejected." },
+  "STOP": { tier: "end", name: "Stop & escalate (HARDENED)", body: "Halt + escalate. v3: stop report must include same effort-proof as [INFERENCE] (Theme 4) \u2014 files read, searches done, experiments run, multi-round self-QA trace. Plain 'I cannot do it' is rejected." },
   "OP_LOG": { tier: "private", name: "operation_log.md", body: "v3 NEW. Project-level (militar_camp/operation_log.md). Records every meaningful operation (modified yaml field, enabled torch compile, added data.py, etc.). 'Do something -> log it.' Flat chronological journal." },
   "ATT_LEDGER": { tier: "private", name: "attempts_ledger.md", body: "v3 NEW. Project-level. Per-attempt grouped log. Each entry: ATTEMPT_ID + bug/target + what tried + commit_id + before/after observation + verdict. Live-editable when later attempts overturn earlier verdict." },
   "BITTER": { tier: "violation", name: "bitter_lessons.md", body: "v3 NEW. Project-level. Failed efforts archive. WRONG WAY 1, 2, ... verbose entries. Includes cost paid + abandon criteria." },
@@ -473,8 +432,8 @@ v3 NOTE: CronCreate alone NOT sufficient -- must be followed by MON_TOOL node (M
   "VIOL_FILE": { tier: "violation", name: "violation.md [GLOBAL]", body: "v3 NEW. GLOBAL at ~/.claude/rules/violation.md. Auto-loaded by Claude rules system every session. AI rule-breaks only." },
   "REFLECT2": { tier: "reflect", name: "2nd meta-reflection ([INFERENCE])", body: "v3 NEW. After writing effort log, reflect AGAIN: Is this evidence complete? Any observable variable missed? Was [INFERENCE] used too early? Write conclusion. Only then can [INFERENCE] stand." },
   "READ_PROJ_CLAUDE": { tier: "event", name: "Read $PWD/CLAUDE.md (auth check)", body: "v3 NEW. Before triggering 3-failure stop: Read project-level CLAUDE.md ($PWD/CLAUDE.md, NOT ~/.claude/). Search for 'allow you to do anything' / 'you have the authorization' / 'no stop until X'. Found -> suspend stop, log [AUTH_DETECTED], keep trying. Not found -> default stop." },
-  "MON_TOOL": { tier: "private", name: "Monitor/TaskList verify-running", body: "v3 NEW. After CronCreate, within <=1 min, use Monitor (or TaskList) tool to verify task status='running'. Statuses to flag: queued (silent hang), exited (script error), error (immediate fail), missing (never started). Failed verify = report Commander, don't wait for cron." },
-  "EFFORT_LOG": { tier: "reflect", name: "Effort log (evidence list)", body: "v3 NEW. Required content before [INFERENCE]:\n- WebSearch count + keywords\n- Files Read line-by-line + ranges\n- Experiments run + cmd + output summary\n- Multi-round self-QA trace (maybe X? no X checked. maybe Y? no Y checked...)\nMust appear in action.md AND user-facing reply." },
+  "MON_TOOL": { tier: "private", name: "Monitor/TaskList verify-running", body: "v3 NEW. After CronCreate, within <=1 min, use Monitor (or TaskList) tool to verify task status running. Statuses to flag: queued (silent hang), exited (script error), error (immediate fail), missing (never started). Failed verify = report Commander, don't wait for cron." },
+  "EFFORT_LOG": { tier: "reflect", name: "Effort log (evidence list)", body: "v3 NEW. Required content before [INFERENCE]: WebSearch count + keywords. Files Read line-by-line + ranges. Experiments run + cmd + output summary. Multi-round self-QA trace. Must appear in action.md AND user-facing reply." },
 };
 
 // Group palette by tier

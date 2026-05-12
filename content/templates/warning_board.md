@@ -1,5 +1,13 @@
 <!-- template version = v1.2 (claude-config) -->
-# WARNING BOARD — Military Camp Warning Records
+<!-- ⚠️ v2-hook DEPRECATION NOTICE ⚠️ -->
+<!-- This template is NO LONGER copied by init_corporal.sh in v2. -->
+<!-- Functionality split: -->
+<!--   AI rule violations → ~/.claude/rules/violation.md (global, auto-loaded) -->
+<!--   Project-specific failed efforts → militar_camp/bitter_lessons.md -->
+<!--   Operations history → militar_camp/operation_log.md -->
+<!-- File retained for backward-compat with old projects (1 release cycle). -->
+
+# WARNING BOARD — Military Camp Warning Records (DEPRECATED)
 
 Every Private / Corporal must Read this file at the start of every reply, and write in action.md:
 `[BOARD_READ] Read warning_board.md + reward_board.md + corporal_situation.md, time: YYYY-MM-DD HH:MM UTC`

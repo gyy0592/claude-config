@@ -95,9 +95,9 @@ mkdir -p ~/.claude
 # ── 3. Clean up v1 side-effects (prevent ~/.claude/ residual v1 dead code) ─────────
 echo "── Cleaning up v1 residuals ──────────────────────────────────────────────"
 rm -f ~/.claude/system_override.txt
-rm -rf ~/.claude/rules
 echo "[cleanup] ✓ ~/.claude/system_override.txt deleted (no longer used in v2)"
-echo "[cleanup] ✓ ~/.claude/rules/ deleted (v2 uses content/memory/ + content/templates/ instead)"
+# NOTE v2-hook: ~/.claude/rules/ is NOW USED in v2-hook (global auto-loaded rules dir).
+# Old v1 rules/ was different concept. We keep this dir in v2 — see Step 5b for population.
 
 # ── 4. Deploy CLAUDE.md (source = content/CLAUDE.md) ────────────
 cp "${CLAUDE_V2_SRC}" ~/.claude/CLAUDE.md
@@ -126,6 +126,98 @@ if [ "$SYMLINK_OK" -eq 1 ]; then
 else
     cp -r "$MEMORY_SRC" "$MEMORY_DST"
     echo "[deploy] ! ~/.claude/memory (cp copy fallback; rerun set_claude.sh to sync after editing)"
+fi
+
+# ── 5b. Deploy ~/.claude/rules/ (v2-hook NEW: global auto-loaded violation.md + lessons.md) ──
+RULES_SRC="${CONTENT_DIR}/templates/global_rules"
+RULES_DST="$HOME/.claude/rules"
+
+if [ ! -d "$RULES_SRC" ]; then
+    echo "[deploy] ✗ ${RULES_SRC} does not exist, cannot deploy global rules"
+    exit 1
+fi
+
+mkdir -p "$RULES_DST"
+
+for f in violation.md lessons.md; do
+    src="${RULES_SRC}/${f}"
+    dst="${RULES_DST}/${f}"
+    if [ ! -f "$src" ]; then
+        echo "[deploy] ⚠ source missing: ${src} (skipping)"
+        continue
+    fi
+    if [ -f "$dst" ]; then
+        # Conflict handling per Commander v2-plan: warn + ASK user, do nothing by default
+        if ! cmp -s "$src" "$dst"; then
+            echo ""
+            echo "[deploy] ⚠ CONFLICT: ${dst} already exists and differs from source."
+            echo "          Source: $src"
+            echo "          Target: $dst"
+            echo "          Differences (first 20 lines):"
+            diff "$src" "$dst" 2>/dev/null | head -20 | sed 's/^/            /'
+            echo ""
+            read -r -p "          Overwrite ${dst}? [y/N]: " ans </dev/tty || ans="N"
+            case "$ans" in
+                y|Y|yes|YES)
+                    cp "$src" "$dst"
+                    echo "[deploy] ✓ ${dst} overwritten"
+                    ;;
+                *)
+                    echo "[deploy] - ${dst} kept as-is (skipped overwrite)"
+                    ;;
+            esac
+        else
+            echo "[deploy] ✓ ${dst} already up to date"
+        fi
+    else
+        cp "$src" "$dst"
+        echo "[deploy] ✓ ${dst} deployed (new)"
+    fi
+done
+
+# ── 5c. Deploy ~/.claude/hooks/ (v2-hook NEW: inject_decrees.sh + inject_decrees_to_subagent.sh) ──
+HOOKS_SRC="${CLAUDE_CONFIG_DIR}/hooks"
+HOOKS_DST="$HOME/.claude/hooks"
+
+if [ ! -d "$HOOKS_SRC" ]; then
+    echo "[deploy] ✗ ${HOOKS_SRC} does not exist, cannot deploy hooks"
+    exit 1
+fi
+
+mkdir -p "$HOOKS_DST"
+
+for f in inject_decrees.sh inject_decrees_to_subagent.sh; do
+    src="${HOOKS_SRC}/${f}"
+    dst="${HOOKS_DST}/${f}"
+    if [ ! -f "$src" ]; then
+        echo "[deploy] ⚠ hook source missing: ${src} (skipping)"
+        continue
+    fi
+    # Hooks are deterministic transformations; safe to overwrite (no user content stored)
+    if [ "$SYMLINK_OK" -eq 1 ]; then
+        rm -f "$dst"
+        ln -s "$src" "$dst"
+        echo "[deploy] ✓ ${dst} → ${src} (symlink)"
+    else
+        cp "$src" "$dst"
+        chmod +x "$dst"
+        echo "[deploy] ✓ ${dst} (cp + chmod)"
+    fi
+done
+
+chmod +x "${HOOKS_SRC}"/*.sh 2>/dev/null || true
+
+# Smoke-test hooks
+if bash -n "${HOOKS_SRC}/inject_decrees.sh" 2>&1 && bash -n "${HOOKS_SRC}/inject_decrees_to_subagent.sh" 2>&1; then
+    echo "[deploy] ✓ hooks syntax check passed"
+else
+    echo "[deploy] ⚠ hooks syntax check failed — review hook scripts"
+fi
+
+INJECT_BYTES=$(bash "${HOOKS_SRC}/inject_decrees.sh" 2>/dev/null | wc -c)
+echo "[deploy] [INFO] inject_decrees.sh output = ${INJECT_BYTES} bytes (Claude Code hook cap = 10000)"
+if [ "$INJECT_BYTES" -ge 10000 ]; then
+    echo "[deploy] ⚠ inject_decrees.sh output >= 10000 bytes — Claude Code will truncate. Slim the script."
 fi
 
 # ── 6. Grant execute permissions (scripts are already in repo, chmod directly) ────────────
@@ -204,13 +296,46 @@ if cfg.get("effortLevel") != "high":
     cfg["effortLevel"] = "high"
     changed = True
 
-# v2 preserved: PostToolUse=Bash background logger (debug use, unrelated to memory)
+hooks = cfg.setdefault("hooks", {})
+
+# ── v2-hook NEW: register UserPromptSubmit, PostToolUse:Agent, PreToolUse:Agent ──
+INJECT_SCRIPT = os.path.expanduser("~/.claude/hooks/inject_decrees.sh")
+INJECT_SUBAGENT_SCRIPT = os.path.expanduser("~/.claude/hooks/inject_decrees_to_subagent.sh")
+
+def ensure_hook(event, matcher, command):
+    """Idempotent: add (event, matcher, command) hook entry if not present."""
+    global changed
+    bucket = hooks.setdefault(event, [])
+    # Check for existing entry with same command
+    for grp in bucket:
+        if matcher and grp.get("matcher") != matcher:
+            continue
+        if not matcher and grp.get("matcher"):
+            continue
+        for h in grp.get("hooks", []):
+            if h.get("command", "") == command:
+                return  # already present
+    entry = {"hooks": [{"type": "command", "command": command}]}
+    if matcher:
+        entry["matcher"] = matcher
+    bucket.append(entry)
+    changed = True
+
+# UserPromptSubmit: inject_decrees.sh (fires on user msg + cron tick)
+ensure_hook("UserPromptSubmit", None, f"bash {INJECT_SCRIPT}")
+
+# PostToolUse matcher=Agent: re-inject after subagent returns to main thread
+ensure_hook("PostToolUse", "Agent", f"bash {INJECT_SCRIPT}")
+
+# PreToolUse matcher=Agent: inject Iron Rules + Decrees into subagent's prompt
+ensure_hook("PreToolUse", "Agent", f"bash {INJECT_SUBAGENT_SCRIPT}")
+
+# ── v2 preserved: PostToolUse=Bash background logger (debug use, unrelated to memory) ──
 BG_HOOK_CMD = (
     "jq -c 'select(.tool_input.run_in_background==true) | "
     "{ts: now, id: .tool_use_id, resp: .tool_response, cmd: .tool_input.command}' "
     ">> /tmp/claude-bg.log"
 )
-hooks = cfg.setdefault("hooks", {})
 post_tool = hooks.setdefault("PostToolUse", [])
 bg_hook_present = any(
     grp.get("matcher") == "Bash" and any(
@@ -248,7 +373,7 @@ if changed:
     with open(path, "w") as f:
         json.dump(cfg, f, indent=2)
         f.write("\n")
-    print("settings.json: updated")
+    print("settings.json: updated (v2-hook registrations)")
 else:
     print("settings.json: already up to date")
 PYEOF
@@ -270,10 +395,28 @@ if [ "$SYMLINK_OK" -eq 1 ]; then
 else
     echo "  ~/.claude/memory             (cp copy fallback; rerun set_claude.sh after editing)"
 fi
-echo "    INDEX.md / lessons.md / violations.md / workflows.md / soldier_protocol.md"
+echo "    INDEX.md / workflows.md / soldier_protocol.md (+ deprecated violations.md / lessons.md)"
+echo ""
+echo "Auto-loaded global rules (v2-hook NEW):"
+echo "  ~/.claude/rules/violation.md     (cross-project AI rule violations)"
+echo "  ~/.claude/rules/lessons.md       (cross-project AI behavior wisdom)"
+echo ""
+echo "Hooks (v2-hook NEW):"
+if [ "$SYMLINK_OK" -eq 1 ]; then
+    echo "  ~/.claude/hooks/inject_decrees.sh                → symlink to repo"
+    echo "  ~/.claude/hooks/inject_decrees_to_subagent.sh    → symlink to repo"
+else
+    echo "  ~/.claude/hooks/inject_decrees.sh                (cp copy fallback)"
+    echo "  ~/.claude/hooks/inject_decrees_to_subagent.sh    (cp copy fallback)"
+fi
+echo "  Registered in ~/.claude/settings.json:"
+echo "    UserPromptSubmit  → inject_decrees.sh   (user msg + cron tick)"
+echo "    PostToolUse:Agent → inject_decrees.sh   (re-inject after subagent returns)"
+echo "    PreToolUse:Agent  → inject_decrees_to_subagent.sh (inject into subagent prompt)"
 echo ""
 echo "Runtime archive templates (read directly by init_*.sh):"
-echo "  ${CONTENT_DIR}/templates/    (9 files, single source in repo, not deployed to ~/.claude/)"
+echo "  ${CONTENT_DIR}/templates/                  (project-level: operation_log/attempts_ledger/bitter_lessons/successful_fixes + corporal_X/* + soldier_X/*)"
+echo "  ${CONTENT_DIR}/templates/global_rules/     (source for ~/.claude/rules/)"
 echo ""
 echo "Utility scripts (chmod +x applied):"
 echo "  ${CLAUDE_CONFIG_DIR}/init_corporal.sh         (Military camp init)"

@@ -1,5 +1,12 @@
 <!-- template version = v1.2 (claude-config) -->
-# Military Camp Bulletin Board — Dereliction Archive
+<!-- ⚠️ v2-hook DEPRECATION NOTICE ⚠️ -->
+<!-- This template is NO LONGER copied by init_corporal.sh in v2. -->
+<!-- Functionality replaced by: -->
+<!--   AI rule violations → ~/.claude/rules/violation.md (global) -->
+<!--   Failed bug-fix efforts → militar_camp/bitter_lessons.md -->
+<!-- File retained for backward-compat with old projects (1 release cycle). -->
+
+# Military Camp Bulletin Board — Dereliction Archive (DEPRECATED)
 # Posted at military camp entrance, all Privates must read
 
 ---

@@ -43,15 +43,27 @@
 
 ### Section 4 — Inference Exhaustive Self-Check (triggered by Decree 2; every [INFERENCE] must add one row)
 
-| # | [INFERENCE] original text (≤ 50 chars) | Code already read (file:line list) | Commands already run | Keywords searched + count | Thought experiment done | Upgraded to [FACT]? |
-|---|----------------------------------------|------------------------------------|----------------------|---------------------------|-------------------------|---------------------|
-| obs-N | Example: J5 agg=57% vs base=32% inconsistency is due to different paths | inject_dual_agg_mv.py:1-500, stage5_output/compute_fair/*.py | `diff <(grep max_new_tokens A) <(grep max_new_tokens B)` | "GSM8K agg base single greedy difference" × 50 | No | No |
+**v2 NEW**: each [INFERENCE] row also requires a 2nd meta-reflection ("Is this evidence complete?"). Without it, [INFERENCE] = laziness = Dereliction.
+
+| # | [INFERENCE] original text (≤ 50 chars) | Code already read (file:line list) | Commands already run | Keywords searched + count | Thought experiment done | 2nd reflection conclusion | Upgraded to [FACT]? |
+|---|----------------------------------------|------------------------------------|----------------------|---------------------------|-------------------------|---------------------------|---------------------|
+| obs-N | Example: J5 agg=57% vs base=32% inconsistency is due to different paths | inject_dual_agg_mv.py:1-500, stage5_output/compute_fair/*.py | `diff <(grep max_new_tokens A) <(grep max_new_tokens B)` | "GSM8K agg base single greedy difference" × 50 | No | "Yes — checked all 3 measurement axes; still cannot upgrade to FACT without instrumenting code itself which is out of scope this turn" | No |
 
 ### Section 5 — Private Progress Monitoring (mandatory after dispatching Privates)
 
 | Private # | Task Summary (≤ 30 chars) | Last Read soldier_action.md Time | Next Monitor Time (5-minute cycle) | Status |
 |-----------|---------------------------|----------------------------------|------------------------------------|--------|
 | numberY | <summary> | YYYY-MM-DD HH:MM UTC | last + 5 min | running / COMPLETED / pending review |
+
+### Section 6 — Authorization Window (v2 NEW; track Commander's overrides)
+
+When Commander grants special authorization (e.g. "you have the right", "allow you to do anything", pre-approved Destructive op, loop mode), fill in:
+
+| Auth ID | Keyword found in $PWD/CLAUDE.md (or this turn's instruction) | Source location | Granted at UTC | Scope (what is allowed) | Revocation criterion |
+|---------|--------------------------------------------------------------|-----------------|----------------|-------------------------|----------------------|
+| auth-1 | "allow you to do anything in this task" | $PWD/CLAUDE.md:line 12 | 2026-05-12 14:00 UTC | Suspend 3-failure stop for ATT-3 | When ATT-3 status = resolved OR Commander revokes |
+
+Empty (no authorizations active) = blank table.
 
 Fill-in rules:
 - "Decidable proposition" must be answerable with a clear "pass / fail".

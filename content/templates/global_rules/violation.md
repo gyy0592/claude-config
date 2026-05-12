@@ -1,13 +1,11 @@
-<!-- ⚠️ v2-hook DEPRECATION NOTICE ⚠️ -->
-<!-- This file has been MIGRATED to: -->
-<!--   AUTHORITATIVE SOURCE = content/templates/global_rules/violation.md -->
-<!--   DEPLOY TARGET (auto-loaded) = ~/.claude/rules/violation.md -->
-<!-- This local file retained 1 release cycle for backward compat. -->
-<!-- New W-XXX entries: write to ~/.claude/rules/violation.md (or content/templates/global_rules/violation.md if updating source). -->
+# violation.md — AI Rule Violations (W-XXX, Global)
 
-# Violation Log — W-XXX Long-term Lesson Library (DEPRECATED — see ~/.claude/rules/violation.md)
+<!-- v2-hook DEPLOY TARGET: ~/.claude/rules/violation.md -->
+<!-- Auto-loaded by Claude rules system every session (cross-project). -->
+<!-- Records AI rule violations only — NOT bug fixes (those go in attempts_ledger.md / bitter_lessons.md / successful_fixes.md per project). -->
+<!-- Append new W-XXX with `tags:` line. `tags:` grep at session start. -->
 
-Read on demand: when suspected red lines / before writing violation three-piece / at session start `tags:` grep. Entries MUST contain `tags:` line; old entries without tags are excluded by grep and MUST be back-filled to restore coverage.
+Read on demand: when suspected red lines / before writing violation triple-sync / at session start `tags:` grep. Entries MUST contain `tags:` line; old entries without tags are excluded by grep and MUST be back-filled to restore coverage.
 
 ## Crime Quick Reference + Court-martial Dispositions
 

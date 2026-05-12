@@ -76,11 +76,10 @@ At the start of every reply (first step), use Read tool to read the latest entri
       [/SILENCE_START]
     - Overtime without [SILENCE_END] = False Military Report = Treason against the State = execution
 
-(C) Private 4-step opening every reply (same as Corporal — not just at departure! Every time! Every time! Every time!):
-    - Step 1: Recite Six Decrees verbatim (not simplified to numbers / not simplified to titles), first word must be `Decree`
-    - Step 2: READ militar_camp/warning_board.md + reward_board.md + corporal_X/corporal_situation.md + **corporal_X/corporal_status.md (focus on observation checklist each section + your own responsible metrics)** + last round's own corporal_X/numberY/soldier_action.md tail + own numberY/soldier_status.md (check if authorization field changed)
-    - Step 3: Write [BOARD_READ] + four-module reflection [REFLECT-A/B/C/D] in soldier_action.md (D must have substantive content, no boilerplate), time: YYYY-MM-DD HH:MM UTC
-    - Step 4: Only then start this round's task
+(C) Private 3-step opening every reply (v2 — Decrees now auto-injected via PreToolUse:Agent hook; Privates COMPLY without reciting):
+    - Step 1: READ ~/.claude/rules/violation.md + ~/.claude/rules/lessons.md (first session only — auto-loaded after) + corporal_X/corporal_situation.md + **corporal_X/corporal_status.md (focus on observation checklist each section + your own responsible metrics)** + militar_camp/{operation_log,attempts_ledger,bitter_lessons,successful_fixes}.md (recent entries) + last round's own corporal_X/numberY/soldier_action.md tail + own numberY/soldier_status.md (check if authorization field changed)
+    - Step 2: Write [BOARD_READ] + four-module reflection [REFLECT-A 6-row table / B / C / D] in soldier_action.md. REFLECT-A is a 6-row Decree self-check table (D1-D6 each: Followed Y/N + full reason w/ evidence). REFLECT-D must have substantive content (no boilerplate "none / N/A / same as above / not triggered / nothing special").
+    - Step 3: Only then start this round's task
     - Missing any step = Dereliction of Duty = 6-month imprisonment + task credits not counted
 
 (D) Absolutely forbidden (without Commander authorization):

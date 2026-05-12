@@ -19,16 +19,32 @@ echo " Working directory: $WORK_DIR"
 echo " Timestamp: $TIMESTAMP"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# Step 1: Check and create militar_camp/
+# Step 1: Check and create militar_camp/ + v2 5-file ledger system
+# v2 NEW: 4 project-level ledger files (operation_log / attempts_ledger / bitter_lessons / successful_fixes)
+# Global violation.md + lessons.md are deployed by set_claude.sh to ~/.claude/rules/ (auto-loaded by Claude every session)
 if [ ! -d "$CAMP_DIR" ]; then
     mkdir -p "$CAMP_DIR"
-    cp "$TEMPLATE_DIR/warning_board.md"  "$CAMP_DIR/"
-    cp "$TEMPLATE_DIR/reward_board.md"   "$CAMP_DIR/"
-    cp "$TEMPLATE_DIR/traitor.md"        "$CAMP_DIR/"
-    cp "$TEMPLATE_DIR/README.md"         "$CAMP_DIR/" 2>/dev/null || true
-    echo "[INIT] ✅ Created militar_camp/ + 4 bulletin boards (warning/reward/traitor/README)"
+    cp "$TEMPLATE_DIR/operation_log.md"     "$CAMP_DIR/"
+    cp "$TEMPLATE_DIR/attempts_ledger.md"   "$CAMP_DIR/"
+    cp "$TEMPLATE_DIR/bitter_lessons.md"    "$CAMP_DIR/"
+    cp "$TEMPLATE_DIR/successful_fixes.md"  "$CAMP_DIR/"
+    cp "$TEMPLATE_DIR/README.md"            "$CAMP_DIR/" 2>/dev/null || true
+    echo "[INIT] ✅ Created militar_camp/ + v2 ledger files (operation_log/attempts_ledger/bitter_lessons/successful_fixes)"
 else
-    echo "[INIT] militar_camp/ already exists, skipping bulletin board creation"
+    echo "[INIT] militar_camp/ already exists. Checking for missing v2 ledger files..."
+    # Migration check: add missing v2 files without touching existing data
+    for f in operation_log.md attempts_ledger.md bitter_lessons.md successful_fixes.md; do
+        if [ ! -f "$CAMP_DIR/$f" ]; then
+            cp "$TEMPLATE_DIR/$f" "$CAMP_DIR/"
+            echo "[INIT] + Added missing v2 file: $f"
+        fi
+    done
+    # Warn about deprecated files (don't delete; let user decide)
+    for f in warning_board.md reward_board.md traitor.md; do
+        if [ -f "$CAMP_DIR/$f" ]; then
+            echo "[INIT] ⚠️  $f still exists — DEPRECATED in v2. Contents replaced by ~/.claude/rules/violation.md (global) + bitter_lessons.md/successful_fixes.md (project). Manual cleanup recommended."
+        fi
+    done
 fi
 
 # Step 2: Determine Corporal number
