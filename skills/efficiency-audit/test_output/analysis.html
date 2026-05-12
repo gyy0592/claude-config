@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Efficiency Audit — toy_model self-test</title>
+<style>
+body{background:#f8fafc;color:#1e293b;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:2em auto;max-width:880px;padding:0 1em;line-height:1.55}
+h1,h2{color:#1e293b}
+.alarm{background:#fee2e2;color:#991b1b;padding:.8em 1em;border-left:6px solid #dc2626;font-weight:bold;border-radius:4px}
+.bar-gpu{fill:#3b82f6}.bar-cpu{fill:#f59e0b}.bar-io{fill:#10b981}.bar-before{fill:#fca5a5}.bar-after{fill:#86efac}
+table{border-collapse:collapse;width:100%;margin:1em 0}
+th,td{border:1px solid #cbd5e1;padding:.5em;text-align:left}
+th{background:#e2e8f0}
+pre{background:#f1f5f9;padding:1em;border-radius:4px;overflow:auto}
+small{color:#64748b}
+</style></head><body>
+
+<h1>Efficiency Audit — toy_model self-test</h1>
+<p><small>Generated at 2026-05-12 18:24 UTC by skills/efficiency-audit/test_output/run_validation.sh</small></p>
+
+<div class="alarm">RED ALARM — speedup mathematically possible (no resource saturated)</div>
+
+<h2>What this demonstrates</h2>
+<p>The toy model (<code>toy_model.py</code>) has a deliberately slow <code>__getitem__</code>
+that sleeps 4.0 s per sample to simulate slow disk reads. With
+<code>num_workers=0</code> the main process serializes all reads. The audit pipeline's
+recommended fix is <code>num_workers=4, persistent_workers=True</code>, which pipelines reads
+across 4 worker processes.</p>
+
+<h2>Detected pipeline stages</h2>
+<ul>
+  <li><strong style="color:#10b981">Disk → CPU mem</strong>: <code>SlowDataset.__getitem__</code> in <code>toy_model.py</code> — the bottleneck.</li>
+  <li><strong style="color:#f59e0b">CPU compute</strong>: <code>ToyMLP</code> forward+backward; cheap (~µs per batch).</li>
+  <li><strong style="color:#3b82f6">GPU compute</strong>: not used (CPU-only run).</li>
+</ul>
+
+<h2>Saturation</h2>
+<svg viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Resource saturation chart">
+  <text x="0" y="20" font-size="13">GPU</text>
+  <rect x="60" y="5"  width="0"  height="20" class="bar-gpu"/>
+  <text x="70" y="20" font-size="11">0% (no GPU used)</text>
+  <text x="0" y="50" font-size="13">CPU</text>
+  <rect x="60" y="35" width="25" height="20" class="bar-cpu"/>
+  <text x="95" y="50" font-size="11">~5% (single thread, mostly blocked on sleep)</text>
+  <text x="0" y="80" font-size="13">IO</text>
+  <rect x="60" y="65" width="15" height="20" class="bar-io"/>
+  <text x="85" y="80" font-size="11">~3% (simulated)</text>
+  <line x1="410" y1="0" x2="410" y2="100" stroke="#dc2626" stroke-dasharray="4 2"/>
+  <text x="415" y="12" font-size="11" fill="#dc2626">70% threshold</text>
+</svg>
+
+<h2>Suspected bottleneck</h2>
+<p>Data loading (<code>num_workers=0</code> serializes the per-sample sleeps; 4 cores idle while waiting).</p>
+
+<h2>Before vs After (real measurements, median of 5 epochs, 2 warmups dropped)</h2>
+<table>
+  <tr><th>Mode</th><th>DataLoader config</th><th>Median epoch (s)</th></tr>
+  <tr><td>before</td><td><code>num_workers=0</code></td><td>5.6784</td></tr>
+  <tr><td>after</td><td><code>num_workers=4, persistent_workers=True</code></td><td>1.9918</td></tr>
+  <tr><td colspan="2"><strong>speedup:</strong></td><td><strong>2.85x</strong></td></tr>
+</table>
+
+<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Before vs After bar chart">
+  <line x1="50" y1="170" x2="300" y2="170" stroke="#1e293b"/>
+  <rect x="80"  y="10" width="60" height="160" class="bar-before"/>
+  <text x="110" y="190" text-anchor="middle" font-size="12">before</text>
+  <text x="110" y="5" text-anchor="middle" font-size="11">5.6784s</text>
+  <rect x="200" y="114"  width="60" height="56" class="bar-after"/>
+  <text x="230" y="190" text-anchor="middle" font-size="12">after</text>
+  <text x="230" y="109" text-anchor="middle" font-size="11">1.9918s</text>
+</svg>
+
+<h2>Diff applied (the change the audit recommends)</h2>
+<pre>- DataLoader(ds, batch_size=16, num_workers=0)
++ DataLoader(ds, batch_size=16, num_workers=4, persistent_workers=True)</pre>
+
+<h2>How to reproduce</h2>
+<pre>cd /home/Barry/Programs/claude-config
+bash skills/efficiency-audit/test_output/run_validation.sh</pre>
+
+<p><small>before: median across 5 measured epochs (2 warmup epochs dropped) running num_workers=0.
+after: same protocol with num_workers=4 + persistent_workers=True. speedup = before / after.</small></p>
+
+</body></html>
