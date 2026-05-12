@@ -1,4 +1,4 @@
-<!-- 模板版本 = v1.1 (claude-config) -->
+<!-- 模板版本 = v1.2 (claude-config) -->
 # REWARD BOARD — 军营奖励录
 
 每名列兵 / 下士每次回复开头必须 Read 本文件，并在 action.md 写：

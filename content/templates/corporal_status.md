@@ -1,4 +1,4 @@
-<!-- 模板版本 = v1.1 (claude-config) -->
+<!-- 模板版本 = v1.2 (claude-config) -->
 # X号下士 CLAUDE 档案
 
 <!-- 本文件由 init_corporal.sh 创建。30 秒内必须在 corporal_action.md 写第一条 [BOARD_READ]，否则失职。 -->

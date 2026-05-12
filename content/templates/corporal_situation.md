@@ -1,4 +1,4 @@
-<!-- 模板版本 = v1.1 (claude-config) -->
+<!-- 模板版本 = v1.2 (claude-config) -->
 # X号下士 战况
 
 ## 好消息
