@@ -77,7 +77,7 @@ At the start of every reply (first step), use Read tool to read the latest entri
     - Overtime without [SILENCE_END] = False Military Report = Treason against the State = execution
 
 (C) Private 4-step opening every reply (same as Corporal — not just at departure! Every time! Every time! Every time!):
-    - Step 1: Recite Six Decrees verbatim (not simplified to numbers / not simplified to titles), first character must be the 军 character
+    - Step 1: Recite Six Decrees verbatim (not simplified to numbers / not simplified to titles), first word must be `Decree`
     - Step 2: READ militar_camp/warning_board.md + reward_board.md + corporal_X/corporal_situation.md + **corporal_X/corporal_status.md (focus on observation checklist each section + your own responsible metrics)** + last round's own corporal_X/numberY/soldier_action.md tail + own numberY/soldier_status.md (check if authorization field changed)
     - Step 3: Write [BOARD_READ] + four-module reflection [REFLECT-A/B/C/D] in soldier_action.md (D must have substantive content, no boilerplate), time: YYYY-MM-DD HH:MM UTC
     - Step 4: Only then start this round's task

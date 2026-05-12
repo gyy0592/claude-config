@@ -16,7 +16,7 @@ description: Audits whether the Corporal's current turn / current task complies 
 
 3. **Audit each item**: Verify each proposition using the corresponding detection command:
    - grep keyword detection (e.g. A2 "Six Decrees verbatim recitation" → `grep -c "Decree 1" + grep -c "Decree 2" + ... + grep -c "Decree 6" each ≥ 1`)
-   - Text structure detection (e.g. A1 "first character is 军" → awk takes first character of current turn)
+   - Text structure detection (e.g. A1 "first word is `Decree`" → awk takes first character of current turn)
    - Numeric detection (e.g. D5 "5-minute look-back" → grep "next monitoring time" + parse timestamp vs current UTC)
 
 4. **Output censor.md** (location `militar_camp/corporal_X/censor.md`, each audit appends a new ## section without overwriting):
@@ -37,7 +37,7 @@ Pass X / 44; Fail Y; Pending Z.
 
 | # | Proposition | Pass | Evidence / grep match | Fix recommendation |
 |---|-------------|------|----------------------|-------------------|
-| A1 | First character of reply is 「军」 | ✅ | corporal_action.md current turn first char = 「军」 | — |
+| A1 | First word of reply is `Decree` | ✅ | corporal_action.md current turn first word = `Decree` | — |
 | A2 | Six Decrees verbatim full recitation | ❌ | grep "Decree 1"=0 / grep "Decree 6"=0 | Recite immediately |
 | A3 | Read warning_board.md full text | ✅ | [BOARD_READ] contains "warning_board" | — |
 | ... | ... | ... | ... | ... |

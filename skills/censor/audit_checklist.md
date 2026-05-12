@@ -19,7 +19,7 @@ Each item format: `# | Proposition | Detection method | Pass | Failure signal`.
 
 | # | Proposition | Detection method | Pass | Failure signal |
 |---|-------------|-----------------|------|----------------|
-| A1 | First character of reply is 「军」 | AI checks own reply's first character | First char = 「军」 | First char ≠ 「军」 |
+| A1 | First word of reply is `Decree` | AI checks own reply's first character | First word = `Decree` | First word ≠ `Decree` |
 | A2 | Six Decrees recited verbatim in full (not simplified to numerals / titles) | AI checks whether opening section contains complete Six Decrees text | 6 Decree originals complete | Simplified to "Decree 1/2" / any part missing |
 | A3 | Truly followed 1→2→3→4 order (no skipping) | AI self-check chronological order | Order correct | Skipped steps |
 | A10 | Four-module reflection [REFLECT-A/B/C/D] each has content | AI checks own four-module paragraphs | All four sections have substantive content | Any missing / empty label |
@@ -185,7 +185,7 @@ Group J Prompt Review 4 items + Group I Fix-loop 4 items = 8 items always audit 
 
 For each ❌ item must output 5× repetition text + immediate fix action:
 
-- **A1 ❌**: "First character of reply must be 「军」! × 5 Recite all Six Decrees verbatim immediately from Decree 1 to Decree 6!"
+- **A1 ❌**: "First word of reply must be `Decree`! × 5 Recite all Six Decrees verbatim immediately from Decree 1 to Decree 6!"
 - **A2 ❌**: "MUST RECITE THE DECREES VERBATIM! × 5 Recite all Six Decrees in full immediately!"
 - **A10 ❌**: "MUST REFLECT FOUR MODULES! × 5 Add [REFLECT-A/B/C/D] each with substantive content immediately!"
 - **B7 ❌**: "[INFERENCE] must not be used as escape hatch! × 5 Continue digging for facts until unable to dig before using [INFERENCE]!"
