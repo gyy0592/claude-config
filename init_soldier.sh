@@ -25,7 +25,7 @@ mkdir -p "$SOLDIER_DIR"
 # Generate soldier_action.md (from template, replace number placeholders)
 if [ ! -f "$SOLDIER_DIR/soldier_action.md" ]; then
     sed \
-        -e "s/Y号列兵/${SOLDIER_NUM}号列兵/g" \
+        -e "s/Private Y/Private ${SOLDIER_NUM}/g" \
         -e "s/corporal_X/corporal_${CORPORAL_NUM}/g" \
         -e "s/numberY/number${SOLDIER_NUM}/g" \
         "$TEMPLATE_DIR/soldier_action.md" > "$SOLDIER_DIR/soldier_action.md"
@@ -37,8 +37,8 @@ fi
 # Generate soldier_status.md (from template, replace number placeholders)
 if [ ! -f "$SOLDIER_DIR/soldier_status.md" ]; then
     sed \
-        -e "s/Y号列兵/${SOLDIER_NUM}号列兵/g" \
-        -e "s/X号下士/${CORPORAL_NUM}号下士/g" \
+        -e "s/Private Y/Private ${SOLDIER_NUM}/g" \
+        -e "s/Corporal X/Corporal ${CORPORAL_NUM}/g" \
         "$TEMPLATE_DIR/soldier_status.md" > "$SOLDIER_DIR/soldier_status.md"
     echo "✓ soldier_status.md generated (waiting for Private to fill in full prompt text)"
 else

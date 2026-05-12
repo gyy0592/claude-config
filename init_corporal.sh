@@ -43,18 +43,18 @@ echo "[INIT] Corporal number: ${NEXT_NUM}"
 
 # Step 3: Generate three-file archive set (replace placeholder X → actual number, timestamp → current time)
 # corporal_status.md
-sed "s/X号下士/${NEXT_NUM}号下士/g" "$TEMPLATE_DIR/corporal_status.md" | \
+sed "s/Corporal X/Corporal ${NEXT_NUM}/g" "$TEMPLATE_DIR/corporal_status.md" | \
     sed "s/YYYY-MM-DD HH:MM UTC/$TIMESTAMP/g" | \
     sed "s/<X-1>/$((NEXT_NUM - 1))/g" \
     > "$CORPORAL_DIR/corporal_status.md"
 
 # corporal_action.md
-sed "s/X号下士/${NEXT_NUM}号下士/g" "$TEMPLATE_DIR/corporal_action.md" | \
+sed "s/Corporal X/Corporal ${NEXT_NUM}/g" "$TEMPLATE_DIR/corporal_action.md" | \
     sed "s/YYYY-MM-DD HH:MM UTC/$TIMESTAMP/g" \
     > "$CORPORAL_DIR/corporal_action.md"
 
 # corporal_situation.md
-sed "s/X号下士/${NEXT_NUM}号下士/g" "$TEMPLATE_DIR/corporal_situation.md" \
+sed "s/Corporal X/Corporal ${NEXT_NUM}/g" "$TEMPLATE_DIR/corporal_situation.md" \
     > "$CORPORAL_DIR/corporal_situation.md"
 
 echo "[INIT] ✅ Created three-file archive set:"
