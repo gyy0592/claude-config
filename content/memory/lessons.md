@@ -88,6 +88,36 @@ Each L-XXX schema: title + correct behavior + lesson + specialized example + `ta
 - **Specialized example**: This Private's INDEX.md "don't know what to read → grep tags" section lists 13 common tags, helping subsequent Corporals quickly locate relevant items
 - `tags: [memory-blind, plan-gap, listen-comprehension]`
 
+### L-014: Cross-Verify Private SLURM Log Analysis with nvidia-smi + NPZ Counts (Corporal 18 experience)
+- **Correct behavior**: When a Private reports SLURM job state ("only N samples", "job exits soon", "queue empty = no-op"), always cross-check against nvidia-smi (VRAM loaded = worker alive, util > 0 = computing) + NPZ count growth (any growth = real work happening)
+- **Lesson**: Privates can misread which worker directory belongs to which SLURM job (multiple prior jobs leave stale directories; stat modification times and GPU IDs must be cross-referenced). Two Privates (number1 + number3) in the same session both gave incorrect JOB 1070 analyses — "no-op" and "4 samples only" — both contradicted by GPU 96-100% and NPZ +400+ growth. W-006 catches this; independent verification is mandatory.
+- **Specialized example**: JOB 1070 had 4 GPU workers (GPUs 4,5,6,7); prior jobs left worker_04~07 dirs; Private number3 read those stale dirs and concluded "workers loaded model then found empty queue → job exits in minutes" — but nvidia-smi showed GPU 4 = 97% / GPU 6 = 96% sequentially, and NPZ grew +467 total during the session. The correct approach: `nvidia-smi` util + VRAM ≥ `sacct` exit status ≥ `wc -l task_queue.txt` ≥ log file content when diagnosing in-progress jobs.
+- `tags: [fact-fabrication, codex-overtrust, slurm, monitoring, w-006]`
+
+### L-015: VRAM Growth Rate Is Superior Frozen-vs-Computing Discriminator for Stochastic Jobs (Corporal 18 experience)
+- **Correct behavior**: When a worker shows long silence (events.jsonl not updating), check GPU VRAM MiB trend over consecutive monitoring cycles. Growing VRAM = KV cache expanding = active token generation. Stable/decreasing VRAM = model unloaded or truly stalled.
+- **Lesson**: Time thresholds alone (40-min rule from greedy jobs) are insufficient for stochastic 8-run batches. Some samples require 50-60 min to complete 8 stochastic runs. A worker silent for 50+ min is NOT necessarily frozen — VRAM trend is the ground truth. Only escalate when VRAM has stabilized AND silence exceeds 75+ min.
+- **Specialized example**: JOB 1092 worker_02 silent 48.8 min (was considered frozen after 40-min threshold triggered) — but GPU6 VRAM remained constant at 63857 MiB throughout, confirming model loaded + computing. Worker recovered at 13:44:25. JOB 1092 worker_03 silent 59.4 min — VRAM grew from 56249→58703 MiB over 45 min = active KV cache expansion. Both cases: time threshold gave false-freeze alarm; VRAM trend gave correct "still computing" signal.
+- `tags: [monitoring, slurm, stochastic, vram, freeze-detection, stage1]`
+
+### L-016: Stochastic 8-Run Batch Time Has High Variance — 3 to 60 Minutes per Batch (Corporal 18 experience)
+- **Correct behavior**: When setting freeze-detection thresholds for stochastic inference jobs, use 75+ min silence (not 40 min used for greedy jobs). Combine with VRAM trend monitoring (L-015) rather than relying on time alone.
+- **Lesson**: Greedy inference has low batch-time variance (25-30 min). Stochastic 8-run inference has extreme variance: easy samples (short GSM8K, few tokens) complete in 3-6 min; hard samples (long CoT GSM8K) require 8 × full forward passes × long sequences = 50-60 min per batch. The same mini_batch_size=24 can produce batches ranging from 3 min to 60 min depending on sample difficulty.
+- **Specialized example**: JOB 1092 batch time observations: batch1 for all workers = 25-30 min; worker_02 batch2 = 48.8 min (hard samples); worker_03 batch3 = 59.4 min (hardest batch observed); workers 00/01/02 batches 4-5 = 3-19 min (easy samples). Range: 3 min to 59.4 min in the same JOB.
+- `tags: [monitoring, stochastic, batch-time, freeze-detection, stage1, slurm]`
+
+### L-017: Bash Heredoc + set -u — Escape Non-Bash `${...}` or Use `$`-free Sentinels (Corporal 1 / efficiency-audit skill self-test)
+- **Correct behavior**: When generating templated content (HTML, scripts, configs) via bash heredoc under `set -u`, every `${...}` inside the heredoc is treated as a bash variable expansion and fails immediately if unset. To use a sed-substitution placeholder, choose a `$`-free sentinel like `__SLEEP_VAL__` and run `sed -i s/__SLEEP_VAL__/${VAL}/g` after the heredoc closes. Alternatively escape as `\${...}` to defer expansion.
+- **Lesson**: Sed sentinels written as `${PLACEHOLDER}` look readable in the source but blow up at runtime — the heredoc-emit stage fails before the sed-substitute stage even runs. The skill-self-test's first benchmark attempt produced real 2.91x speedup numbers but exited 1 anyway, masking the win with a script-level error.
+- **Specialized example**: efficiency-audit/test_output/run_validation.sh initially had `cat > toy.py <<EOF ... SLEEP_PER_SAMPLE_S = ${SLEEP_PER_SAMPLE_S_PLACEHOLDER} ... EOF` — bash + `set -u` errored on the undefined variable. Replaced with `SLEEP_PER_SAMPLE_S = __SLEEP_VAL__` literal, then `sed -i "s/__SLEEP_VAL__/${SLEEP_VAL}/g" toy.py`. Worked on first try.
+- `tags: [bash, heredoc, set-u, self-test, perf-protect]`
+
+### L-018: Demonstrating Parallel Speedup Requires Per-Sample-Cost ≫ Fork+IPC Overhead AND Multi-Epoch-Per-Process (Corporal 1 / efficiency-audit skill self-test)
+- **Correct behavior**: When writing a small benchmark to demonstrate `DataLoader(num_workers=N, persistent_workers=True)` speedup, ensure (a) per-sample work ≫ fork+IPC cost (rule of thumb: ≥ 20 ms per `__getitem__`), and (b) the warmup+timing loop runs MULTIPLE epochs inside ONE Python process — separate process launches per measured iteration kill persistent_workers benefit because workers must re-fork every invocation. Bash-orchestrated loops that re-launch python for each measurement defeat the optimization being measured.
+- **Lesson**: A naive benchmark can produce a deceptive `speedup < 1.0` even when the optimization is real. The audit then reports a "false negative" — the optimization is correct but the measurement methodology hides it. Both axes (per-sample cost AND single-process timing loop) must be satisfied; one without the other is insufficient.
+- **Specialized example**: efficiency-audit self-test first variant: NUM_SAMPLES=200 × SLEEP_PER_SAMPLE_S=0.005 = 1.0 s total work; bash re-launched python per measured run. Result: 0.97x speedup (workers actually SLOWER). Fix: bump SLEEP to 0.02 (4 s total work, well above fork overhead) AND run warmup+5 measurements inside one Python process. Result: 2.85–2.91x speedup (73% of ideal 4-worker parallelism), reproducible across re-runs.
+- `tags: [perf-protect, dataloader, multiprocessing, benchmark, self-test, fact-fabrication]`
+
 ---
 
 Military law is absolute, errors mean death.
