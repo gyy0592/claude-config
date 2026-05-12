@@ -1,0 +1,1021 @@
+{
+  "currentPipeline": "SCN-8",
+  "pipelines": {
+    "SCN-1": {
+      "name": "1. Normal user turn",
+      "desc": "Commander sends message. UserPromptSubmit hook fires. Corporal must do 4-step opening then respond.",
+      "instances": [
+        {
+          "iid": "u1",
+          "base": "USER_MSG",
+          "x": 60,
+          "y": 60
+        },
+        {
+          "iid": "m1",
+          "base": "M1",
+          "x": 260,
+          "y": 60
+        },
+        {
+          "iid": "o1",
+          "base": "O1",
+          "x": 460,
+          "y": 60
+        },
+        {
+          "iid": "o2",
+          "base": "O2",
+          "x": 460,
+          "y": 180
+        },
+        {
+          "iid": "o3",
+          "base": "O3",
+          "x": 460,
+          "y": 300
+        },
+        {
+          "iid": "pc",
+          "base": "PC0.5",
+          "x": 660,
+          "y": 300
+        },
+        {
+          "iid": "o4",
+          "base": "O4",
+          "x": 660,
+          "y": 180
+        },
+        {
+          "iid": "r1",
+          "base": "RESPOND",
+          "x": 660,
+          "y": 59
+        }
+      ],
+      "edges": [
+        [
+          "u1",
+          "m1"
+        ],
+        [
+          "m1",
+          "o1"
+        ],
+        [
+          "o1",
+          "o2"
+        ],
+        [
+          "o2",
+          "o3"
+        ],
+        [
+          "o3",
+          "o4"
+        ],
+        [
+          "o4",
+          "r1"
+        ]
+      ]
+    },
+    "SCN-2": {
+      "name": "2. New repo entry",
+      "desc": "First time entering a repo. Must run init_corporal.sh BEFORE doing anything else.",
+      "instances": [
+        {
+          "iid": "n1",
+          "base": "NEW_REPO",
+          "x": 60,
+          "y": 60
+        },
+        {
+          "iid": "f1",
+          "base": "F1",
+          "x": 260,
+          "y": 60
+        },
+        {
+          "iid": "o1",
+          "base": "O1",
+          "x": 460,
+          "y": 60
+        },
+        {
+          "iid": "o2",
+          "base": "O2",
+          "x": 460,
+          "y": 180
+        },
+        {
+          "iid": "o3",
+          "base": "O3",
+          "x": 460,
+          "y": 300
+        },
+        {
+          "iid": "w1",
+          "base": "WAIT",
+          "x": 660,
+          "y": 180
+        }
+      ],
+      "edges": [
+        [
+          "n1",
+          "f1"
+        ],
+        [
+          "f1",
+          "o1"
+        ],
+        [
+          "o1",
+          "o2"
+        ],
+        [
+          "o2",
+          "o3"
+        ],
+        [
+          "o3",
+          "w1"
+        ]
+      ]
+    },
+    "SCN-3": {
+      "name": "3. Hands-on dispatch",
+      "desc": ">1 file / WebSearch / code: main thread MUST dispatch. M2 + M4 + M5 all apply.",
+      "instances": [
+        {
+          "iid": "u1",
+          "base": "USER_MSG",
+          "x": 60,
+          "y": 60
+        },
+        {
+          "iid": "o1",
+          "base": "O1",
+          "x": 240,
+          "y": 60
+        },
+        {
+          "iid": "o2",
+          "base": "O2",
+          "x": 240,
+          "y": 160
+        },
+        {
+          "iid": "o3",
+          "base": "O3",
+          "x": 240,
+          "y": 260
+        },
+        {
+          "iid": "m5",
+          "base": "M5",
+          "x": 440,
+          "y": 260
+        },
+        {
+          "iid": "pd",
+          "base": "PRE_DISP",
+          "x": 640,
+          "y": 260
+        },
+        {
+          "iid": "f2",
+          "base": "F2",
+          "x": 640,
+          "y": 160
+        },
+        {
+          "iid": "dp",
+          "base": "DP",
+          "x": 840,
+          "y": 160
+        },
+        {
+          "iid": "cr",
+          "base": "CRON",
+          "x": 840,
+          "y": 59
+        },
+        {
+          "iid": "w1",
+          "base": "WAIT",
+          "x": 1124,
+          "y": 60
+        }
+      ],
+      "edges": [
+        [
+          "u1",
+          "o1"
+        ],
+        [
+          "o1",
+          "o2"
+        ],
+        [
+          "o2",
+          "o3"
+        ],
+        [
+          "o3",
+          "m5"
+        ],
+        [
+          "m5",
+          "pd"
+        ],
+        [
+          "pd",
+          "f2"
+        ],
+        [
+          "f2",
+          "dp"
+        ],
+        [
+          "dp",
+          "cr"
+        ],
+        [
+          "cr",
+          "w1"
+        ]
+      ]
+    },
+    "SCN-4": {
+      "name": "4. Private completes",
+      "desc": "PostToolUse matcher=Agent fires. Hook re-injects Decrees. Tiered spot-check.",
+      "instances": [
+        {
+          "iid": "pd",
+          "base": "PRIV_DONE",
+          "x": 60,
+          "y": 60
+        },
+        {
+          "iid": "m1",
+          "base": "M1",
+          "x": 240,
+          "y": 60
+        },
+        {
+          "iid": "sf",
+          "base": "SC-FULL",
+          "x": 459.99998474121094,
+          "y": 59
+        },
+        {
+          "iid": "sm",
+          "base": "SC-MIN",
+          "x": 459.99998474121094,
+          "y": 158
+        },
+        {
+          "iid": "sa",
+          "base": "SC-ALL",
+          "x": 460,
+          "y": 260
+        },
+        {
+          "iid": "sr",
+          "base": "SC-RFLT",
+          "x": 660,
+          "y": 160
+        },
+        {
+          "iid": "sj",
+          "base": "SC-REJ",
+          "x": 660,
+          "y": 280
+        },
+        {
+          "iid": "f1",
+          "base": "FL-1",
+          "x": 860,
+          "y": 280
+        },
+        {
+          "iid": "ce",
+          "base": "CRON_END",
+          "x": 860,
+          "y": 60
+        },
+        {
+          "iid": "r1",
+          "base": "RESPOND",
+          "x": 1060,
+          "y": 60
+        }
+      ],
+      "edges": [
+        [
+          "pd",
+          "m1"
+        ],
+        [
+          "m1",
+          "sf"
+        ],
+        [
+          "m1",
+          "sm"
+        ],
+        [
+          "m1",
+          "sa"
+        ],
+        [
+          "sf",
+          "sr"
+        ],
+        [
+          "sm",
+          "sr"
+        ],
+        [
+          "sa",
+          "sr"
+        ],
+        [
+          "sr",
+          "sj"
+        ],
+        [
+          "sj",
+          "f1"
+        ],
+        [
+          "sr",
+          "ce"
+        ],
+        [
+          "ce",
+          "r1"
+        ]
+      ]
+    },
+    "SCN-5": {
+      "name": "5. Cron tick",
+      "desc": "CronCreate */15 fires. UserPromptSubmit hook triggers. Auto-turn must still do 4-step opening.",
+      "instances": [
+        {
+          "iid": "c1",
+          "base": "CRON_FIRE",
+          "x": 60,
+          "y": 60
+        },
+        {
+          "iid": "m1",
+          "base": "M1",
+          "x": 237,
+          "y": 56
+        },
+        {
+          "iid": "o1",
+          "base": "O1",
+          "x": 420,
+          "y": 60
+        },
+        {
+          "iid": "o2",
+          "base": "O2",
+          "x": 420,
+          "y": 160
+        },
+        {
+          "iid": "ob",
+          "base": "OB",
+          "x": 621,
+          "y": 160
+        },
+        {
+          "iid": "o3",
+          "base": "O3",
+          "x": 620,
+          "y": 60
+        },
+        {
+          "iid": "w1",
+          "base": "WAIT",
+          "x": 820,
+          "y": 110
+        }
+      ],
+      "edges": [
+        [
+          "c1",
+          "m1"
+        ],
+        [
+          "m1",
+          "o1"
+        ],
+        [
+          "o1",
+          "o2"
+        ],
+        [
+          "o2",
+          "ob"
+        ],
+        [
+          "ob",
+          "o3"
+        ],
+        [
+          "o3",
+          "w1"
+        ]
+      ]
+    },
+    "SCN-6": {
+      "name": "6. Long agent chain",
+      "desc": "Main thread dispatches → returns → dispatches again, for hours. Without re-injection, main thread degrades.",
+      "instances": [
+        {
+          "iid": "u1",
+          "base": "USER_MSG",
+          "x": 60,
+          "y": 60
+        },
+        {
+          "iid": "o1",
+          "base": "O1",
+          "x": 240,
+          "y": 60
+        },
+        {
+          "iid": "d1",
+          "base": "DP",
+          "x": 420,
+          "y": 60
+        },
+        {
+          "iid": "p1",
+          "base": "PRIV_DONE",
+          "x": 600,
+          "y": 60
+        },
+        {
+          "iid": "m1",
+          "base": "M1",
+          "x": 780,
+          "y": 60
+        },
+        {
+          "iid": "d2",
+          "base": "DP",
+          "x": 960,
+          "y": 60
+        },
+        {
+          "iid": "p2",
+          "base": "PRIV_DONE",
+          "x": 1140,
+          "y": 60
+        },
+        {
+          "iid": "m2",
+          "base": "M1",
+          "x": 1320,
+          "y": 60
+        },
+        {
+          "iid": "r1",
+          "base": "RESPOND",
+          "x": 1500,
+          "y": 60
+        }
+      ],
+      "edges": [
+        [
+          "u1",
+          "o1"
+        ],
+        [
+          "o1",
+          "d1"
+        ],
+        [
+          "d1",
+          "p1"
+        ],
+        [
+          "p1",
+          "m1"
+        ],
+        [
+          "m1",
+          "d2"
+        ],
+        [
+          "d2",
+          "p2"
+        ],
+        [
+          "p2",
+          "m2"
+        ],
+        [
+          "m2",
+          "r1"
+        ]
+      ]
+    },
+    "SCN-7": {
+      "name": "7. [INFERENCE] given",
+      "desc": "Decree 2: when [INFERENCE] used, add observation item + write dedicated 4-module reflection.",
+      "instances": [
+        {
+          "iid": "in",
+          "base": "INFERENCE",
+          "x": 60,
+          "y": 60
+        },
+        {
+          "iid": "d2",
+          "base": "D2",
+          "x": 240,
+          "y": 60
+        },
+        {
+          "iid": "ob",
+          "base": "OB",
+          "x": 420,
+          "y": 60
+        },
+        {
+          "iid": "ra",
+          "base": "R-A",
+          "x": 620,
+          "y": 60
+        },
+        {
+          "iid": "rb",
+          "base": "R-B",
+          "x": 620,
+          "y": 140
+        },
+        {
+          "iid": "rc",
+          "base": "R-C",
+          "x": 620,
+          "y": 220
+        },
+        {
+          "iid": "rd",
+          "base": "R-D",
+          "x": 620,
+          "y": 300
+        },
+        {
+          "iid": "r1",
+          "base": "RESPOND",
+          "x": 820,
+          "y": 180
+        }
+      ],
+      "edges": [
+        [
+          "in",
+          "d2"
+        ],
+        [
+          "d2",
+          "ob"
+        ],
+        [
+          "ob",
+          "ra"
+        ],
+        [
+          "ob",
+          "rb"
+        ],
+        [
+          "ob",
+          "rc"
+        ],
+        [
+          "ob",
+          "rd"
+        ],
+        [
+          "ra",
+          "r1"
+        ],
+        [
+          "rb",
+          "r1"
+        ],
+        [
+          "rc",
+          "r1"
+        ],
+        [
+          "rd",
+          "r1"
+        ]
+      ]
+    },
+    "SCN-8": {
+      "name": "8. Violation triple-record",
+      "desc": "Any violation: action log + W-XXX + traitor.md — all 3 same turn. Missing any = Treason. COMMENTS: This scenario is for bug fix record or violation record. ",
+      "instances": [
+        {
+          "iid": "v1",
+          "base": "VIOL",
+          "x": 61,
+          "y": 60
+        },
+        {
+          "iid": "d4",
+          "base": "D4",
+          "x": 240,
+          "y": 60
+        },
+        {
+          "iid": "vl",
+          "base": "VL",
+          "x": 440,
+          "y": 59
+        },
+        {
+          "iid": "tr",
+          "base": "TR",
+          "x": 430,
+          "y": 176
+        },
+        {
+          "iid": "o3",
+          "base": "O3",
+          "x": 744.0000381469727,
+          "y": 115
+        },
+        {
+          "iid": "r1",
+          "base": "RESPOND",
+          "x": 961.9999771118164,
+          "y": 115
+        },
+        {
+          "iid": "ls_ooxc",
+          "base": "LS",
+          "x": 429.79998779296875,
+          "y": 281.8999938964844
+        }
+      ],
+      "edges": [
+        [
+          "v1",
+          "d4"
+        ],
+        [
+          "d4",
+          "vl"
+        ],
+        [
+          "d4",
+          "tr"
+        ],
+        [
+          "vl",
+          "o3"
+        ],
+        [
+          "tr",
+          "o3"
+        ],
+        [
+          "d4",
+          "ls_ooxc"
+        ],
+        [
+          "ls_ooxc",
+          "o3"
+        ],
+        [
+          "o3",
+          "r1"
+        ]
+      ]
+    },
+    "SCN-9": {
+      "name": "9. Destructive op needed",
+      "desc": "Operation matches 8-item Destructive checklist. Stop and ask Commander.",
+      "instances": [
+        {
+          "iid": "dn",
+          "base": "DESTR_NEED",
+          "x": 60,
+          "y": 60
+        },
+        {
+          "iid": "ds",
+          "base": "DST",
+          "x": 240,
+          "y": 60
+        },
+        {
+          "iid": "m6",
+          "base": "M6",
+          "x": 440,
+          "y": 60
+        },
+        {
+          "iid": "ak",
+          "base": "ASK_CMD",
+          "x": 640,
+          "y": 60
+        },
+        {
+          "iid": "sp",
+          "base": "STOP",
+          "x": 840,
+          "y": 60
+        }
+      ],
+      "edges": [
+        [
+          "dn",
+          "ds"
+        ],
+        [
+          "ds",
+          "m6"
+        ],
+        [
+          "m6",
+          "ak"
+        ],
+        [
+          "ak",
+          "sp"
+        ]
+      ]
+    },
+    "SCN-10": {
+      "name": "10. 3 failures",
+      "desc": "Same target fails 3 times. Brute-forcing makes it worse. Mandatory escalation.",
+      "instances": [
+        {
+          "iid": "f3",
+          "base": "FAIL_3X",
+          "x": 60,
+          "y": 60
+        },
+        {
+          "iid": "ae",
+          "base": "A-ESC",
+          "x": 240,
+          "y": 60
+        },
+        {
+          "iid": "ak",
+          "base": "ASK_CMD",
+          "x": 440,
+          "y": 60
+        },
+        {
+          "iid": "sp",
+          "base": "STOP",
+          "x": 706,
+          "y": 69
+        }
+      ],
+      "edges": [
+        [
+          "f3",
+          "ae"
+        ],
+        [
+          "ae",
+          "ak"
+        ],
+        [
+          "ak",
+          "sp"
+        ]
+      ]
+    },
+    "SCN-11": {
+      "name": "11. Weak prompt",
+      "desc": "M5: instruction missing 4-item kit → reinforce.",
+      "instances": [
+        {
+          "iid": "wp",
+          "base": "WEAK_PMT",
+          "x": 60,
+          "y": 60
+        },
+        {
+          "iid": "m5",
+          "base": "M5",
+          "x": 240,
+          "y": 60
+        },
+        {
+          "iid": "pd",
+          "base": "PRE_DISP",
+          "x": 440,
+          "y": 60
+        },
+        {
+          "iid": "dp",
+          "base": "DP",
+          "x": 640,
+          "y": 60
+        },
+        {
+          "iid": "w1",
+          "base": "WAIT",
+          "x": 840,
+          "y": 60
+        }
+      ],
+      "edges": [
+        [
+          "wp",
+          "m5"
+        ],
+        [
+          "m5",
+          "pd"
+        ],
+        [
+          "pd",
+          "dp"
+        ],
+        [
+          "dp",
+          "w1"
+        ]
+      ]
+    },
+    "SCN-12": {
+      "name": "12. Fix-loop",
+      "desc": "D6: failure signal → 3-step fix-loop until all retests ✅.",
+      "instances": [
+        {
+          "iid": "fs",
+          "base": "FAIL_SIG",
+          "x": 60,
+          "y": 60
+        },
+        {
+          "iid": "f1",
+          "base": "FL-1",
+          "x": 240,
+          "y": 60
+        },
+        {
+          "iid": "f2",
+          "base": "FL-2",
+          "x": 420,
+          "y": 60
+        },
+        {
+          "iid": "ar",
+          "base": "A-REC",
+          "x": 749,
+          "y": 52
+        },
+        {
+          "iid": "fx",
+          "base": "FAIL_3X",
+          "x": 869,
+          "y": 243
+        },
+        {
+          "iid": "r1",
+          "base": "RESPOND",
+          "x": 960,
+          "y": 60
+        },
+        {
+          "iid": "sc_rflt_sopv",
+          "base": "SC-RFLT",
+          "x": 459,
+          "y": 229.88751220703125
+        }
+      ],
+      "edges": [
+        [
+          "fs",
+          "f1"
+        ],
+        [
+          "f1",
+          "f2"
+        ],
+        [
+          "ar",
+          "r1"
+        ],
+        [
+          "f2",
+          "sc_rflt_sopv"
+        ],
+        [
+          "sc_rflt_sopv",
+          "ar"
+        ],
+        [
+          "sc_rflt_sopv",
+          "fx"
+        ]
+      ]
+    }
+  },
+  "toggles": {
+    "SCN-1": {
+      "u1": "modified",
+      "m1": "modified",
+      "o1": "disabled",
+      "pc": "modified"
+    },
+    "SCN-2": {
+      "o1": "modified",
+      "o3": "modified",
+      "n1": "modified"
+    },
+    "SCN-3": {
+      "u1": "modified",
+      "o1": "modified",
+      "pd": "modified",
+      "cr": "modified"
+    },
+    "SCN-4": {
+      "m1": "modified",
+      "sr": "modified"
+    },
+    "SCN-5": {
+      "m1": "modified"
+    },
+    "SCN-7": {
+      "in": "modified",
+      "r1": "modified"
+    },
+    "SCN-8": {
+      "tr": "modified",
+      "vl": "modified",
+      "ls_ooxc": "modified",
+      "r1": "modified"
+    },
+    "SCN-12": {
+      "sc_rflt_sopv": "modified"
+    },
+    "SCN-10": {
+      "ak": "modified",
+      "sp": "modified"
+    }
+  },
+  "comments": {
+    "SCN-1": {
+      "u1": "There's prompt enhancement: I've told you how to judge whether this is a good prompt and how to enhance that ,this need to be added as part of hook \n\nThis should contain my decrees. sth like \nMUST FOLLOW ALL 6 DECREES!!!\nMUST FOLLOW ALL 6 DECREES!!!\nMUST FOLLOW ALL 6 DECREES!!!\n\n[full decrees without any cut]",
+      "m1": "No need to recite again. and some related things like the first word have to be xxxx can also be deleted ",
+      "o1": "",
+      "o3": "about recite part: delete \nbut make sure in here ai check if it follows all 6 rules\nneed to be sth like \nrule1 yes/no  [full complete reason ]\n....\nrule 6 ....",
+      "pc": "If dispatch, need to think how to let agent follows subagent rules. They have their own rules right ? and shares some main rules as well "
+    },
+    "SCN-3": {
+      "u1": "remeber the enhancement ",
+      "pd": "I hope we can also use tool or sth to inject ",
+      "cr": "I realize that we shall not just use this: ofc it first need to create cron, but also need to explicit let ai use monitor tool to make sure at lease code starts running not exit with bug or in the queue while later may exit."
+    },
+    "SCN-4": {
+      "m1": "Use hook",
+      "sr": "also make sure it shall check whether (if fixing sth) fix is done, do the test, rerun or sth to MAKE SURE NO FUCKING ANY MISTAKE "
+    },
+    "SCN-5": {
+      "m1": "Use hook"
+    },
+    "SCN-7": {
+      "in": "BIG MODIFICATION HERE:\nif it wants to use inference: have to follow the rules to make sure do all the efforts: so in inferecen part I want to see it efforts ",
+      "r1": "should not be this node. it's sth like check if all the efforts has been done. if so? in the response it need to say\n[inference] [efforts has done: I've checked 56pages websearches, I've read code line by line for a.py, and b.py which is the complete set I need to understand the project everything are included, and I've done experiment with xxx and xxx, which drives me to \"xxx\" while I checked code related to \"xxx\" and search on the internet for 72 times, still not fiding the bug] \n\nsome super hard effrots has been done, and AI HAS DONE ALL THE THINGS IT CAN THINK ABOUT WITH MULTIPLE RELECTION SAYING : ok I cannot locate the problem, wait maybe I can check this, oh no this has been checked, I am pretty sure nothing else can be checked to let it work  \n"
+    },
+    "SCN-8": {
+      "tr": "we only use one file to record violation. while this traitor should be changed to sth like: the wrong way we've gone, for example, \nWRONG WAY 1: Try to increase the batchsize \nwe tried to do xxxx to fix xxx bug, which is committed at [id], and before/after, observation shows that nothing good happened, no improvement, so this is a wrong direction. the problem is not the batchsize [ the description need to be dtailed enough for one to see every details ]",
+      "vl": "OK we shall use only one file recording problems. not using 3 files which are uesless and messy right ? ",
+      "ls_ooxc": "And there should be another file like this: but it's not like lessons but to record every efforts we tried to fix a bug or do an imporvement or sth while it can failed\n\nand each time when we realize sth worked or failed, we shall come back to here to update the status of what we've tried \n\nthis is kinda like previous reward board + warning board, but all records ",
+      "r1": "Now it shall be able to know what's the right way to try or if bug is already fixed and what 's sth helps "
+    },
+    "SCN-12": {
+      "f2": "apply sth in 8. violation triple record which is now also for bug report ",
+      "sc_rflt_sopv": "Reflection should contain sth like :If we've done the right way to fix the bug ? and have I really run the code wait untill I get the return/resuts making sure that's working???? "
+    },
+    "SCN-10": {
+      "ak": "IF COMMANDER is setting up a loop or explicit saying you have the right, you have the authorization, then shall not stop, keep trying. and try to do sth",
+      "sp": "In here this one shall be something like\n[inference] modification\nwhich is: you shall show all the efforts in very pricise details\nboth action file and response."
+    }
+  },
+  "edgeComments": {},
+  "customNodes": {}
+}
