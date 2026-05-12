@@ -1,37 +1,37 @@
 #!/bin/bash
 # ██████████████████████████████████████████████████████
-# init_corporal.sh — 军营初始化脚本
-# 用法: init_corporal.sh <工作目录绝对路径>
-# 功能: 检查 militar_camp/，创建公告板（若不存在），
-#       自动确定下士编号，生成三件套档案
+# init_corporal.sh — Military camp initialization script
+# Usage: init_corporal.sh <absolute path to working directory>
+# Function: checks militar_camp/, creates bulletin boards (if not exist),
+#           auto-determines Corporal number, generates three-file archive set
 # ██████████████████████████████████████████████████████
 
 WORK_DIR="${1:-.}"
-# v2：模板目录改为相对脚本所在 repo 根（init_corporal.sh 在 repo 根，dirname 直接得 repo 根）
+# v2: template directory is now relative to repo root where script lives (init_corporal.sh is at repo root, dirname gives repo root directly)
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 TEMPLATE_DIR="$REPO_ROOT/content/templates"
 CAMP_DIR="$WORK_DIR/militar_camp"
 TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M UTC")
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo " 军营初始化脚本 — init_corporal.sh"
-echo " 工作目录: $WORK_DIR"
-echo " 时间戳: $TIMESTAMP"
+echo " Military camp init script — init_corporal.sh"
+echo " Working directory: $WORK_DIR"
+echo " Timestamp: $TIMESTAMP"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# Step 1: 检查并创建 militar_camp/
+# Step 1: Check and create militar_camp/
 if [ ! -d "$CAMP_DIR" ]; then
     mkdir -p "$CAMP_DIR"
     cp "$TEMPLATE_DIR/warning_board.md"  "$CAMP_DIR/"
     cp "$TEMPLATE_DIR/reward_board.md"   "$CAMP_DIR/"
     cp "$TEMPLATE_DIR/traitor.md"        "$CAMP_DIR/"
     cp "$TEMPLATE_DIR/README.md"         "$CAMP_DIR/" 2>/dev/null || true
-    echo "[INIT] ✅ 创建 militar_camp/ + 4份公告板（warning/reward/traitor/README）"
+    echo "[INIT] ✅ Created militar_camp/ + 4 bulletin boards (warning/reward/traitor/README)"
 else
-    echo "[INIT] militar_camp/ 已存在，跳过公告板创建"
+    echo "[INIT] militar_camp/ already exists, skipping bulletin board creation"
 fi
 
-# Step 2: 确定下士编号
+# Step 2: Determine Corporal number
 NEXT_NUM=1
 while [ -d "$CAMP_DIR/corporal_$NEXT_NUM" ]; do
     NEXT_NUM=$((NEXT_NUM + 1))
@@ -39,9 +39,9 @@ done
 
 CORPORAL_DIR="$CAMP_DIR/corporal_$NEXT_NUM"
 mkdir -p "$CORPORAL_DIR"
-echo "[INIT] 下士编号：${NEXT_NUM}号"
+echo "[INIT] Corporal number: ${NEXT_NUM}"
 
-# Step 3: 生成三件套（替换占位符 X → 实际编号，时间戳 → 当前时间）
+# Step 3: Generate three-file archive set (replace placeholder X → actual number, timestamp → current time)
 # corporal_status.md
 sed "s/X号下士/${NEXT_NUM}号下士/g" "$TEMPLATE_DIR/corporal_status.md" | \
     sed "s/YYYY-MM-DD HH:MM UTC/$TIMESTAMP/g" | \
@@ -57,18 +57,18 @@ sed "s/X号下士/${NEXT_NUM}号下士/g" "$TEMPLATE_DIR/corporal_action.md" | \
 sed "s/X号下士/${NEXT_NUM}号下士/g" "$TEMPLATE_DIR/corporal_situation.md" \
     > "$CORPORAL_DIR/corporal_situation.md"
 
-echo "[INIT] ✅ 创建三件套："
+echo "[INIT] ✅ Created three-file archive set:"
 echo "        $CORPORAL_DIR/corporal_status.md"
 echo "        $CORPORAL_DIR/corporal_action.md"
 echo "        $CORPORAL_DIR/corporal_situation.md"
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo " ${NEXT_NUM}号下士档案就绪"
-echo " 路径: $CORPORAL_DIR"
+echo " Corporal ${NEXT_NUM} archive ready"
+echo " Path: $CORPORAL_DIR"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo " Claude 接下来必须（30秒内）："
-echo "  1. 在 corporal_status.md 逐字填写指挥官命令原文"
-echo "  2. 在 corporal_action.md 追加第一条 [BOARD_READ]"
-echo "  3. 才能开始执行任务"
+echo " Claude must (within 30 seconds):"
+echo "  1. Copy the Commander's instructions verbatim into corporal_status.md"
+echo "  2. Append the first [BOARD_READ] entry to corporal_action.md"
+echo "  3. Only then begin executing the task"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

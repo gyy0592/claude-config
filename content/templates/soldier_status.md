@@ -1,30 +1,30 @@
-<!-- 模板版本 = v1.2 (claude-config) -->
-# Y号列兵派遣令
+<!-- template version = v1.2 (claude-config) -->
+# Private Y Dispatch Order
 
-**编号**：Y号列兵
-**所属下士**：X号下士
-**派出时间**：（到岗后填写：YYYY-MM-DD HH:MM UTC）
-**状态**：DEPLOYED
-
----
-
-## 授权字段
-
-授权字段：（到岗后填写 — 从 Agent prompt 中复制授权字段内容；W-008 防控点：禁写摘要）
+**Number**: Private Y
+**Under Corporal**: Corporal X
+**Dispatch Time**: (fill in upon arrival: YYYY-MM-DD HH:MM UTC)
+**Status**: DEPLOYED
 
 ---
 
-## Agent prompt 原文（W-008 verbatim 防控点 — 列兵到岗后逐字粘贴，禁摘要 / 禁自引用）
+## Authorization Field
+
+Authorization field: (fill in upon arrival — copy authorization field content from Agent prompt; W-008 control point: no summaries)
+
+---
+
+## Agent prompt verbatim (W-008 verbatim control point — Private fills in verbatim upon arrival, no summaries / no self-reference)
 
 ```
-（在此粘贴收到的 Agent prompt 全文，一字不差）
+(paste the full Agent prompt here, verbatim)
 ```
 
 ---
 
-## 最终状态
+## Final Status
 
-- 完成时间：（完成后填写）
-- 状态：DEPLOYED → 任务完成后立刻改为 COMPLETED / EXECUTED（处决）
-- 原因：（做对了什么 / 哪里叛国）
-- 警告：（对未来列兵的教训）
+- Completion time: (fill in after completion)
+- Status: DEPLOYED → immediately change to COMPLETED / EXECUTED (execution) after task completion
+- Reason: (what was done correctly / where Treason occurred)
+- Warning: (lessons for future Privates)

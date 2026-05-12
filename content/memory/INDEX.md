@@ -1,24 +1,24 @@
-# content/memory/ 索引（按需 Read，不常驻上下文）
+# content/memory/ Index (Read on demand, not always resident in context)
 
-本目录承载「按需读、不每次自动注入」的长期教训 + 工作流细则。启动注入仅 `<repo>/CLAUDE.md`（**字节数无硬上限** — 指挥官明示「不计代价」）；本目录按需 Read 不常驻减负载。主路由 `CLAUDE.md` 顶部明文「需要时 Read content/memory/INDEX.md」（不用 `@` 自动导入语法）。
+This directory holds long-term lessons + workflow details that are "read on demand, not auto-injected every time". Startup injection is only `<repo>/CLAUDE.md` (**no byte hard limit** — Commander explicitly stated "regardless of cost"); this directory is Read on demand rather than always resident to reduce load. The main router `CLAUDE.md` clearly states at the top "Read content/memory/INDEX.md when needed" (not using `@` auto-import syntax).
 
-## 4 文件触发表
+## 4 File Trigger Table
 
-| 文件 | 描述 | 触发 Read 条件 |
+| File | Description | Trigger Read Condition |
 |------|----|--------------|
-| `lessons.md` | 正面教训（L-XXX + tags） | 写综合反思前；引用过往「正确做法」；session 开头 `tags:` grep |
-| `violations.md` | 违规清单 + 罪名速查 + 处决仪式（W-XXX + tags） | 怀疑触红线；指挥官指出违规；写违规三件套前；session 开头 `tags:` grep |
-| `workflows.md` | 4 步 workflow + 长任务监控 + 调试 + 条目格式 | 写 / 跑代码 / 启长任务 / 调试 / 列指标 / 写 [观察]/[反思] / 失败 3 步闭环 |
-| `soldier_protocol.md` | 派兵 + 自主权 + 列兵铁律 (A)~(G) + 沉默 + 提问四要素 | 派兵前；写 Agent prompt 前；填 soldier_status.md 授权前；选项题前 |
+| `lessons.md` | Positive lessons (L-XXX + tags) | Before writing comprehensive reflection; citing past "correct practices"; `tags:` grep at session start |
+| `violations.md` | Violation list + charge quick reference + execution ritual (W-XXX + tags) | Suspecting a red line; Commander pointing out violation; before writing violation triple-item set; `tags:` grep at session start |
+| `workflows.md` | 4-step workflow + long-task monitoring + debugging + entry format | Writing / running code / starting long tasks / debugging / listing indicators / writing [OBSERVE]/[reflection] / 3-step fix-loop |
+| `soldier_protocol.md` | Dispatching + autonomy + Private iron rules (A)~(G) + silence + 4-element question checklist | Before dispatching; before writing Agent prompt; before filling soldier_status.md authorization; before multiple-choice questions |
 
-## 不知读哪个 → grep tags
+## Don't know which to read → grep tags
 
-`grep -lE "tags:.*<标签>" content/memory/*.md`。常用标签：`scope-creep` / `over-design` / `language-violation` / `concept-confusion` / `flow-skip` / `memory-blind` / `fatigue` / `recitation-shortcut` / `dead-link` / `plan-gap` / `listen-comprehension` / `premature-answer` / `codex-overtrust`。
+`grep -lE "tags:.*<tag>" content/memory/*.md`. Common tags: `scope-creep` / `over-design` / `language-violation` / `concept-confusion` / `flow-skip` / `memory-blind` / `fatigue` / `recitation-shortcut` / `dead-link` / `plan-gap` / `listen-comprehension` / `premature-answer` / `codex-overtrust`.
 
-## 迁移规则（v3 三审硬约束）
+## Migration Rules (v3 triple-review hard constraints)
 
-迁移到 v2 必须全条目带 `tags:` 行。未带 `tags:` 不计入 session 自检覆盖（grep 时被自然排除），需先补齐 `tags:` 才能恢复覆盖。每条 W-XXX / L-XXX 必含：标题 + 行为/后果/正确做法（W）或 正确行为/教训/特化例子（L）+ `tags:`。缺一作废。
+Migration to v2 requires all entries to have `tags:` lines. Entries without `tags:` do not count toward session self-check coverage (naturally excluded when grep-ing); need to add `tags:` first to restore coverage. Each W-XXX / L-XXX must contain: title + behavior/consequence/correct practice (W) or correct behavior/lesson/specific example (L) + `tags:`. Missing any one = invalid.
 
-## 收尾二选一（任务结束写 action.md 末段必做）
+## Mandatory Closing: One of Two Options (must do at the end of the task when writing the final section of action.md)
 
-(a) `violations.md`（W-XXX）或 `lessons.md`（L-XXX）追加新条目（含 `tags:`）；或 (b) 显式写「[无新增教训]」。不写 = 失职雏形。
+(a) Append new entries to `violations.md` (W-XXX) or `lessons.md` (L-XXX) (with `tags:`); or (b) explicitly write "[no new lessons]". Not writing = Dereliction of Duty precursor.

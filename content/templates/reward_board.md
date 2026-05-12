@@ -1,21 +1,21 @@
-<!-- 模板版本 = v1.2 (claude-config) -->
-# REWARD BOARD — 军营奖励录
+<!-- template version = v1.2 (claude-config) -->
+# REWARD BOARD — Military Camp Reward Records
 
-每名列兵 / 下士每次回复开头必须 Read 本文件，并在 action.md 写：
-`[BOARD_READ] 已阅读 warning_board.md + reward_board.md + corporal_situation.md，时间：YYYY-MM-DD HH:MM UTC`
+Every Private / Corporal must Read this file at the start of every reply, and write in action.md:
+`[BOARD_READ] Read warning_board.md + reward_board.md + corporal_situation.md, time: YYYY-MM-DD HH:MM UTC`
 
-只在出发前读一次不够 — 每轮都要读。
-
----
-
-## 通用奖励 R-001~R-010 详见
-
-通用 L-XXX schema 教训 + 正面教材请 Read `content/memory/lessons.md`（按需 grep `tags:`，避免全文加载）。
+Reading once before departure is not enough — must read every turn.
 
 ---
 
-## 项目特化奖励（由各项目自行追加）
+## Generic Rewards R-001~R-010 See
 
-<!-- 在此追加项目级正面教材，例如：
-### R-100：在项目 X 中正确处理 NFS race condition（5号列兵，2026-XX-XX）
+Generic L-XXX schema lessons + positive examples: Read `content/memory/lessons.md` (grep by `tags:` on demand, avoid full-text loading).
+
+---
+
+## Project-Specific Rewards (append for each project as needed)
+
+<!-- Append project-level positive examples here, e.g.:
+### R-100: Correctly handled NFS race condition in project X (Private 5, 2026-XX-XX)
 -->

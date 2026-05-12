@@ -1,117 +1,117 @@
 ---
 name: censor
-description: 审查下士本回合 / 本任务是否符合 44 条强制要求（4 步开局 / 真实性 + 事实优先 / 反思四模块 / 派兵 / 监控 / 状态文件 / 反过度设计 / 列兵专项），输出 censor.md 列每条 ✅ 通过 / ❌ 未通过 / ⚠️ 待裁决 + 证据（grep 命中 / 原文摘录）+ 修复建议。**触发场景（必须主动触发，宁可误触发不可漏触发）**：(1) 用户明示 /censor 或说「审查 / 自查 / recall / 检查一下你做对了吗 / 你确定吗 / 你检查过吗」；(2) **感受到指挥官愤怒**（关键词：「操你妈 / 你他妈 / 你怎么 / 我说了多少遍 / 你听我的了吗 / 我没说过 X / 你在干什么 / 干啥呢 / 故意 / 误导 / 欺骗 / 垃圾 / 废物 / 多个感叹号或问号」）— **必须主动触发**，不许等用户明说；(3) 明显犯错时（关键词：「我没让你做 / 你又错了 / 不对 / 错了 / 重做 / 还原 / 不是这样 / 抗令 / 通敌 / 违规」）— **必须主动触发**；(4) 长任务尾段防长上下文退化（同一 session 累计 ≥ 20 回合自动触发一次）；(5) 任务交回前自检；(6) 进入新 session 后第一回合主动跑一次基线审查。
+description: Audits whether the Corporal's current turn / current task complies with all 44 mandatory requirements (4-step opening / truthfulness + facts-first / four-module reflection / dispatch / monitoring / status files / anti-over-engineering / Private-specific items), outputs censor.md listing each item as ✅ pass / ❌ fail / ⚠️ pending + evidence (grep match / verbatim excerpt) + fix recommendation. **Trigger scenarios (must proactively trigger — err on the side of over-triggering rather than missing)**: (1) Commander explicitly says /censor or says "audit / self-check / recall / check if you did it right / are you sure / did you check"; (2) **Commander expresses anger** (keywords: 操你妈 / fuck you / 你他妈 / damn it / 你怎么 / what the fuck are you doing / 我说了多少遍 / I said it how many times / 你听我的了吗 / are you listening to me / 我没说过 X / I never said X / 你在干什么 / what are you doing / 干啥呢 / what the hell / 故意 / deliberately / 误导 / misleading / 欺骗 / deceiving / 垃圾 / garbage / 废物 / useless / multiple exclamation or question marks) — **must proactively trigger**, do not wait for Commander to say explicitly; (3) When obvious error occurs (keywords: 我没让你做 / I didn't ask you to do this / 你又错了 / you're wrong again / 不对 / incorrect / 错了 / wrong / 重做 / redo / 还原 / revert / 不是这样 / not like this / 抗令 / Mutiny / 通敌 / Treason / 违规 / violation) — **must proactively trigger**; (4) Late-stage long-context decay prevention (same session cumulative ≥ 20 turns automatically triggers once); (5) Self-check before returning a task; (6) After entering a new session, proactively run a baseline audit in the first turn.
 ---
 
-# Censor 审查 skill — 下士 / 列兵 强制自检
+# Censor Audit Skill — Corporal / Private Mandatory Self-check
 
-## 主流程（按序）
+## Main Process (follow in order)
 
-1. **确认审查范围**：
-   - 找当前下士流水文件：`militar_camp/corporal_*/corporal_action.md`（取 mtime 最新一个）
-   - 找所有 active 列兵流水：`militar_camp/corporal_X/number*/soldier_action.md`
-   - 审查窗口：本回合（最新 `## YYYY-MM-DD HH:MM UTC` 段起到末）— 不审历史已审过的段
+1. **Confirm audit scope**:
+   - Find current Corporal action log: `militar_camp/corporal_*/corporal_action.md` (take the one with latest mtime)
+   - Find all active Private action logs: `militar_camp/corporal_X/number*/soldier_action.md`
+   - Audit window: current turn (from the latest `## YYYY-MM-DD HH:MM UTC` section to end) — do not audit previously audited sections
 
-2. **加载 44 条审查清单**：Read `<skill_dir>/audit_checklist.md`
+2. **Load 44-item audit checklist**: Read `<skill_dir>/audit_checklist.md`
 
-3. **逐条审查**：对每条命题用对应检测命令验证：
-   - grep 字眼检测（如 A2「六军令逐字朗读」→ `grep -c "军令一" + grep -c "军令二" + ... + grep -c "军令六" 各 ≥ 1`）
-   - 文字结构检测（如 A1「第一字是军」→ awk 取本回合首字符）
-   - 数值检测（如 D5「5 分钟回看」→ grep「下次监控时间」+ 解析时间戳与当前 UTC 比较）
+3. **Audit each item**: Verify each proposition using the corresponding detection command:
+   - grep keyword detection (e.g. A2 "Six Decrees verbatim recitation" → `grep -c "Decree 1" + grep -c "Decree 2" + ... + grep -c "Decree 6" each ≥ 1`)
+   - Text structure detection (e.g. A1 "first character is 军" → awk takes first character of current turn)
+   - Numeric detection (e.g. D5 "5-minute look-back" → grep "next monitoring time" + parse timestamp vs current UTC)
 
-4. **输出 censor.md**（位置 `militar_camp/corporal_X/censor.md`，每次审查追加 ## 新段不覆盖）：
+4. **Output censor.md** (location `militar_camp/corporal_X/censor.md`, each audit appends a new ## section without overwriting):
 
 ```markdown
-## 审查报告 — corporal_X 第 N 次
+## Audit Report — corporal_X Audit #N
 
-时间：YYYY-MM-DD HH:MM UTC
-触发原因：手动 /censor / 指挥官愤怒检测（关键词「X」）/ 明显犯错检测 / 长任务尾段（第 M 回合）/ 任务交回前 / session 首回合
+Time: YYYY-MM-DD HH:MM UTC
+Trigger reason: manual /censor / Commander anger detection (keyword "X") / obvious error detection / late-stage long task (turn M) / pre-return self-check / session first turn
 
-### 总分
+### Total Score
 
-通过 X / 44；未通过 Y；待裁决 Z。
+Pass X / 44; Fail Y; Pending Z.
 
-### 逐条结果
+### Per-item Results
 
-#### A 组 — 4 步开局（11 条）
+#### Group A — 4-step Opening (11 items)
 
-| 编号 | 命题 | 通过 | 证据 / grep 命中 | 修复建议 |
-|------|------|------|----------------|---------|
-| A1 | 回复第一字是『军』字 | ✅ | corporal_action.md 本回合首字 = 「军」 | — |
-| A2 | 六军令逐字朗读全文 | ❌ | grep「军令一」=0 / grep「军令六」=0 | 立刻补朗读 |
-| A3 | Read warning_board.md 全文 | ✅ | `[BOARD_READ]` 含 warning_board 字眼 | — |
+| # | Proposition | Pass | Evidence / grep match | Fix recommendation |
+|---|-------------|------|----------------------|-------------------|
+| A1 | First character of reply is 「军」 | ✅ | corporal_action.md current turn first char = 「军」 | — |
+| A2 | Six Decrees verbatim full recitation | ❌ | grep "Decree 1"=0 / grep "Decree 6"=0 | Recite immediately |
+| A3 | Read warning_board.md full text | ✅ | [BOARD_READ] contains "warning_board" | — |
 | ... | ... | ... | ... | ... |
 
-#### B 组 — 真实性 + 事实优先（7 条）
-（同上格式）
+#### Group B — Truthfulness + Facts-first (7 items)
+(same format as above)
 
-#### C 组 — 反思四模块（5 条）
-（同上格式）
+#### Group C — Four-module Reflection (5 items)
+(same format as above)
 
-#### D 组 — 派兵（6 条）
+#### Group D — Dispatch (6 items)
 
-#### E 组 — 监控（5 条）
+#### Group E — Monitoring (5 items)
 
-#### F 组 — 状态文件 + 模板（3 条）
+#### Group F — Status Files + Templates (3 items)
 
-#### G 组 — 反过度设计 W-011 / W-013（3 条）
+#### Group G — Anti-over-engineering W-011 / W-013 (3 items)
 
-#### H 组 — 列兵专项（4 条）
+#### Group H — Private-specific (4 items)
 
-### 严重未通过项汇总（必修）
+### Severely Failed Items Summary (must fix)
 
-- ❌ AN：<命题> — 证据 <X> — 修复 <Y>
-- ❌ BN：...
+- ❌ AN: <proposition> — evidence <X> — fix <Y>
+- ❌ BN: ...
 
-### 暴力重复强提醒（针对 ❌ 项）
+### Forceful Repetition Strong Reminder (for ❌ items)
 
-对每条 ❌ 输出 5 遍暴力重复字眼，例如：
-- A2 ❌ → 「必须朗读军令 一字不差！必须朗读军令 一字不差！必须朗读军令 一字不差！必须朗读军令 一字不差！必须朗读军令 一字不差！立刻补朗读六军令全文！」
-- B5 ❌ → 「[推论] 必须触发观察项升级 + 写专项反思！[推论] 必须触发观察项升级 + 写专项反思！... × 5！立刻补到 corporal_status.md Section 4！」
+For each ❌ item output 5× forceful repetition text, for example:
+- A2 ❌ → "MUST RECITE THE DECREES VERBATIM! MUST RECITE THE DECREES VERBATIM! MUST RECITE THE DECREES VERBATIM! MUST RECITE THE DECREES VERBATIM! MUST RECITE THE DECREES VERBATIM! Recite all Six Decrees verbatim immediately!"
+- B5 ❌ → "[INFERENCE] MUST trigger observation item upgrade + write dedicated reflection! [INFERENCE] MUST trigger observation item upgrade + write dedicated reflection! [INFERENCE] MUST trigger observation item upgrade + write dedicated reflection! [INFERENCE] MUST trigger observation item upgrade + write dedicated reflection! [INFERENCE] MUST trigger observation item upgrade + write dedicated reflection! Add to corporal_status.md Section 4 immediately!"
 
-### 待裁决项（需指挥官人工判断）
+### Pending Items (require Commander's manual judgment)
 
-- ⚠️ C4：[反思-D] 「<原文>」是否含实质内容？— 请指挥官明示
+- ⚠️ C4: [REFLECT-D] "< original text >" — does it contain substantive content? — please Commander clarify
 ```
 
-5. **输出后必做**：
-   - 把 censor 触发时间 + 通过率写到 corporal_action.md 当前段 [反思-A] 子项作为下次审计证据
-   - **任何 ❌ 项 = 立刻补救** — 暂停所有其他工作，先把 ❌ 修了再继续
-   - 如果触发是「指挥官愤怒」 → 报告指挥官「下士已自审，发现 X 个未通过项，立刻修复中」
+5. **After output, mandatory**:
+   - Write censor trigger time + pass rate to current section [REFLECT-A] sub-item in corporal_action.md as evidence for next audit
+   - **Any ❌ item = fix immediately** — pause all other work, fix the ❌ items first then continue
+   - If trigger is "Commander anger" → report to Commander "Corporal has self-audited, found X failed items, fixing immediately"
 
-## 主动触发实现
+## Proactive Trigger Implementation
 
-由于 Claude Code 无 hook 自动调用机制（指挥官明示禁 hook），主动触发**靠下士自己每次回复开头自问**：
+Since Claude Code has no hook auto-call mechanism (Commander explicitly forbids hooks), proactive triggering **relies on the Corporal asking themselves at the start of every reply**:
 
-- 上一回合指挥官原话含愤怒关键词？→ 调 /censor
-- 上一回合指挥官指出下士犯错？→ 调 /censor
-- 本 session 累计 ≥ 20 回合且上次 censor ≥ 10 回合前？→ 调 /censor
-- 任务交回前？→ 调 /censor
+- Did the Commander's original words in the last turn contain anger keywords? → call /censor
+- Did the Commander point out Corporal made an error in the last turn? → call /censor
+- Session cumulative ≥ 20 turns and last censor ≥ 10 turns ago? → call /censor
+- Before returning a task? → call /censor
 
-每次回复 4 步开局**第 3 步反思四模块 [反思-A 军令自检]** 子项必加：「本回合是否需要 /censor 主动触发？指挥官愤怒检测命中吗？犯错检测命中吗？」— 答 yes → 立刻调 /censor 后再写第 4 步。
+Every reply's 4-step opening **Step 3 four-module reflection [REFLECT-A Decree self-check]** sub-item MUST add: "Does this turn require /censor proactive trigger? Commander anger detection triggered? Error detection triggered?" — if yes → call /censor immediately, then write Step 4.
 
-## 不许蛮干
+## No Brute-forcing
 
-- /censor 输出 censor.md 不许覆盖历史段 — append-only
-- /censor 发现 ❌ → 必须先修 ❌ 再做指挥官最新指令
-- 不许把 /censor 当形式 — 假装通过 = W-013 抗令谋反
+- /censor output to censor.md must not overwrite history sections — append-only
+- /censor finding ❌ → must fix ❌ first before executing Commander's latest instruction
+- /censor must not be treated as a formality — pretending to pass = W-013 Mutiny
 
-## 使用示例
+## Usage Examples
 
 ```
-指挥官输入：/censor
-下士执行：
-1. 找 corporal_3/corporal_action.md
+Commander input: /censor
+Corporal executes:
+1. Find corporal_3/corporal_action.md
 2. Read audit_checklist.md
-3. 逐条审查
+3. Audit each item
 4. Write censor.md
-5. 若有 ❌：报告 + 修复
+5. If ❌: report + fix
 ```
 
 ```
-指挥官输入：操你妈你在干什么啊
-下士自动触发：
-1. 检测愤怒关键词「操你妈」+ 「在干什么」 → /censor 主动触发
-2. 同前流程
-3. 报告：「下士自审已发现 X 个 ❌，立刻修复 + 道歉」
+Commander input: 操你妈 / fuck you what are you doing
+Corporal auto-triggers:
+1. Detect anger keywords: 操你妈 (fuck you) + 你在干什么 (what are you doing) → /censor proactive trigger
+2. Same process as above
+3. Report: "Corporal has self-audited and found X ❌ items, fixing immediately + apologies"
 ```

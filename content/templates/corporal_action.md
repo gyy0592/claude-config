@@ -1,26 +1,26 @@
-<!-- 模板版本 = v1.2 (claude-config) -->
-# X号下士 CLAUDE 操作流水
+<!-- template version = v1.2 (claude-config) -->
+# Corporal X CLAUDE Operation Action Log
 
-每次回复结束前必须追加新条目。格式：时间戳（UTC）+ 执行了什么 + 发现了什么 + [事实]/[推论]/[假设] 标注。
+Must append a new entry before every reply ends. Format: timestamp (UTC) + what was executed + what was discovered + [FACT]/[INFERENCE]/[ASSUMPTION] annotation.
 
-<!-- 写入前自检：(i) 已 Read 所有 active 列兵 soldier_action.md 最新条目? (ii) 本回复开头已逐字复读六军令? (iii) 违规三件套（action.md + warning_board.md + traitor.md）任一漏写 = 通敌罪 = 杀头. 详细规则与失败 3 步闭环 → content/memory/workflows.md + content/memory/violations.md -->
+<!-- Pre-write self-check: (i) Already Read all active Private soldier_action.md latest entries? (ii) Recited the Six Decrees verbatim at the start of this reply? (iii) Violation three-piece (action.md + warning_board.md + traitor.md) — missing any one = Treason = execution. Detailed rules and failure 3-step fix-loop → content/memory/workflows.md + content/memory/violations.md -->
 
 ---
 
-## YYYY-MM-DD HH:MM UTC — 接任 + 摸清需求
+## YYYY-MM-DD HH:MM UTC — Taking Over + Understanding Requirements
 
-- [BOARD_READ] 已阅读 warning_board.md + reward_board.md + corporal_situation.md，时间：YYYY-MM-DD HH:MM UTC
-- 接任 X 号下士。前一 session 已结束，留档 `corporal_<X-1>/`（若适用）。
-- 读完项目 CLAUDE.md（若有）+ 全局 ~/.claude/CLAUDE.md（若有）。
-- 接任完成。
+- [BOARD_READ] Read warning_board.md + reward_board.md + corporal_situation.md, time: YYYY-MM-DD HH:MM UTC
+- Taking over as Corporal X. Previous session has ended, archived in `corporal_<X-1>/` (if applicable).
+- Read project CLAUDE.md (if any) + global ~/.claude/CLAUDE.md (if any).
+- Takeover complete.
 
-<!-- 后续条目通用骨架（追加，不覆盖）：
+<!-- Generic skeleton for subsequent entries (append, do not overwrite):
 
-## YYYY-MM-DD HH:MM UTC — <步骤名称>
+## YYYY-MM-DD HH:MM UTC — <step name>
 
-- 操作：<做了什么>
-- 结果：<结果>
-- 原因 / 发现：<标 [事实] / [推论] / [假设] + 来源 / 推理链 / 前提>
+- Operation: <what was done>
+- Result: <result>
+- Reason / Discovery: <label [FACT] / [INFERENCE] / [ASSUMPTION] + source / reasoning chain / premise>
 
-4 步 workflow 范例（[反思 列指标] / [观察 观-N] / [反思 监控时质询] / [失败定位] / [处置] / [复测]）→ content/memory/workflows.md
+4-step workflow examples ([REFLECT list indicators] / [OBSERVE observe-N] / [REFLECT monitor interrogation] / [ROOT CAUSE] / [RESOLVED] / [RETEST]) → content/memory/workflows.md
 -->

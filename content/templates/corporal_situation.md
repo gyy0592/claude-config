@@ -1,20 +1,20 @@
-<!-- 模板版本 = v1.2 (claude-config) -->
-# X号下士 战况
+<!-- template version = v1.2 (claude-config) -->
+# Corporal X Battle Situation
 
-## 好消息
+## Good News
 
-- <空>
+- <empty>
 
-## 坏消息
+## Bad News
 
-- <空>
+- <empty>
 
-## 当前焦点
+## Current Focus
 
-- <空>
+- <empty>
 
-## 已派列兵
+## Dispatched Privates
 
-| 编号 | 任务 | 状态 |
+| Number | Task | Status |
 |------|------|------|
-| <空> | | |
+| <empty> | | |

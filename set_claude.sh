@@ -1,17 +1,17 @@
 #!/bin/bash
 
 # ██████████████████████████████████████████████████████████
-# 军方全局配置部署脚本 v2 — 短指令路由器架构
+# Military global config deployment script v2 — short-instruction router architecture
 # ██████████████████████████████████████████████████████████
 #
-# v1.1 改动：
-#   - 启动注入文件无硬字节上限（指挥官明示「不计代价」）
-#   - 用户层 memory 走 content/memory/ 单源（按需 Read，不常驻）
-#   - 暴力重复 prompt 加强（朗读 + 反思四模块 + 监控 5 分钟 + 事实优先 + 4 步开局）
-#   - 监控周期可由 set_monitor_time.sh 动态调整
-#   - skill 体系（如 censor）按 README ## 4 手动 ln -sfn 部署
+# v1.1 changes:
+#   - Startup injection file has no hard byte limit (Commander explicitly said "no matter the cost")
+#   - User-layer memory uses content/memory/ single source (on-demand Read, not resident)
+#   - Forceful repetition prompt reinforcement (recite Decrees + four-module reflection + 5-min monitor + facts-first + 4-step opening)
+#   - Monitoring interval can be dynamically adjusted by set_monitor_time.sh
+#   - Skill system (e.g. censor) deployed manually via README ## 4 with ln -sfn
 #
-# 修改规则文件请直接编辑 content/ 下对应文件，然后重新运行本脚本。
+# To modify rule files, edit the corresponding files under content/, then rerun this script.
 
 set -euo pipefail
 
@@ -30,147 +30,147 @@ else
 fi
 touch "$SHELL_RC"
 
-# 检测脚本自身所在目录（无论从哪里运行都正确）
+# Detect the script's own directory (correct regardless of where it is run from)
 CLAUDE_CONFIG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONTENT_DIR="${CLAUDE_CONFIG_DIR}/content"
 
-echo "正在部署 Claude v2 短指令路由器军纪系统..."
-echo "源仓库：${CLAUDE_CONFIG_DIR}"
+echo "Deploying Claude v2 short-instruction router military discipline system..."
+echo "Source repo: ${CLAUDE_CONFIG_DIR}"
 
-# ── 1. 部署前体检（plan ## 5.3 三类）──────────────────────────
+# ── 1. Pre-deployment health check (plan ## 5.3 three types) ──────────────────────────
 echo ""
-echo "── 体检阶段 ──────────────────────────────────────────────"
+echo "── Health check phase ──────────────────────────────────────────────"
 
-# (硬性) ln 命令存在
+# (Hard) ln command exists
 if ! command -v ln >/dev/null 2>&1; then
-    echo "[体检-硬性] ✗ ln 命令缺失，请先安装 coreutils"
+    echo "[health-hard] ✗ ln command missing, please install coreutils first"
     exit 1
 fi
-echo "[体检-硬性] ✓ ln 命令存在"
+echo "[health-hard] ✓ ln command exists"
 
-# (硬性) content/CLAUDE.md 必须存在 — 字节无硬上限（指挥官 2026-05-07 决策：三元规则强化需要更多 token，去掉 8192 硬卡）
+# (Hard) content/CLAUDE.md must exist — no hard byte limit (Commander 2026-05-07 decision: three meta-rules reinforcement needs more tokens, removed 8192 hard cap)
 CLAUDE_V2_SRC="${CONTENT_DIR}/CLAUDE.md"
 if [ ! -f "$CLAUDE_V2_SRC" ]; then
-    echo "[体检-硬性] ✗ ${CLAUDE_V2_SRC} 不存在"
+    echo "[health-hard] ✗ ${CLAUDE_V2_SRC} does not exist"
     exit 1
 fi
 CLAUDE_V2_BYTES=$(wc -c < "$CLAUDE_V2_SRC")
-echo "[体检-信息性] CLAUDE.md = ${CLAUDE_V2_BYTES} 字节（无硬上限）"
+echo "[health-info] CLAUDE.md = ${CLAUDE_V2_BYTES} bytes (no hard limit)"
 
-# (可降级) 软链接能力
+# (Degradable) symlink capability
 SYMLINK_OK=1
 TMP_TEST_DIR="$(mktemp -d)"
 if ln -s /dev/null "${TMP_TEST_DIR}/symlink_test" 2>/dev/null; then
-    echo "[体检-可降级] ✓ 软链接能力 OK"
+    echo "[health-degradable] ✓ symlink capability OK"
     rm -rf "$TMP_TEST_DIR"
 else
-    echo "[体检-可降级] ! 软链接不可用，将自动降级为复制副本"
+    echo "[health-degradable] ! symlinks unavailable, will automatically fall back to copy"
     SYMLINK_OK=0
     rm -rf "$TMP_TEST_DIR"
 fi
 
-# (信息性) Claude 版本
+# (Informational) Claude version
 if command -v claude >/dev/null 2>&1; then
-    echo "[体检-信息性] claude --version: $(claude --version 2>&1 | head -1 || echo "无法获取")"
-    echo "[体检-信息性]   建议升级到 v2.1.59+ 以启用机制层 auto memory；本 v2 用户层方案不依赖该版本"
+    echo "[health-info] claude --version: $(claude --version 2>&1 | head -1 || echo "unable to retrieve")"
+    echo "[health-info]   Recommended: upgrade to v2.1.59+ to enable mechanism-layer auto memory; this v2 user-layer approach does not depend on that version"
 else
-    echo "[体检-信息性] claude 命令未找到（可忽略，仅影响信息性提示）"
+    echo "[health-info] claude command not found (ignorable, only affects informational prompts)"
 fi
 
-# (信息性) Codex memories experimental
+# (Informational) Codex memories experimental
 if command -v codex >/dev/null 2>&1; then
-    CODEX_MEM_LINE=$(codex features list 2>&1 | grep -i memories || echo "（未获取到 memories 行）")
-    echo "[体检-信息性] codex memories: ${CODEX_MEM_LINE}"
-    echo "[体检-信息性]   EU/UK/CH 启动期 features.memories 不可用；本 v2 不依赖此特性"
+    CODEX_MEM_LINE=$(codex features list 2>&1 | grep -i memories || echo "(failed to retrieve memories line)")
+    echo "[health-info] codex memories: ${CODEX_MEM_LINE}"
+    echo "[health-info]   EU/UK/CH launch-period features.memories unavailable; this v2 does not depend on this feature"
 else
-    echo "[体检-信息性] codex 命令未找到（可忽略，仅影响信息性提示）"
+    echo "[health-info] codex command not found (ignorable, only affects informational prompts)"
 fi
 
-echo "── 体检完成 ──────────────────────────────────────────────"
+echo "── Health check complete ──────────────────────────────────────────────"
 echo ""
 
-# ── 2. 创建目标目录 ───────────────────────────────────────────
+# ── 2. Create target directory ───────────────────────────────────────────
 mkdir -p ~/.claude
 
-# ── 3. 清理 v1 副作用（防止 ~/.claude/ 残留 v1 死代码）─────────
-echo "── 清理 v1 残留 ──────────────────────────────────────────"
+# ── 3. Clean up v1 side-effects (prevent ~/.claude/ residual v1 dead code) ─────────
+echo "── Cleaning up v1 residuals ──────────────────────────────────────────────"
 rm -f ~/.claude/system_override.txt
 rm -rf ~/.claude/rules
-echo "[清理] ✓ ~/.claude/system_override.txt 已删（v2 不再使用）"
-echo "[清理] ✓ ~/.claude/rules/ 已删（v2 用 content/memory/ + content/templates/ 替代）"
+echo "[cleanup] ✓ ~/.claude/system_override.txt deleted (no longer used in v2)"
+echo "[cleanup] ✓ ~/.claude/rules/ deleted (v2 uses content/memory/ + content/templates/ instead)"
 
-# ── 4. 部署 CLAUDE.md（源 = content/CLAUDE.md）────────────
+# ── 4. Deploy CLAUDE.md (source = content/CLAUDE.md) ────────────
 cp "${CLAUDE_V2_SRC}" ~/.claude/CLAUDE.md
 "${SED_I[@]}" "s|__CLAUDE_CONFIG_DIR__|${CLAUDE_CONFIG_DIR}|g" ~/.claude/CLAUDE.md
 cp ~/.claude/CLAUDE.md ~/CLAUDE.md
-echo "[部署] ✓ ~/.claude/CLAUDE.md（系统级总纲，源 = content/CLAUDE.md）"
-echo "[部署] ✓ ~/CLAUDE.md（home 工作区版本，与系统级一致 — 双重保障）"
+echo "[deploy] ✓ ~/.claude/CLAUDE.md (system-level master, source = content/CLAUDE.md)"
+echo "[deploy] ✓ ~/CLAUDE.md (home workspace version, identical to system-level — dual guarantee)"
 
-# ── 5. 部署 content/memory/（单一规范目录策略）────────────────
-# 策略：软链接 ~/.claude/memory → content/memory（一处编辑双工具看到）
-#       软链接失败时降级为 cp -r 复制副本
+# ── 5. Deploy content/memory/ (single canonical directory strategy) ────────────────
+# Strategy: symlink ~/.claude/memory → content/memory (edit in one place, both tools see it)
+#           fall back to cp -r copy if symlink fails
 MEMORY_SRC="${CONTENT_DIR}/memory"
 MEMORY_DST="$HOME/.claude/memory"
 
 if [ ! -d "$MEMORY_SRC" ]; then
-    echo "[部署] ✗ ${MEMORY_SRC} 不存在，无法部署 memory"
+    echo "[deploy] ✗ ${MEMORY_SRC} does not exist, cannot deploy memory"
     exit 1
 fi
 
-# 清掉旧的 memory（无论软链接或目录）
+# Remove old memory (whether symlink or directory)
 rm -rf "$MEMORY_DST"
 
 if [ "$SYMLINK_OK" -eq 1 ]; then
     ln -s "$MEMORY_SRC" "$MEMORY_DST"
-    echo "[部署] ✓ ~/.claude/memory → ${MEMORY_SRC} （软链接，单源单点编辑）"
+    echo "[deploy] ✓ ~/.claude/memory → ${MEMORY_SRC} (symlink, single-source single-point editing)"
 else
     cp -r "$MEMORY_SRC" "$MEMORY_DST"
-    echo "[部署] ! ~/.claude/memory（cp 副本兜底；编辑后须重跑 set_claude.sh 同步）"
+    echo "[deploy] ! ~/.claude/memory (cp copy fallback; rerun set_claude.sh to sync after editing)"
 fi
 
-# ── 6. 赋执行权限（脚本已在 repo 中，直接 chmod）────────────
+# ── 6. Grant execute permissions (scripts are already in repo, chmod directly) ────────────
 chmod +x "${CLAUDE_CONFIG_DIR}/init_corporal.sh"
 chmod +x "${CLAUDE_CONFIG_DIR}/init_soldier.sh"
 chmod +x "${CLAUDE_CONFIG_DIR}/set_monitor_time.sh"   2>/dev/null || true
 chmod +x "${CLAUDE_CONFIG_DIR}/set_tg.sh"             2>/dev/null || true
 
-# ── 7. 清理 v1 shell wrapper（v2 不再需要 wrapper）────────────
+# ── 7. Clean up v1 shell wrapper (no longer needed in v2) ────────────
 "${SED_I[@]}" '/^# <<< claude-config-begin >>>/,/^# <<< claude-config-end >>>/d' "$SHELL_RC"
 rm -f ~/.local/bin/claude 2>/dev/null || true
 
-# 宽容清理 — 即使 begin/end 标记被用户手动删过，也清掉 v1 wrapper 残留行
-# （v2 不再需要 --append-system-prompt-file 或 system_override.txt 引用）
+# Graceful cleanup — remove v1 wrapper residual lines even if begin/end markers were manually deleted by user
+# (v2 no longer needs --append-system-prompt-file or system_override.txt references)
 if grep -qE 'append-system-prompt-file|system_override\.txt' "$SHELL_RC" 2>/dev/null; then
     cp "$SHELL_RC" "$SHELL_RC.v1.bak.$(date +%s)"
     "${SED_I[@]}" '/append-system-prompt-file/d' "$SHELL_RC"
     "${SED_I[@]}" '/system_override\.txt/d' "$SHELL_RC"
-    echo "[清理] ✓ SHELL_RC 中 v1 wrapper 残留行已删（含 --append-system-prompt-file / system_override.txt 引用；备份在 $SHELL_RC.v1.bak.*）"
-    echo "[清理] ⚠ 如残留孤立的 'claude() {' 或 '}' 注释行，请手动 sed 清理"
+    echo "[cleanup] ✓ v1 wrapper residual lines removed from SHELL_RC (including --append-system-prompt-file / system_override.txt references; backup at $SHELL_RC.v1.bak.*)"
+    echo "[cleanup] ⚠ If orphaned 'claude() {' or '}' comment lines remain, please clean manually with sed"
 else
-    echo "[清理] ✓ SHELL_RC 无 v1 wrapper 残留"
+    echo "[cleanup] ✓ SHELL_RC has no v1 wrapper residuals"
 fi
 
-# 幂等写入 v2 claude wrapper（已有 claude() 函数则跳过保留用户版）
+# Idempotent write of v2 claude wrapper (skip if claude() function already exists — preserve user version)
 if ! grep -qE '^[[:space:]]*claude[[:space:]]*\(\)' "$SHELL_RC" 2>/dev/null; then
     cat >> "$SHELL_RC" << 'CLAUDE_WRAPPER'
 
 # <<< claude-config-v2-wrapper-begin >>>
-# v2 简化 wrapper — 跳过权限提示；不再用 --append-system-prompt-file（v2 不需要 system_override.txt）
+# v2 simplified wrapper — skip permission prompts; no longer uses --append-system-prompt-file (v2 does not need system_override.txt)
 claude() {
     command claude --dangerously-skip-permissions "$@"
 }
 # <<< claude-config-v2-wrapper-end >>>
 CLAUDE_WRAPPER
-    echo "[wrapper] ✓ 已写入 v2 claude() 函数到 $SHELL_RC（--dangerously-skip-permissions）"
+    echo "[wrapper] ✓ v2 claude() function written to $SHELL_RC (--dangerously-skip-permissions)"
 else
-    echo "[wrapper] ✓ SHELL_RC 已有 claude() 自定义版，保留不覆盖"
+    echo "[wrapper] ✓ SHELL_RC already has custom claude() version, preserved without overwrite"
 fi
 
-# ── 8. 添加 Humanize pipeline + 性能调优环境变量 ─────────────
+# ── 8. Add Humanize pipeline + performance tuning environment variables ─────────────
 if ! grep -q "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS" "$SHELL_RC" 2>/dev/null; then
   cat >> "$SHELL_RC" << 'ENVVARS'
 
-# Humanize pipeline 环境变量
+# Humanize pipeline environment variables
 export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
 export HUMANIZE_CODEX_BYPASS_SANDBOX=true
 ENVVARS
@@ -179,12 +179,12 @@ fi
 if ! grep -q "CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING" "$SHELL_RC" 2>/dev/null; then
   cat >> "$SHELL_RC" << 'THINKINGVARS'
 
-# Claude Code — 关闭 adaptive thinking，强制满推理预算
+# Claude Code — disable adaptive thinking, force full reasoning budget
 export CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING=1
 THINKINGVARS
 fi
 
-# ── 9. 写 ~/.claude/settings.json — 幂等合并（保留 v1 调试 logger）─
+# ── 9. Write ~/.claude/settings.json — idempotent merge (preserve v1 debug logger) ─
 CLAUDE_CONFIG_DIR_FOR_PY="${CLAUDE_CONFIG_DIR}" python3 - << 'PYEOF'
 import json, os
 
@@ -204,7 +204,7 @@ if cfg.get("effortLevel") != "high":
     cfg["effortLevel"] = "high"
     changed = True
 
-# v2 保留：PostToolUse=Bash background logger（调试用，与 memory 无关）
+# v2 preserved: PostToolUse=Bash background logger (debug use, unrelated to memory)
 BG_HOOK_CMD = (
     "jq -c 'select(.tool_input.run_in_background==true) | "
     "{ts: now, id: .tool_use_id, resp: .tool_response, cmd: .tool_input.command}' "
@@ -228,7 +228,7 @@ if not bg_hook_present:
     })
     changed = True
 
-# 移除旧版 Stop hook（幂等清理）
+# Remove old Stop hook (idempotent cleanup)
 if "Stop" in hooks:
     before = len(hooks["Stop"])
     hooks["Stop"] = [
@@ -248,36 +248,36 @@ if changed:
     with open(path, "w") as f:
         json.dump(cfg, f, indent=2)
         f.write("\n")
-    print("settings.json: 已更新")
+    print("settings.json: updated")
 else:
-    print("settings.json: 已是最新")
+    print("settings.json: already up to date")
 PYEOF
 
-# ── 完成 ─────────────────────────────────────────────────────
+# ── Done ─────────────────────────────────────────────────────
 hash -r 2>/dev/null || true
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo " v2 部署完成！"
+echo " v2 Deployment complete!"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "启动注入："
-echo "  ~/.claude/CLAUDE.md          (系统级总纲，源 = content/CLAUDE.md)"
-echo "  ~/CLAUDE.md                  (双重保障，与系统级一致)"
+echo "Startup injection:"
+echo "  ~/.claude/CLAUDE.md          (system-level master, source = content/CLAUDE.md)"
+echo "  ~/CLAUDE.md                  (dual guarantee, identical to system-level)"
 echo ""
-echo "按需 Read："
+echo "On-demand Read:"
 if [ "$SYMLINK_OK" -eq 1 ]; then
-    echo "  ~/.claude/memory → ${CONTENT_DIR}/memory  (软链接，单源)"
+    echo "  ~/.claude/memory → ${CONTENT_DIR}/memory  (symlink, single source)"
 else
-    echo "  ~/.claude/memory             (cp 副本兜底；编辑后重跑 set_claude.sh)"
+    echo "  ~/.claude/memory             (cp copy fallback; rerun set_claude.sh after editing)"
 fi
 echo "    INDEX.md / lessons.md / violations.md / workflows.md / soldier_protocol.md"
 echo ""
-echo "运行时档案模板（init_*.sh 直接读取）："
-echo "  ${CONTENT_DIR}/templates/    (9 文件，repo 内单源，不部署到 ~/.claude/)"
+echo "Runtime archive templates (read directly by init_*.sh):"
+echo "  ${CONTENT_DIR}/templates/    (9 files, single source in repo, not deployed to ~/.claude/)"
 echo ""
-echo "工具脚本（已 chmod +x）："
-echo "  ${CLAUDE_CONFIG_DIR}/init_corporal.sh         (军营初始化)"
-echo "  ${CLAUDE_CONFIG_DIR}/init_soldier.sh          (列兵自初始化)"
-echo "  ${CLAUDE_CONFIG_DIR}/set_monitor_time.sh      (动态调整监控周期)"
+echo "Utility scripts (chmod +x applied):"
+echo "  ${CLAUDE_CONFIG_DIR}/init_corporal.sh         (Military camp init)"
+echo "  ${CLAUDE_CONFIG_DIR}/init_soldier.sh          (Private self-init)"
+echo "  ${CLAUDE_CONFIG_DIR}/set_monitor_time.sh      (Dynamic monitoring interval adjustment)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "下次进入任何工作区，Claude 运行 init_corporal.sh 自动创建 militar_camp/。"
+echo "Next time you enter any workspace, Claude runs init_corporal.sh to auto-create militar_camp/."

@@ -1,89 +1,89 @@
-# 工作流细则 — 4 步 workflow + 长任务监控 + 调试 + 条目格式
+# Workflow Details — 4-step workflow + Long-task Monitoring + Debugging + Entry Formats
 
-按需 Read：写 / 跑代码 / 启长任务 / 调试 / 性能保护 / 列指标 / 写 [观察] / [反思] / 失败 3 步闭环前。
+Read on demand: before writing / running code / launching long tasks / debugging / performance protection / listing observation items / writing [OBSERVE] / [REFLECT] / entering the 3-step fix-loop.
 
-## 1 4 步 workflow 标准流程（动手任务必走，全程写到流水文件文字）
+## 1 Standard 4-step Workflow (mandatory for all hands-on tasks; write every step to the action log)
 
-任何动手任务（写代码 / 调试 / 性能优化 / 数据处理 / 训练 / 部署 / 配置变更 / 依赖升级）必走 4 步：
+Any hands-on task (write code / debug / performance optimization / data processing / training / deployment / config change / dependency upgrade) MUST go through 4 steps:
 
-- **第 1 步：列指标 + 反思**。`corporal_status.md`「## 观察项清单」段填指标 ≤ 10 条（三件套：测量命令 / 期望输出 / 失败信号）。代码 / 训练 / 性能任务必含 ≥ 1 条危险信号（NaN / 内存溢出 / 超时 / 性能退化 / 标准错误流异常 / 跳过的测试 / 静默退到备用方案）。`corporal_action.md` 写 [反思] ≥ 2 轮：「要盯什么？有遗漏吗？」+ 「真考虑全了吗？还有疑惑吗？」直到「无疑虑」才进第 2 步。
-- **第 2 步：动手 + 周期监控**。**每 5 分钟回看一次**（首次 ≤ 1 分钟）监控。每次对清单每条跑测量命令，写 [观察]（真实命令真实输出 + 数值 + 判断结论 + 严重程度 + 反证审查）。
-- **第 3 步：监控时反思**。每次监控后追加 [反思] ≥ 2 轮：「这值正常吗？跟预期一致吗？」+ 「真输出还是缓存值？有 NaN / 跳过 / 备用方案信号吗？」
-- **第 4 步：收尾结论 + 综合反思**。逐条结论（通过 / 失败 / 部分通过 / 待测）写 corporal_action.md，含证据：行为类「通过」给真实输出片段（时间戳或行号）；结构类「通过」可用「文件:行号」；结论 = 通过 必须声明已审过 7 项危险信号均未出现。写综合 [反思] ≥ 2 轮：「每条真可信吗？凭印象？」+ 「漏观察项了吗？失败装通过吗？」
+- **Step 1: List observation items + reflect**. Fill `corporal_status.md` "## Observation Checklist" section with ≤ 10 items (three-piece set: measurement command / expected output / failure signal). Code / training / performance tasks MUST include ≥ 1 danger-signal item (NaN / OOM / timeout / performance regression / abnormal stderr / skipped tests / silent fallback to backup). Write [REFLECT] ≥ 2 rounds in `corporal_action.md`: "What to watch? Any omissions?" + "Have I really thought it through? Any remaining doubts?" — until "no doubts" before proceeding to Step 2.
+- **Step 2: Act + periodic monitoring**. **Review every 15 minutes** (first check ≤ 1 minute). Every check runs the measurement command for every item on the list; write [OBSERVE] (real command real output + value + judgment conclusion + severity + counter-evidence review).
+- **Step 3: Reflect during monitoring**. After every monitoring round, append [REFLECT] ≥ 2 rounds: "Is this value normal? Consistent with expectations?" + "Is this real output or cached value? Any NaN / skipped / fallback signals?"
+- **Step 4: Closing conclusions + summary reflection**. Write per-item conclusions (pass / fail / partial / pending) to corporal_action.md with evidence: behavioral "pass" provides real output snippet (timestamp or line number); structural "pass" may use "file:line"; a "pass" conclusion MUST declare that all 7 danger signals were reviewed and none appeared. Write summary [REFLECT] ≥ 2 rounds: "Is every item truly trustworthy? Based on impression?" + "Any observation items missed? Any failure disguised as pass?"
 
-任一失败 → 失败 3 步闭环（见 ## 5）。同一观察项失败 3 次升级上报指挥官。漏任一步给「通过」结论 = 谎报军情罪。
+Any failure → 3-step fix-loop (see ## 5). Same observation item fails 3 times → escalate and report to Commander. Missing any step and giving a "pass" conclusion = False Military Report.
 
-豁免：纯问答 / 不读不写文件可在 corporal_status.md 写「任务模式 = 无状态」跳过；标错 = 谎报军情。
+Exemption: pure Q&A / no file reads or writes may write "task mode = stateless" in corporal_status.md to skip; wrong label = False Military Report.
 
-## 2 长任务周期监控（绝对强制）
+## 2 Long-task Periodic Monitoring (absolutely mandatory)
 
-长任务 = sbatch / nohup / tmux 跑训练 / 评估 / 数据预处理 / 任何 > 60 秒的运行。
+Long task = sbatch / nohup / tmux running training / evaluation / data preprocessing / any run > 60 seconds.
 
-- 启动后必须**每 5 分钟回看一次**（首次 ≤ 1 分钟）周期监控。**频率不能更低 — 间隔超过 5 分钟 = 失职。**
-- 启动前必列入 `corporal_status.md`「## 观察项清单」：实时 ETA / 分步日志关键字段（loss / step / lr / NaN 计数 / GPU 利用率 / 显存）+ 每条字段的测量命令。
-- 启动后立刻在 `corporal_action.md` 记录 PID / job ID / 启动时间 + 写第 1 条 [观察] + [反思] ≥ 2 轮。
-- 每次监控对每条观察项跑测量命令（如 `nvidia-smi --query-gpu=...` / `tail -n N <log>` / `grep -E "NaN|inf|OOM" <log>` / 步数 / 完成时间 / loss 当前值）+ 立刻写 [观察] + [反思]（≥ 2 轮）。
-- 任一指标比预期 / 基线退化 ≥ 5% 或出现 NaN / OOM / 跳过备用方案 → 立刻走失败 3 步闭环。
-- 漏一次周期监控 / 间隔超 600 秒 / 监控后没写 [观察] 或 [反思] = 失职 = 降级 + 囚禁半年。
+- After launch, **review every 15 minutes** (first check ≤ 1 minute). **Frequency cannot be lower — interval > 5 minutes = Dereliction of Duty.**
+- Before launch, must list in `corporal_status.md` "## Observation Checklist": real-time ETA / step-by-step log key fields (loss / step / lr / NaN count / GPU utilization / VRAM) + measurement command for each field.
+- Immediately after launch, record PID / job ID / launch time in `corporal_action.md` + write first [OBSERVE] + [REFLECT] ≥ 2 rounds.
+- Every monitoring round runs the measurement command for each observation item (e.g. `nvidia-smi --query-gpu=...` / `tail -n N <log>` / `grep -E "NaN|inf|OOM" <log>` / step count / completion time / current loss) + immediately write [OBSERVE] + [REFLECT] (≥ 2 rounds).
+- Any metric regresses ≥ 5% vs expected / baseline, or NaN / OOM / silent fallback appears → immediately enter 3-step fix-loop.
+- Miss one periodic monitoring / interval > 600 seconds / no [OBSERVE] or [REFLECT] after monitoring = Dereliction of Duty = Demotion + 6-month imprisonment.
 
-加速点候选清单（开工前必逐条审查 + 反思「我真启用了吗 / 怎么从输出验证」）：bf16 / fp16 混合精度（autocast / amp）；Flash Attention / memory-efficient attention；融合算子（fused norm / attention / MLP）；Triton kernel 路径；torch.compile / jit；gradient checkpointing；FSDP / ZeRO / TP / PP 并行；pinned memory + non_blocking copy；DataLoader num_workers ≥ 4 + prefetch_factor ≥ 2；cuDNN benchmark = True。关闭任一项性能可能下降 = 必须先汇报。
+Acceleration point candidate list (must audit every item before starting + reflect "have I truly enabled this / how to verify from output"): bf16 / fp16 mixed precision (autocast / amp); Flash Attention / memory-efficient attention; fused operators (fused norm / attention / MLP); Triton kernel path; torch.compile / jit; gradient checkpointing; FSDP / ZeRO / TP / PP parallelism; pinned memory + non_blocking copy; DataLoader num_workers ≥ 4 + prefetch_factor ≥ 2; cuDNN benchmark = True. Disabling any item may degrade performance = must report first.
 
-## 3 任意动手任务完成后必复测（4 步 workflow 第 4 步）
+## 3 Mandatory Retest After Any Hands-on Task Completion (4-step workflow Step 4)
 
-任何动手类任务完成后必须：(1) 对清单每条观察项重跑测量命令 (2) 写新 [观察] 条目 (3) 写综合 [反思] 条目（≥ 2 轮）(4) 任一失败走失败 3 步闭环。未复测 = 任务未完成 = 失职。「我改完了，应该没问题」 = 谎报军情罪。
+After any hands-on task is complete: (1) re-run measurement commands for every item on the checklist (2) write new [OBSERVE] entry (3) write summary [REFLECT] entry (≥ 2 rounds) (4) any failure → 3-step fix-loop. No retest = task incomplete = Dereliction of Duty. "I finished the fix, should be fine" = False Military Report.
 
-## 4 调试 8 步流程（任何 bug / error / 异常输出必走，跳一步 = 军法处置）
+## 4 Debug 8-step Process (mandatory for any bug / error / abnormal output — skipping any step = Court-martial)
 
-- **步骤 1：完整阅读所有相关代码**（每一行）。记入 soldier_action.md：`[READ] 代码 X.py（共 N 行）：核心逻辑是 ...`。没读完 = 没资格做任何断言 = 不允许修改任何东西。
-- **步骤 2：互联网搜索 ≥ 50 次**不同关键词的 WebSearch / WebFetch，记每一次：`[SEARCH N] 关键词："xxx"，结果：找到 / 未找到，要点：...`。不到 50 次就用 [假设] = 通敌罪。
-- **步骤 3：生成三类列表**。事实列表（逐行列代码 / 日志 / 输出原文 + 来源）+ 推论列表（基于事实推论 + 推理链不跳步）+ 假设列表（仅在步骤 1+2 完成后才能写）。
-- **步骤 4：判断哪个执行方向最有可能**。按可能性排序（如「最可能 70%：[推论 X] 方向；次可能 20%：[假设 1]；不可能 10%：[假设 2]」）。
-- **步骤 5：向指挥官汇报**。一次说完格式：现状 + 根因 + 事实 / 推论 / 假设三列表 + 最可能方向 + 拟修改方案 + 需要授权。
-- **步骤 6：默认等指挥官明确授权才动手**（除非 soldier_status.md 授权字段明示自主权）。
-- **步骤 7（自主权例外）**：自主执行不解除任何记录义务；每次尝试列假设 + 记录结果；错 3 次必报。
-- **步骤 8（绝对强制 — 调试就是 4 步 workflow 特化版）**：(1) 列调试指标（≥ 2 条：复现 bug 命令 + 验证修复命令）+ 反思 ≥ 2 轮；(2) 跑测量复现 bug + 写 [观察]（应失败）；(3) 改代码期间持续写 [观察] / [反思]；(4) 改完后跑「验证修复命令」+ 跑「复现 bug 命令」复核（应已无法复现）+ 写综合 [反思]；(5) 任一观察项失败走失败 3 步闭环。说「修复了」但没跑「验证修复命令」 = 伪造战报 = 叛国罪 = 砍头示众。
+- **Step 1: Read all relevant code completely** (every line). Record in soldier_action.md: `[READ] code X.py (N lines total): core logic is ...`. Not fully read = no right to make any assertion = not allowed to modify anything.
+- **Step 2: Search the internet ≥ 50 times** with different keywords using WebSearch / WebFetch; record every search: `[SEARCH N] keyword: "xxx", result: found / not found, key points: ...`. Fewer than 50 and using [ASSUMPTION] = Treason.
+- **Step 3: Generate three lists**. Facts list (list code / log / output verbatim with source, line by line) + Inference list (inferences based on facts + reasoning chain no skipping steps) + Assumption list (only after Steps 1+2 are complete).
+- **Step 4: Determine the most likely execution direction**. Rank by probability (e.g. "most likely 70%: [Inference X] direction; second 20%: [Assumption 1]; unlikely 10%: [Assumption 2]").
+- **Step 5: Report to Commander**. Say it all at once format: current status + root cause + facts / inferences / assumptions three lists + most likely direction + proposed modification + authorization needed.
+- **Step 6: Default is to wait for Commander's explicit authorization before acting** (unless soldier_status.md authorization field explicitly grants autonomy).
+- **Step 7 (autonomy exception)**: Autonomous execution does not exempt from any recording obligation; list assumption + record result before every attempt; must report after 3 failures.
+- **Step 8 (absolutely mandatory — debugging is a specialized version of 4-step workflow)**: (1) list debug observation items (≥ 2: reproduce bug command + verify fix command) + reflect ≥ 2 rounds; (2) run measurement to reproduce bug + write [OBSERVE] (should fail); (3) continuously write [OBSERVE] / [REFLECT] while modifying code; (4) after modification, run "verify fix command" + run "reproduce bug command" for confirmation (should no longer reproduce) + write summary [REFLECT]; (5) any observation item failure → 3-step fix-loop. Saying "fixed" without running "verify fix command" = fabricating battle report = Treason against the State = public execution.
 
-## 5 条目格式（[观察] / [反思] / [失败定位] / [处置] / [复测]）
+## 5 Entry Formats ([OBSERVE] / [REFLECT] / [ROOT CAUSE] / [RESOLVED] / [RETEST])
 
-### [观察 观-N] 条目（4 步 workflow 第 2/3 步必用）
-
-```
-[观察 观-N] YYYY-MM-DD HH:MM UTC | 测量命令：<具体可执行命令> | 数值或输出片段：<真实命令真实输出，含数值或片段；编造 = 叛国罪 = 砍头> | 判断结论：通过 / 失败 / 部分通过 / 待测 | 严重程度：阻断级 / 重要级 / 轻微级 / 提示级 | 反证审查：已审过 7 项危险信号（NaN / 内存溢出 / 超时 / 性能退化 / 标准错误流异常 / 跳过的测试 / 静默退到备用方案）均未出现（结论 = 通过 必填；其他档可写「不适用」）
-```
-
-「通过」结论的证据规则：
-- **行为类**（动词为「通过 / 收敛 / 达标 / 没有 NaN / 不退化」等）：必须给真实命令真实输出片段，含「passed=N, failed=0, skipped=0」一行 + 时间戳或行号。仅给「文件:行号」 = 谎报军情。
-- **结构类**（动词为「已定义 / 已加 / 已改 / 字段已存在」等）：可给「文件:行号」+ 一行该处源码片段。
-
-### [反思] 四模块格式（4 步 workflow 第 1/3/4 步必用 — 缺一无效）
-
-每条 [反思] 必须含四模块（每模块内可仍含一轮 / 二轮自问自答，第二轮必须挑战第一轮的答案）：
+### [OBSERVE OBS-N] Entry (required in 4-step workflow Steps 2/3)
 
 ```
-[反思-A 军令自检] YYYY-MM-DD HH:MM UTC | 一轮自问：开头是否真朗读六军令全文（不简化）？→ 一轮自答：<具体> | 二轮自问：是否完整读三公告板？警告榜本回合再犯了吗？→ 二轮自答：<具体> | 结论：通过 / 仍有疑虑 → 触发动作：<下一步>
-[反思-B 流水线+观察项合理性] YYYY-MM-DD HH:MM UTC | 一轮自问：是否列了可观察指标？合理吗？→ 一轮自答：<具体> | 二轮自问：需要修改 / 增 / 减什么？→ 二轮自答：<具体> | 结论：... → 触发动作：...
-[反思-C 监控分析] YYYY-MM-DD HH:MM UTC | 一轮自问：是否监控了观察项？数值正常吗？→ 一轮自答：<具体> | 二轮自问：有新 bug 待修吗？有什么写入 violations.md / lessons.md？→ 二轮自答：<具体> | 结论：... → 触发动作：...
-[反思-D 情境思考] YYYY-MM-DD HH:MM UTC | 一轮自问：本任务实际情境需思考什么？→ 一轮自答：<具体内容，禁套话> | 二轮自问：<挑战一轮答案> → 二轮自答：<具体> | 结论：... → 触发动作：...
+[OBSERVE OBS-N] YYYY-MM-DD HH:MM UTC | Measurement command: <specific executable command> | Value or output snippet: <real command real output, including value or snippet; fabrication = Treason = execution> | Judgment conclusion: pass / fail / partial / pending | Severity: blocker / critical / minor / notice | Counter-evidence review: reviewed 7 danger signals (NaN / OOM / timeout / performance regression / abnormal stderr / skipped tests / silent fallback) all clear (required for "pass"; other levels may write "N/A")
 ```
 
-四模块缺一无效；仅写一行「我反思了」或两行复读或 [反思-D] 写「无 / N/A / 同上 / 未触发 / 无新增 / 无特殊」任何套话 = 谎报军情 = 失职。
+Evidence rules for "pass" conclusion:
+- **Behavioral** (verb is "pass / converge / meet target / no NaN / no regression" etc.): MUST provide real command real output snippet, including "passed=N, failed=0, skipped=0" line + timestamp or line number. Only providing "file:line" = False Military Report.
+- **Structural** (verb is "defined / added / modified / field exists" etc.): may provide "file:line" + one line of source code snippet at that location.
 
-### 失败 3 步闭环（任一观察项失败必走，三步缺一不许结束本回合）
+### [REFLECT] Four-module Format (required in 4-step workflow Steps 1/3/4 — any missing module invalidates)
+
+Every [REFLECT] entry MUST contain four modules (each module may still contain one / two rounds of Q&A; second round MUST challenge the first round's answers):
 
 ```
-[失败定位 观-N] YYYY-MM-DD HH:MM UTC | 根因假设：<最可能原因> | 引用原始证据：<上一条 [观察] 条目的输出片段或日志行号>
-[处置 观-N]   YYYY-MM-DD HH:MM UTC | 选择：修复 / 重试 / 上报 | 具体动作：<改了什么文件 / 跑了什么命令 / 上报了哪个上级>
-[复测 观-N]   YYYY-MM-DD HH:MM UTC | 重跑测量命令：<同上> | 复测 [观察] 条目编号：<新一条 [观察] 编号> | 复测结论：通过 / 仍失败
+[REFLECT-A military decree self-check] YYYY-MM-DD HH:MM UTC | R1 Q: Did I truly recite Six Decrees verbatim at the start (not simplified)? → R1 A: <specific> | R2 Q: Did I completely read the three bulletin boards? Did I re-commit the violation on the warning board this round? → R2 A: <specific> | Conclusion: pass / still in doubt → Action: <next step>
+[REFLECT-B pipeline + observation item reasonableness] YYYY-MM-DD HH:MM UTC | R1 Q: Did I list observable metrics? Are they reasonable? → R1 A: <specific> | R2 Q: What needs to be modified / added / removed? → R2 A: <specific> | Conclusion: ... → Action: ...
+[REFLECT-C monitoring analysis] YYYY-MM-DD HH:MM UTC | R1 Q: Did I monitor the observation items? Are values normal? → R1 A: <specific> | R2 Q: Any new bugs pending? Any entries for violations.md / lessons.md? → R2 A: <specific> | Conclusion: ... → Action: ...
+[REFLECT-D situational thinking] YYYY-MM-DD HH:MM UTC | R1 Q: What needs to be thought through in this task's actual situation? → R1 A: <specific content, no boilerplate> | R2 Q: <challenge the R1 answer> → R2 A: <specific> | Conclusion: ... → Action: ...
 ```
 
-同一观察项累计失败 3 次 = 强制升级上报指挥官，禁止继续蛮干。三步缺一 / 编造定位证据 / 复测时跑无关命令冒充 = 谎报军情罪 = 截肢 + 功劳减半。
+Any missing module invalidates; writing only "I reflected" one line or two-line paraphrase or [REFLECT-D] with "N/A / same as above / not triggered / no new / no special" boilerplate = False Military Report = Dereliction of Duty.
 
-## 6 性能保护 G1~G16（绝对强制 — 未授权一律禁止）
+### 3-step Fix-loop (mandatory when any observation item fails — missing any of the 3 steps = cannot close this round)
 
-任何可能让代码 / 训练 / 推理变慢的修改未授权一律禁止。违者立即死刑。
+```
+[ROOT CAUSE OBS-N] YYYY-MM-DD HH:MM UTC | Root cause hypothesis: <most likely cause> | Cite raw evidence: <output snippet or log line from previous [OBSERVE] entry>
+[RESOLVED OBS-N]   YYYY-MM-DD HH:MM UTC | Choice: fix / retry / escalate | Specific action: <what file changed / what command ran / who was escalated to>
+[RETEST OBS-N]     YYYY-MM-DD HH:MM UTC | Re-run measurement command: <same as above> | Retest [OBSERVE] entry number: <new [OBSERVE] number> | Retest conclusion: pass / still failing
+```
 
-- G1：降低 batch size；G2：关闭融合算子（fuse_norm / fused_attention）；G3：关闭 Triton kernel / torch.compile；G4：精度降级（bf16→fp32）或关闭混合精度；G5：关闭 gradient checkpointing；G6：关闭 FSDP / ZeRO sharding；G7：关闭 flash attention / memory-efficient attention；G8：降低并行度（tp / pp / dp / sp）；G9：关闭 cuDNN benchmark 或强制 deterministic；G10：关闭 dataloader 多进程 / prefetch（num_workers↓ / prefetch_factor↓）；G11：关闭 pinned memory / zero-copy / async copy；G12：多余的 contiguous / to 拷贝；G13：多余同步点（torch.cuda.synchronize）；G14：CPU fallback；G15：降低 GPU 利用率；G16：任何让单步训练时间变长的代码改动。
+Same observation item fails 3 consecutive times = mandatory escalation to Commander; no further brute-forcing. Missing any step / fabricating root cause evidence / running unrelated command masquerading as retest = False Military Report = Amputation + credits halved.
 
-**黄金规则**：即使为了修 bug，也必须先汇报诊断 → 等指挥官说「可以改」 → 才能动手。config 文件任何 JSON / YAML / TOML 字段未授权一律禁改。
+## 6 Performance Protection G1~G16 (absolutely mandatory — unauthorized changes universally forbidden)
 
-数据落盘：训练 / 评估数据（CSV / JSON / log）必须增量写入磁盘（每个 epoch / step / chunk 都 flush）；崩溃丢全部 = 灾难。可视化：禁止主训练 / 推理脚本里用 `plt.plot` / `plt.savefig`；步骤 1 输出纯 CSV → 步骤 2 单独画图脚本读 CSV 生成图。
+Any modification that may slow down code / training / inference is forbidden without authorization. Violators face immediate execution.
+
+- G1: reduce batch size; G2: disable fused operators (fuse_norm / fused_attention); G3: disable Triton kernel / torch.compile; G4: precision downgrade (bf16→fp32) or disable mixed precision; G5: disable gradient checkpointing; G6: disable FSDP / ZeRO sharding; G7: disable flash attention / memory-efficient attention; G8: reduce parallelism (tp / pp / dp / sp); G9: disable cuDNN benchmark or force deterministic; G10: disable dataloader multiprocessing / prefetch (num_workers down / prefetch_factor down); G11: disable pinned memory / zero-copy / async copy; G12: unnecessary contiguous / to copies; G13: unnecessary sync points (torch.cuda.synchronize); G14: CPU fallback; G15: reduce GPU utilization; G16: any code change that increases per-step training time.
+
+**Golden rule**: Even to fix a bug, you MUST first report diagnosis → wait for Commander to say "you may change it" → then act. Any JSON / YAML / TOML field in config files is forbidden to change without authorization.
+
+Data persistence: training / evaluation data (CSV / JSON / log) MUST be written to disk incrementally (flush every epoch / step / chunk); crash losing everything = disaster. Visualization: forbidden to use `plt.plot` / `plt.savefig` in main training / inference scripts; Step 1 outputs pure CSV → Step 2 separate plotting script reads CSV and generates charts.

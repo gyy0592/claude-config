@@ -1,63 +1,63 @@
-<!-- 模板版本 = v1.2 (claude-config) -->
-# X号下士 CLAUDE 档案
+<!-- template version = v1.2 (claude-config) -->
+# Corporal X CLAUDE Status File
 
-<!-- 本文件由 init_corporal.sh 创建。30 秒内必须在 corporal_action.md 写第一条 [BOARD_READ]，否则失职。 -->
+<!-- This file is created by init_corporal.sh. Within 30 seconds, must write the first [BOARD_READ] entry in corporal_action.md, otherwise Dereliction of Duty. -->
 
-**军衔**：下士（Corporal）
-**编号**：X号下士
-**上级**：指挥官（Commander）
-**接任时间**：YYYY-MM-DD HH:MM UTC
+**Rank**: Corporal
+**Number**: Corporal X
+**Superior**: Commander
+**Assignment Time**: YYYY-MM-DD HH:MM UTC
 
-## 指挥官命令原文（本 session）
+## Commander's Instructions Verbatim (this session)
 
-<!-- 逐字复制，不得改写 / 摘要 -->
+<!-- Verbatim copy, no rewriting / summarizing -->
 1. ...
 2. ...
 3. ...
 
-## 状态
+## Status
 
-- 当前任务：<简述>
-- 已派列兵：<列出 number1, number2, ...>
-- 队列：<待办>
+- Current task: <brief description>
+- Dispatched Privates: <list number1, number2, ...>
+- Queue: <pending>
 
-## 观察项清单（每 section 独立填写；section 不许删；空 section 写"本任务不涉及"；每 section ≤ 3 条；6 字段 schema 缺一字段 = 该条作废）
+## Observation Checklist (fill each section independently; sections must not be deleted; empty sections write "not applicable to this task"; each section ≤ 3 items; 6-field schema — missing any field = that entry is void)
 
-### Section 1 — 任务流程观察项（必填 — 列兵交回 / 派兵进度 / 文件 Read 完成度 等）
+### Section 1 — Task Workflow Observation Items (mandatory — Private return / dispatch progress / file Read completion, etc.)
 
-| 编号 | 可判定命题 | 测量命令（非阻塞 < 1 秒）| 期望输出 | 失败信号 | 严重程度 |
-|------|---------|----------------------|--------|---------|--------|
-| 观-1 | 例：列兵 numberY 已交回完整报告 | `wc -l corporal_X/numberY/soldier_action.md` | ≥ 100 行 + [交回] 块存在 | < 100 行 / 30 秒无写 / [SILENCE_START] 超时 | 阻断级 |
+| # | Decidable Proposition | Measurement Command (non-blocking < 1s) | Expected Output | Failure Signal | Severity |
+|---|-----------------------|-----------------------------------------|-----------------|----------------|----------|
+| obs-1 | Example: Private numberY has returned full report | `wc -l corporal_X/numberY/soldier_action.md` | ≥ 100 lines + [return] block present | < 100 lines / 30s no write / [SILENCE_START] timeout | blocker |
 
-### Section 2 — 资源 / 性能监控（动手任务必填；调研 / 纯问答可写"本任务不涉及"）
+### Section 2 — Resource / Performance Monitoring (mandatory for hands-on tasks; investigation / pure Q&A may write "not applicable to this task")
 
-| 编号 | 可判定命题 | 测量命令 | 期望输出 | 失败信号 | 严重程度 |
-|------|---------|--------|--------|---------|--------|
-| 观-N | 例：GPU 内存不溢出 | `nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits` | < 总内存 × 0.95 | OOM / NaN / inf | 阻断级 |
+| # | Decidable Proposition | Measurement Command | Expected Output | Failure Signal | Severity |
+|---|-----------------------|---------------------|-----------------|----------------|----------|
+| obs-N | Example: GPU memory does not overflow | `nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits` | < total memory × 0.95 | OOM / NaN / inf | blocker |
 
-### Section 3 — 代码 / 模型稳健性（涉及代码 / 训练 / 推理 / 文档修改任务必填）
+### Section 3 — Code / Model Robustness (mandatory for tasks involving code / training / inference / documentation modification)
 
-| 编号 | 可判定命题 | 测量命令 | 期望输出 | 失败信号 | 严重程度 |
-|------|---------|--------|--------|---------|--------|
-| 观-N | 例：set_claude.sh bash 语法 OK | `bash -n set_claude.sh` | exit 0 | exit != 0 / stderr | 阻断级 |
+| # | Decidable Proposition | Measurement Command | Expected Output | Failure Signal | Severity |
+|---|-----------------------|---------------------|-----------------|----------------|----------|
+| obs-N | Example: set_claude.sh bash syntax OK | `bash -n set_claude.sh` | exit 0 | exit != 0 / stderr | blocker |
 
-### Section 4 — 推论事实穷尽自检（军令二触发；每次给 [推论] 必须加一条）
+### Section 4 — Inference Exhaustive Self-Check (triggered by Decree 2; every [INFERENCE] must add one row)
 
-| 编号 | 该 [推论] 原文（≤ 50 字）| 已读代码（文件:行号清单）| 已跑命令清单 | 已搜关键词 + 次数 | 思想实验做了吗 | 升级到 [事实] 没 |
-|------|---------------------|---------------------|------------|----------------|--------------|--------------|
-| 观-N | 例：J5 agg=57% vs base=32% 不一致是因为路径不同 | inject_dual_agg_mv.py:1-500, stage5_output/compute_fair/*.py | `diff <(grep max_new_tokens A) <(grep max_new_tokens B)` | "GSM8K agg base 单次 greedy 差异" × 50 | 否 | 否 |
+| # | [INFERENCE] original text (≤ 50 chars) | Code already read (file:line list) | Commands already run | Keywords searched + count | Thought experiment done | Upgraded to [FACT]? |
+|---|----------------------------------------|------------------------------------|----------------------|---------------------------|-------------------------|---------------------|
+| obs-N | Example: J5 agg=57% vs base=32% inconsistency is due to different paths | inject_dual_agg_mv.py:1-500, stage5_output/compute_fair/*.py | `diff <(grep max_new_tokens A) <(grep max_new_tokens B)` | "GSM8K agg base single greedy difference" × 50 | No | No |
 
-### Section 5 — 列兵进度监控（派出列兵后必填）
+### Section 5 — Private Progress Monitoring (mandatory after dispatching Privates)
 
-| 列兵编号 | 任务摘要（≤ 30 字）| 上次 Read soldier_action.md 时间 | 下次监控时间（5 分钟周期）| 状态 |
-|---------|----------------|--------------------------------|------------------------|------|
-| numberY | <摘要> | YYYY-MM-DD HH:MM UTC | 上次 + 5 min | 运行中 / COMPLETED / 待裁决 |
+| Private # | Task Summary (≤ 30 chars) | Last Read soldier_action.md Time | Next Monitor Time (5-minute cycle) | Status |
+|-----------|---------------------------|----------------------------------|------------------------------------|--------|
+| numberY | <summary> | YYYY-MM-DD HH:MM UTC | last + 5 min | running / COMPLETED / pending review |
 
-填写规则：
-- 「可判定命题」必须能给明确「通过 / 失败」答案。
-- 「测量命令」必须可复制粘贴直接运行，**非阻塞 < 1 秒返回**（禁 `tail -f` / `watch` / `while true` / 长 `sleep` — 见军令三监控铁律）。
-- 「失败信号」必须含 ≥ 1 项：`NaN` / `内存溢出` / `超时` / `性能退化` / `标准错误流异常` / `跳过的测试` / `静默退到备用方案` 等。
-- Section 4 每个 [推论] 必须独立一行；升级到 [事实] 后保留行（标"是"）作为审计。
-- 详细规则与失败 3 步闭环 → 详见 content/memory/workflows.md。
+Fill-in rules:
+- "Decidable proposition" must be answerable with a clear "pass / fail".
+- "Measurement command" must be copy-pasteable and directly runnable, **non-blocking < 1 second return** (forbidden: `tail -f` / `watch` / `while true` / long `sleep` — see Decree 3 monitor iron rules).
+- "Failure signal" must contain ≥ 1 item: `NaN` / `OOM` / `timeout` / `performance degradation` / `abnormal stderr` / `skipped tests` / `silently fell back to backup plan`, etc.
+- Section 4: each [INFERENCE] must be on its own row; after upgrading to [FACT], keep the row (mark "Yes") as audit trail.
+- Detailed rules and failure 3-step fix-loop → see content/memory/workflows.md.
 
-豁免：纯问答 / 不读不写文件可写「任务模式 = 无状态，理由：<具体说明>」跳过；标错任务模式 = 谎报军情。
+Exemption: pure Q&A / no file reading or writing may write "task mode = stateless, reason: <specific explanation>" to skip; wrong task mode = False Military Report.
