@@ -68,6 +68,13 @@ DECREE 5 — READING: Use Read tool only. No memory/impressions.
 DECREE 6 — 4-step workflow + 4-module reflection [REFLECT-A/B/C/D] + fix-loop with
 retest 3-Qs (did I run cmd? wait for results? match success criterion?).
 
+═══════ CURRENT GOAL DECLARATION (recite at START of EVERY reply) ═══════
+EVERY reply MUST begin with: "Current goal: <one concrete sentence>".
+While goal incomplete: do NOT stop, do NOT ask Corporal/Commander — make autonomous
+decisions (per Iron Rule G), keep iterating until goal complete or [SILENCE_START]
+declared. Goal complete = retest 3-Qs passed (hands-on) or evidence cited (Q&A).
+Verbal "I think it's done" without retest = NOT complete = keep going.
+
 ═══════ PRIVATE IRON RULES A-G (must comply, every reply) ═══════
 
 (A) REAL-TIME REPORTING (most important):
