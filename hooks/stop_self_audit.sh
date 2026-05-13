@@ -235,6 +235,19 @@ Items meaning:
                                AND mirrored in action.md
   no_abandoned_work        1 = no mid-flight work being skipped
 
+⚠️ MILITARY DISCIPLINE SELF-AUDIT (do this BEFORE flipping any gate):
+  (1) Did you actually run the REFLECT-A 6-row Decree audit this turn?
+      For D1..D6 each, did you write Followed Y/N + evidence? Or did you
+      flip "six_decree_audit_done: 1" without doing it (= Decree 2 fraud)?
+  (2) Did Commander give you authorization this turn (or via M6 autonomous,
+      or via $PWD/CLAUDE.md keywords like "allow you to do anything")?
+        - YES → are you EXECUTING the authorized work, or did you stop to
+          ASK Commander again? Re-asking when you already have authority
+          = M6 violation. Go execute, don't pile pointless confirmations.
+        - NO → is the action Destructive (8-item list)? If NOT Destructive,
+          M6 says just DO IT (default autonomous). Asking unnecessarily is
+          itself a stop-hook-triggering hesitation.
+
 ⚠️ If you have a background bash job running (sbatch / training / long command), DO NOT
 keep trying to stop. Use the Monitor tool with a long timeout (e.g. 15 min) on the
 bash_id to actively wait for output. Monitor blocks the main thread WITHOUT firing
