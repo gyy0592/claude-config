@@ -28,3 +28,4 @@ humanize_analysis.md
 
 # Codex/Humanize cache for ask-codex skill
 .humanize/
+.claude_status/
