@@ -74,6 +74,17 @@ def parse_ts(s):
     return None
 
 try:
+    import os
+    # For liveness probe: derive /tmp/claude-<uid>/<slug>/<sid>/tasks/<id>.output
+    tasks_dir = None
+    try:
+        slug = os.path.basename(os.path.dirname(path))
+        sid = os.path.basename(path).rsplit('.jsonl', 1)[0]
+        uid = os.geteuid()
+        tasks_dir = f"/tmp/claude-{uid}/{slug}/{sid}/tasks"
+    except Exception:
+        pass
+
     with open(path) as f:
         for line in f:
             line = line.strip()
@@ -81,7 +92,6 @@ try:
             try: obj = json.loads(line)
             except: continue
 
-            # launch detection — toolUseResult-bearing user records
             tur = obj.get('toolUseResult') if isinstance(obj.get('toolUseResult'), dict) else None
             if tur:
                 if tur.get('isAsync') is True and tur.get('agentId'):
@@ -90,12 +100,10 @@ try:
                 if bgid:
                     launched_ids.add(bgid)
 
-            # completion — system task_notification
             if obj.get('type') == 'system' and obj.get('subtype') == 'task_notification':
                 tid = obj.get('task_id')
                 if tid: completed_ids.add(tid)
 
-            # Monitor call timestamp (latest)
             t = obj.get('type', '')
             msg = obj.get('message', {})
             content = msg.get('content', []) if isinstance(msg, dict) else []
@@ -107,6 +115,28 @@ try:
                             last_monitor_ts = ts
 
     pending = launched_ids - completed_ids
+
+    # LIVENESS PROBE — humanize-style via lsof.
+    # The .output file persists after a task completes; we need a stronger
+    # check. If no process holds the output file open (lsof returns nothing),
+    # the task is dead even without explicit task_notification.
+    if pending and tasks_dir and os.path.isdir(tasks_dir):
+        import subprocess
+        alive = set()
+        for tid in pending:
+            output_file = os.path.join(tasks_dir, f"{tid}.output")
+            if not os.path.exists(output_file):
+                continue  # file gone → task dead → not pending
+            try:
+                # lsof -t prints PIDs of processes holding the file open
+                r = subprocess.run(['lsof', '-t', output_file], capture_output=True, timeout=2)
+                if r.returncode == 0 and r.stdout.strip():
+                    alive.add(tid)  # at least 1 process has it open → alive
+                # else: file exists but no process holds it → dead → drop
+            except Exception:
+                alive.add(tid)  # lsof error: fail open (treat as alive)
+        pending = alive
+
     if not pending:
         print('none')
     elif last_monitor_ts is None or last_monitor_ts < threshold:
