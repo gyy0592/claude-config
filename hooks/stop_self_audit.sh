@@ -112,15 +112,31 @@ try:
 
     pending = launched_ids - completed_ids
 
-    # Liveness prune is SKIPPED for agent tasks: Claude Code stores agent
-    # .output as a symlink to subagents/<id>.jsonl, which is opened/closed
-    # per write, so lsof reports zero holders even while the agent is alive.
-    # We rely purely on (launched - completed) sets — Claude Code's own
-    # completion result event is authoritative.
-    #
-    # For Bash backgroundTaskId tasks the underlying shell process DOES hold
-    # the output, but distinguishing agent IDs vs bash IDs in this scope is
-    # not worth the code; the completion set is sufficient for both.
+    # 15-min activity check via .output file mtime. Works uniformly for both
+    # agent (symlink→jsonl, follow-symlink mtime tracks last jsonl append)
+    # and bash bg (real file, mtime tracks last stdout write).
+    #   mtime within 15 min  → truly pending (stop short-circuit → allow stop)
+    #   mtime older 15 min   → silent / likely stuck or dead → treat as not
+    #     pending → fall through to normal STOP-GATE check
+    # This implements Commander's rule: bg-with-fresh-activity bypasses the
+    # gate; bg-silent-too-long does NOT bypass.
+    import time
+    STALE_SEC = 15 * 60
+    now = time.time()
+    if pending and tasks_dir and os.path.isdir(tasks_dir):
+        active = set()
+        for tid in pending:
+            ofile = os.path.join(tasks_dir, f"{tid}.output")
+            if not os.path.exists(ofile):
+                continue
+            try:
+                age = now - os.path.getmtime(ofile)
+            except OSError:
+                active.add(tid)  # fail open
+                continue
+            if age < STALE_SEC:
+                active.add(tid)
+        pending = active
 
     print('pending' if pending else 'none')
 except Exception:
