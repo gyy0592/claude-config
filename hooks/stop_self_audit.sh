@@ -25,7 +25,17 @@ transcript_path=$(echo "$input" | jq -r '.transcript_path // ""')
 
 MAX_BLOCKS=100
 counter_file="/tmp/stop_block_count_${session_id}"
-status_file="$cwd/.claude_status/${session_id}_status.md"
+status_dir="$cwd/.claude_status"
+status_file="$status_dir/${session_id}_status.md"
+
+# Auto-create status dir + file (same behavior as reset_session_status.sh).
+# This way Stop hook is self-sufficient and never needs to complain about
+# missing file — it just creates one with defaults and proceeds with checks.
+mkdir -p "$status_dir" 2>/dev/null
+if [ ! -f "$status_file" ]; then
+    TEMPLATE="__CLAUDE_CONFIG_DIR__/content/templates/status.md"
+    [ -f "$TEMPLATE" ] && cp "$TEMPLATE" "$status_file"
+fi
 
 # Fresh turn — reset counter
 if [ "$stop_hook_active" = "false" ]; then
@@ -76,12 +86,9 @@ if [ "$agent_pending" = "1" ]; then
     exit 0
 fi
 
-# Parse [STOP-GATE] zero items
+# Parse [STOP-GATE] zero items (file was auto-created above if missing)
 zero_items=""
-status_missing=0
-if [ ! -f "$status_file" ]; then
-    status_missing=1
-else
+if [ -f "$status_file" ]; then
     zero_items=$(awk '
         /^\[STOP-GATE\]/ { in_gate=1; next }
         /^\[/ && !/^\[STOP-GATE\]/ { in_gate=0; next }
@@ -98,7 +105,7 @@ else
 fi
 
 # All pass — allow stop
-if [ "$status_missing" = "0" ] && [ -z "$zero_items" ]; then
+if [ -z "$zero_items" ]; then
     rm -f "$counter_file"
     exit 0
 fi
@@ -115,15 +122,11 @@ if [ "$count" -ge "$MAX_BLOCKS" ]; then
 fi
 
 # Build failure description
-if [ "$status_missing" = "1" ]; then
-    failed_section="Status file $status_file does NOT exist. The UserPromptSubmit hook should have created it; if it didn't, run init_corporal.sh in $cwd (creates .claude_status/) and re-send a message."
-else
-    failed_section="STOP-GATE items NOT YET satisfied (each must = 1):
+failed_section="STOP-GATE items NOT YET satisfied (each must = 1):
 ${zero_items}
 
 Update $status_file: set each failing item to 1 ONLY when truly done.
 Flipping without doing the work = Decree 2 fraud."
-fi
 
 python3 - "$count" "$MAX_BLOCKS" "$failed_section" "$status_file" << 'PYEOF'
 import json, sys
