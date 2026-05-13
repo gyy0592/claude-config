@@ -6,10 +6,11 @@
 #
 # Behavior:
 #   - If file does NOT exist: copy template (first turn of session)
-#   - If file EXISTS: reset all [STOP-GATE] items to their defaults
-#     (current_goal_complete=0, action_log_written=0, six_decree_audit_done=0,
-#      violations_all_recorded=1, no_abandoned_work=0)
-#   - Other sections (NOTES, LONG_RUNNING_JOBS) are preserved unchanged.
+#   - If file EXISTS: reset every [STOP-GATE] item to 0 (generic regex match —
+#     no hardcoded key list; template schema can evolve freely).
+#   - [LONG_RUNNING_JOBS] is auto-rebuilt from filesystem (lsof on alive .output
+#     files in /tmp/claude-<uid>/<slug>/*/tasks/).
+#   - Other sections (NOTES, etc.) are preserved unchanged.
 #
 # Stdout is empty (no injection). All work is filesystem-side.
 

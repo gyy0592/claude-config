@@ -82,9 +82,15 @@ echo "        $CORPORAL_DIR/corporal_situation.md"
 # Status file is per-session ({session_id}_status.md), created/reset by
 # UserPromptSubmit hook (reset_session_status.sh), not by init.
 STATUS_DIR="$WORK_DIR/.claude_status"
+# v2-hook: deploy goal.md once (Commander-controlled; AI reads only)
+GOAL_FILE="$STATUS_DIR/goal.md"
+if [ -d "$STATUS_DIR" ] && [ ! -f "$GOAL_FILE" ]; then
+    cp "$TEMPLATE_DIR/goal.md" "$GOAL_FILE" 2>/dev/null && echo "[INIT] ✅ Created .claude_status/goal.md (Commander edits; AI reads only)" || true
+fi
 if [ ! -d "$STATUS_DIR" ]; then
     mkdir -p "$STATUS_DIR"
     echo "[INIT] ✅ Created .claude_status/ (per-session status files written by hook)"
+    cp "$TEMPLATE_DIR/goal.md" "$GOAL_FILE" 2>/dev/null && echo "[INIT] ✅ Created .claude_status/goal.md" || true
 else
     echo "[INIT] .claude_status/ already exists, preserved"
 fi

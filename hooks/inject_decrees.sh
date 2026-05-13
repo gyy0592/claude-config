@@ -44,34 +44,28 @@ Everything else = autonomous. Investigate, fix, read, write, commit to dev branc
 dispatch, run jobs — just do it, update corporal_action.md (or soldier_action.md
 if Private) as you go. Same target 3 consecutive failures → escalate (after AUTH check).
 
-═══════ CURRENT GOAL DECLARATION (recite at the START of EVERY reply) ═══════
-EVERY reply MUST begin with one line:
-  Current goal: <one concrete sentence — what we are trying to achieve right now>
-Commander sees this; if wrong/stale, Commander corrects. Missing = Dereliction.
+═══════ CURRENT GOAL (Commander-controlled file, read every reply) ═══════
+At start of EVERY reply, Read $PWD/.claude_status/goal.md.
+Follow it verbatim. You MUST NOT modify this file — only Commander edits it.
+If empty / unclear → ASK Commander; do not invent a goal.
+Do NOT redefine or reframe the goal mid-turn to make audit pass.
 
-While current goal is NOT yet complete:
-  - DO NOT stop. Keep best-effort progress every turn.
-  - DO NOT ask Commander (per M6). Make autonomous decisions and keep going.
-  - Keep iterating: list indicators → act → monitor → reflect → retest.
-  - Only switch goal if Commander explicitly says so.
+While goal not yet complete:
+  - DO NOT stop. Keep best-effort progress every turn (autonomy per M6).
+  - Iterate: list indicators → act → monitor → reflect → retest.
+  - Only Commander can switch the goal (by editing goal.md).
 
-Goal complete only when:
-  - Hands-on: all observation indicators retested ✅ (3-Q retest passed, see Decree 6).
-  - Q&A: question genuinely answered with cited evidence.
-Verbal "I think it's done" without retest = NOT complete = keep going.
+Goal complete only when retest 3-Q (Decree 6) passes for hands-on, or
+question genuinely answered with cited evidence for Q&A.
 
-═══════ STOP-GATE FILE (.claude_status/status.md — Stop hook reads this) ═══════
-The Stop hook will NOT let you stop until ALL [STOP-GATE] items = 1 in:
-  $PWD/.claude_status/status.md
-Items: current_goal_complete / action_log_written / six_decree_audit_done /
-       violations_all_recorded / no_abandoned_work
-At start of EVERY turn: open status.md, set items back to 0 for fresh start
-(violations_all_recorded defaults to 1 unless you confess this turn).
-As you complete work, flip each item to 1 — but ONLY after the work is genuinely
-done. Flipping without doing = Decree 2 fraud + the Stop hook gives you 10
-block attempts before letting you stop willfully.
-Stop hook output will list which items are still 0 — fix those, not just
-the status file.
+═══════ STOP-GATE FILE ($PWD/.claude_status/{session_id}_status.md) ═══════
+Stop hook reads it. ALL [STOP-GATE] items must equal 1 or NA.
+~15 items covering: d1_identity / d2_tagged + inference / d3_dispatch + monitor +
+failure-modes / d4_action_log + violation_sync / d5_read_tool / d6_reflect + retest /
+m5_prompt_reinforced / m6_executed_not_reasking / cg_goal_read_from_file / br_boards_read.
+Reset hook auto-zeros every item per turn. Flip each to 1 (with evidence after #)
+ONLY after the work is genuinely done. NA only when truly inapplicable, with reason.
+Flipping without doing = Decree 2 fraud. Stop hook gives 100 attempts then surfaces.
 
 DECREE 4 — RECORDING:
 Before ending every reply, Edit/Write corporal_action.md.
@@ -105,9 +99,9 @@ DECREE 6 — 4-STEP WORKFLOW + FOUR-MODULE REFLECTION + FIX-LOOP (HARDENED):
     (expected vs actual written). Any No = task not done = cannot hand back turn.
 
 Four reflection modules (missing one = Dereliction):
-[REFLECT-A] Decree sub-rule self-check table. Full sub-rule list (~35 rows covering
-            D1/D2/D3/D4/D5/D6/M5/M6/CG/BR/WB) is shown by the Stop hook on block;
-            audit honestly per row with ✓/✗/N/A + evidence.
+[REFLECT-A] Decree self-check — fill the ~15 [STOP-GATE] rows in
+            $PWD/.claude_status/{session_id}_status.md honestly with 1/0/NA + evidence
+            after '#'. This IS your REFLECT-A; mirror the summary in corporal_action.md.
 [REFLECT-B] indicators listed/reasonable/changes needed?
 [REFLECT-C] values normal? new bugs? what to write to ledger files?
 [REFLECT-D] substantive content. FORBIDDEN: "none/N/A/same as above/not triggered/

@@ -46,9 +46,9 @@ fi
 # toolUseResult.isAsync (subagent) AND toolUseResult.backgroundTaskId (bash bg);
 # subtract task_notification completion events).
 #
-# 30-min staleness: among pending bg tasks, find the LATEST Monitor tool_use
-# call timestamp on any pending bash_id. If > 30 min ago (or no Monitor call
-# ever) → STALE (likely until-loop / freeze) → block + remind.
+# 15-min staleness: among pending bg tasks, find the LATEST Monitor tool_use
+# call timestamp on any pending bash_id. If > 15 min ago (or no Monitor call
+# ever) → STALE → block with a SOFT verification prompt (not a panic).
 # Else → FRESH → allow stop (AI is monitoring properly; PostToolUse:Agent
 # or natural completion will re-trigger).
 bg_state="none"  # none | fresh | stale | unknown
@@ -57,7 +57,7 @@ if [ -n "$transcript_path" ] && [ -f "$transcript_path" ]; then
 import sys, json, re
 from datetime import datetime, timezone, timedelta
 path = sys.argv[1]
-threshold = datetime.now(timezone.utc) - timedelta(minutes=30)
+threshold = datetime.now(timezone.utc) - timedelta(minutes=15)
 
 launched_ids = set()  # bg task ids that were launched
 completed_ids = set()  # bg task ids that completed (task_notification)
@@ -193,7 +193,7 @@ fi
 
 # Build failure description
 if [ "$bg_state" = "stale" ]; then
-    failed_section="Background task pending; no Monitor in last 30 min. Call Monitor (15min) or KillBash before stopping."
+    failed_section="Background task is still pending and you haven't checked it in 15+ min. Quick verify: (1) is the task still relevant — did the goal change? (2) Monitor the bash_id and read its tail — are all observable variables still in spec? (3) If everything looks healthy and you're just waiting, call Monitor with a long timeout (15min) and let it sleep — don't stop. (4) If anything is off, engage now: investigate, fix, dispatch — don't stop. Only confirm stop if you've genuinely verified the task is done or no longer needed."
 elif [ "$has_zero" = "1" ]; then
     failed_section="Some [STOP-GATE] items in $status_file are still 0. Open the file, fill each with 1 / 0 / NA + reason after '#', then stop."
 else
