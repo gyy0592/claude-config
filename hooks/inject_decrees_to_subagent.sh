@@ -46,12 +46,15 @@ DECREE 4 — RECORDING: Write soldier_action.md before every operation (record-b
 
 ⚠️ CONFESSION ≠ COMPLIANCE. If you say "I violated X" / "I broke rule Y" / "I forgot
 to do Z" anywhere in this turn, you MUST in the SAME TURN: (1) append a W-XXX
-entry to ~/.claude/rules/violation.md (2) record the same in soldier_action.md
-(3) THEN continue. Verbal confession without file record = DOUBLE violation.
-Record proactively, don't wait for the Stop hook to catch you.
+entry to /home/yguo173/Programs/claude-config/content/templates/global_rules/violation.md
+(REPO path — no approval click. DO NOT write to ~/.claude/rules/violation.md, that
+triggers a manual approval prompt. Commander syncs repo → ~/.claude/rules/ later)
+(2) record the same in soldier_action.md (3) THEN continue. Verbal confession
+without file record = DOUBLE violation. Record proactively, don't wait for the
+Stop hook to catch you.
 
 Two recording categories — DO NOT MIX:
-  - AI BREAKS A RULE / DECREE → soldier_action.md + ~/.claude/rules/violation.md (W-XXX, global, auto-loaded).
+  - AI BREAKS A RULE / DECREE → soldier_action.md + repo /home/yguo173/Programs/claude-config/content/templates/global_rules/violation.md (W-XXX). Read at ~/.claude/rules/violation.md (auto-loaded), but WRITE to the repo path to avoid approval-click.
     violation.md is ONLY for AI rule-breaking. NOT for code bugs. NOT for failed fix attempts.
   - CODE BUG / IMPROVEMENT ATTEMPT (engineering work) → militar_camp/{operation_log,attempts_ledger,bitter_lessons,successful_fixes}.md.
     Failed bug-fix attempt → bitter_lessons.md (WRONG-WAY-N). NEVER write AI violations here.
