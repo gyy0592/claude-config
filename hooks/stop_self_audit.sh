@@ -42,40 +42,26 @@ if [ "$stop_hook_active" = "false" ]; then
     rm -f "$counter_file"
 fi
 
-# Background-task detection (humanize-style — parse transcript for
+# Background-task detection (humanize-pure — parse transcript for
 # toolUseResult.isAsync (subagent) AND toolUseResult.backgroundTaskId (bash bg);
-# subtract task_notification completion events).
+# subtract task_notification completion events; lsof liveness prune).
 #
-# 15-min staleness: among pending bg tasks, find the LATEST Monitor tool_use
-# call timestamp on any pending bash_id. If > 15 min ago (or no Monitor call
-# ever) → STALE → block with a SOFT verification prompt (not a panic).
-# Else → FRESH → allow stop (AI is monitoring properly; PostToolUse:Agent
-# or natural completion will re-trigger).
-bg_state="none"  # none | fresh | stale | unknown
+# Rule (matches humanize loop-bg-tasks.sh:392-405): if ANY bg task is pending,
+# ALLOW stop (exit 0). Stop in Claude Code semantics means "main thread sleeps
+# until task_notification wakes it" — that IS the right action when bg work
+# is in flight. No Monitor-recency check, no staleness threshold. Both kill
+# false positives where freshly-dispatched tasks (Monitor not yet called) get
+# falsely flagged as stale and blocked.
+bg_state="none"  # none | pending | unknown
 if [ -n "$transcript_path" ] && [ -f "$transcript_path" ]; then
     bg_state=$(python3 - "$transcript_path" 2>/dev/null << 'PY'
-import sys, json, re
-from datetime import datetime, timezone, timedelta
+import sys, json, os
 path = sys.argv[1]
-threshold = datetime.now(timezone.utc) - timedelta(minutes=15)
 
-launched_ids = set()  # bg task ids that were launched
-completed_ids = set()  # bg task ids that completed (task_notification)
-last_monitor_ts = None  # latest Monitor tool_use timestamp
-
-def parse_ts(s):
-    if not s: return None
-    s = s.rstrip('Z')
-    for fmt in ('%Y-%m-%dT%H:%M:%S.%f','%Y-%m-%dT%H:%M:%S','%Y-%m-%dT%H:%M'):
-        try:
-            return datetime.strptime(s, fmt).replace(tzinfo=timezone.utc)
-        except ValueError:
-            continue
-    return None
+launched_ids = set()
+completed_ids = set()
 
 try:
-    import os
-    # For liveness probe: derive /tmp/claude-<uid>/<slug>/<sid>/tasks/<id>.output
     tasks_dir = None
     try:
         slug = os.path.basename(os.path.dirname(path))
@@ -100,62 +86,55 @@ try:
                 if bgid:
                     launched_ids.add(bgid)
 
+            # Completion format 1: SDK structured task_notification
             if obj.get('type') == 'system' and obj.get('subtype') == 'task_notification':
                 tid = obj.get('task_id')
                 if tid: completed_ids.add(tid)
 
-            t = obj.get('type', '')
-            msg = obj.get('message', {})
-            content = msg.get('content', []) if isinstance(msg, dict) else []
-            if t == 'assistant' and isinstance(content, list):
-                for c in content:
-                    if isinstance(c, dict) and c.get('type') == 'tool_use' and c.get('name') == 'Monitor':
-                        ts = parse_ts(obj.get('timestamp', ''))
-                        if ts and (last_monitor_ts is None or ts > last_monitor_ts):
-                            last_monitor_ts = ts
+            # Completion format 2: legacy queue-operation enqueue with
+            # <task-notification><task-id>...</task-id> embedded in content.
+            # humanize loop-bg-tasks.sh:238-244 handles this; we missed it.
+            if obj.get('type') == 'queue-operation' and obj.get('operation') == 'enqueue':
+                content = obj.get('content', '')
+                if isinstance(content, str) and '<task-notification>' in content:
+                    import re
+                    for m in re.findall(r'<task-id>([^<]+)</task-id>', content):
+                        completed_ids.add(m)
 
     pending = launched_ids - completed_ids
 
-    # LIVENESS PROBE — humanize-style via lsof.
-    # The .output file persists after a task completes; we need a stronger
-    # check. If no process holds the output file open (lsof returns nothing),
-    # the task is dead even without explicit task_notification.
+    # Liveness prune: output file gone OR no process holds it → task dead.
     if pending and tasks_dir and os.path.isdir(tasks_dir):
         import subprocess
         alive = set()
         for tid in pending:
             output_file = os.path.join(tasks_dir, f"{tid}.output")
             if not os.path.exists(output_file):
-                continue  # file gone → task dead → not pending
+                continue
             try:
-                # lsof -t prints PIDs of processes holding the file open
                 r = subprocess.run(['lsof', '-t', output_file], capture_output=True, timeout=2)
                 if r.returncode == 0 and r.stdout.strip():
-                    alive.add(tid)  # at least 1 process has it open → alive
-                # else: file exists but no process holds it → dead → drop
+                    alive.add(tid)
             except Exception:
-                alive.add(tid)  # lsof error: fail open (treat as alive)
+                alive.add(tid)  # fail open
         pending = alive
 
-    if not pending:
-        print('none')
-    elif last_monitor_ts is None or last_monitor_ts < threshold:
-        print('stale')
-    else:
-        print('fresh')
+    print('pending' if pending else 'none')
 except Exception:
     print('unknown')
 PY
 )
 fi
 
-if [ "$bg_state" = "fresh" ]; then
+# Humanize-pure: bg pending → unconditional allow stop. The natural pause is
+# "main thread sleeps until task_notification wakes it". Skipping the gate
+# here is intentional — gate audit will fire again on the next wake-up.
+if [ "$bg_state" = "pending" ]; then
     rm -f "$counter_file"
     exit 0
 fi
-# bg_state == "stale" → block with stale-specific reminder (fall through)
 # bg_state == "none" → fall through to normal [STOP-GATE] check
-# bg_state == "unknown" → fall through (don't trust; do normal gate)
+# bg_state == "unknown" → fall through (don't trust transcript; do gate)
 
 # Check if any [STOP-GATE] row is still 0. Accepts 1 (followed) and NA.
 has_zero=0
@@ -175,7 +154,7 @@ if [ -f "$status_file" ]; then
 fi
 
 # All pass — allow stop
-if [ "$has_zero" = "0" ] && [ "$bg_state" != "stale" ]; then
+if [ "$has_zero" = "0" ]; then
     rm -f "$counter_file"
     exit 0
 fi
@@ -191,10 +170,9 @@ if [ "$count" -ge "$MAX_BLOCKS" ]; then
     exit 0
 fi
 
-# Build failure description
-if [ "$bg_state" = "stale" ]; then
-    failed_section="Background task is still pending and you haven't checked it in 15+ min. Quick verify: (1) is the task still relevant — did the goal change? (2) Monitor the bash_id and read its tail — are all observable variables still in spec? (3) If everything looks healthy and you're just waiting, call Monitor with a long timeout (15min) and let it sleep — don't stop. (4) If anything is off, engage now: investigate, fix, dispatch — don't stop. Only confirm stop if you've genuinely verified the task is done or no longer needed."
-elif [ "$has_zero" = "1" ]; then
+# Build failure description (only [STOP-GATE]-zero path reaches here; bg-pending
+# already exited above with stop allowed)
+if [ "$has_zero" = "1" ]; then
     failed_section="Some [STOP-GATE] items in $status_file are still 0. Open the file, fill each with 1 / 0 / NA + reason after '#', then stop."
 else
     failed_section="State bug. Check $status_file."
