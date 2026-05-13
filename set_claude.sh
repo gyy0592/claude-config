@@ -186,7 +186,7 @@ fi
 
 mkdir -p "$HOOKS_DST"
 
-for f in inject_decrees.sh inject_decrees_to_subagent.sh stop_self_audit.sh; do
+for f in inject_decrees.sh inject_decrees_to_subagent.sh stop_self_audit.sh reset_session_status.sh; do
     src="${HOOKS_SRC}/${f}"
     dst="${HOOKS_DST}/${f}"
     if [ ! -f "$src" ]; then
@@ -321,6 +321,10 @@ def ensure_hook(event, matcher, command):
         entry["matcher"] = matcher
     bucket.append(entry)
     changed = True
+
+# UserPromptSubmit: reset_session_status.sh (per-session status.md reset)
+RESET_SCRIPT = os.path.expanduser("~/.claude/hooks/reset_session_status.sh")
+ensure_hook("UserPromptSubmit", None, f"bash {RESET_SCRIPT}")
 
 # UserPromptSubmit: inject_decrees.sh (fires on user msg + cron tick)
 ensure_hook("UserPromptSubmit", None, f"bash {INJECT_SCRIPT}")

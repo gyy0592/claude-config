@@ -78,17 +78,15 @@ echo "        $CORPORAL_DIR/corporal_status.md"
 echo "        $CORPORAL_DIR/corporal_action.md"
 echo "        $CORPORAL_DIR/corporal_situation.md"
 
-# Step 4: Initialize .claude_status/ for Stop-hook gate (v2 NEW)
+# Step 4: Create .claude_status/ for Stop-hook gate (v2 NEW)
+# Status file is per-session ({session_id}_status.md), created/reset by
+# UserPromptSubmit hook (reset_session_status.sh), not by init.
 STATUS_DIR="$WORK_DIR/.claude_status"
-STATUS_FILE="$STATUS_DIR/status.md"
 if [ ! -d "$STATUS_DIR" ]; then
     mkdir -p "$STATUS_DIR"
-fi
-if [ ! -f "$STATUS_FILE" ]; then
-    cp "$TEMPLATE_DIR/status.md" "$STATUS_FILE"
-    echo "[INIT] ✅ Created .claude_status/status.md (Stop-hook gate; AI maintains)"
+    echo "[INIT] ✅ Created .claude_status/ (per-session status files written by hook)"
 else
-    echo "[INIT] .claude_status/status.md already exists, preserved"
+    echo "[INIT] .claude_status/ already exists, preserved"
 fi
 
 echo ""

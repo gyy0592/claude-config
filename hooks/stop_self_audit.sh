@@ -1,89 +1,134 @@
 #!/bin/bash
-# stop_self_audit.sh — Stop hook (v2 status.md-based gate)
+# stop_self_audit.sh — Stop hook (v2.2)
 #
-# Strategy:
-#   1. Find $PWD/.claude_status/status.md (cwd comes from stdin JSON).
-#   2. Parse [STOP-GATE] section: every "key: value" line must have value=1.
-#   3. Any value=0 → block + list what's wrong.
-#   4. Per-session counter in /tmp limits to 10 blocks per turn; after that exit 0.
-#   5. If status.md missing → block + tell AI to run init_corporal.sh.
+# Reads $cwd/.claude_status/{session_id}_status.md [STOP-GATE].
+# Allows stop ONLY when all items = 1. Blocks otherwise.
+#
+# Exceptions (allow stop without all-1 check):
+#   - Subagent (Agent tool) dispatched and not yet returned → allow stop
+#     (PostToolUse:Agent will re-trigger main thread when subagent finishes).
+#
+# Block limit: 100 attempts per turn (was 10). Counter resets each fresh turn
+# (stop_hook_active=false) and on successful stop.
+#
+# Block message reminds: if a background bash job is running, the AI should
+# use the Monitor tool with a long timeout (e.g. 15 min) to actively wait,
+# instead of trying to stop. Monitor blocks the main thread without firing
+# Stop hook, allowing the AI to wait without consuming a stop attempt.
 
 input=$(cat)
 stop_hook_active=$(echo "$input" | jq -r '.stop_hook_active // false')
 session_id=$(echo "$input" | jq -r '.session_id // "default"')
 cwd=$(echo "$input" | jq -r '.cwd // ""')
+transcript_path=$(echo "$input" | jq -r '.transcript_path // ""')
+[ -z "$cwd" ] && cwd="$PWD"
 
-if [ -z "$cwd" ]; then
-    cwd="$PWD"
-fi
-
-MAX_BLOCKS=10
+MAX_BLOCKS=100
 counter_file="/tmp/stop_block_count_${session_id}"
-status_file="$cwd/.claude_status/status.md"
+status_file="$cwd/.claude_status/${session_id}_status.md"
 
-# Fresh turn (1st stop attempt) — reset counter
+# Fresh turn — reset counter
 if [ "$stop_hook_active" = "false" ]; then
     rm -f "$counter_file"
 fi
 
-# Helper: extract zero-valued items from [STOP-GATE] section
+# Exception: if a subagent (Agent tool) is dispatched and pending return,
+# allow stop (no block) so main thread can idle and be re-triggered.
+agent_pending=0
+if [ -n "$transcript_path" ] && [ -f "$transcript_path" ]; then
+    agent_pending=$(python3 - "$transcript_path" 2>/dev/null << 'PY'
+import sys, json
+path = sys.argv[1]
+uses, results = set(), set()
+try:
+    with open(path) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+            except Exception:
+                continue
+            t = obj.get('type', '')
+            msg = obj.get('message', {})
+            content = msg.get('content', []) if isinstance(msg, dict) else []
+            if not isinstance(content, list):
+                continue
+            if t == 'assistant':
+                for c in content:
+                    if isinstance(c, dict) and c.get('type') == 'tool_use' and c.get('name') == 'Agent':
+                        uses.add(c.get('id'))
+            elif t == 'user':
+                for c in content:
+                    if isinstance(c, dict) and c.get('type') == 'tool_result':
+                        results.add(c.get('tool_use_id'))
+    pending = uses - results
+    print(1 if pending else 0)
+except Exception:
+    print(0)
+PY
+)
+fi
+
+if [ "$agent_pending" = "1" ]; then
+    rm -f "$counter_file"
+    exit 0
+fi
+
+# Parse [STOP-GATE] zero items
 zero_items=""
 status_missing=0
-
 if [ ! -f "$status_file" ]; then
     status_missing=1
 else
-    # Awk extracts lines between [STOP-GATE] and the next [SECTION] header
-    # Then matches "key: value" where value (first word after :) is "0"
     zero_items=$(awk '
         /^\[STOP-GATE\]/ { in_gate=1; next }
         /^\[/ && !/^\[STOP-GATE\]/ { in_gate=0; next }
         in_gate && /^[a-z_]+:/ {
-            # Strip inline comment
             sub(/#.*/, "")
-            # Trim
             gsub(/[ \t]+$/, "")
-            # Get key and value
-            colon_idx = index($0, ":")
-            key = substr($0, 1, colon_idx - 1)
-            val = substr($0, colon_idx + 1)
+            ci = index($0, ":")
+            key = substr($0, 1, ci - 1)
+            val = substr($0, ci + 1)
             gsub(/[ \t]+/, "", val)
-            if (val == "0") {
-                print "  - " key " = 0"
-            }
+            if (val == "0") print "  - " key " = 0"
         }
     ' "$status_file")
 fi
 
-# All items pass? Allow stop.
+# All pass — allow stop
 if [ "$status_missing" = "0" ] && [ -z "$zero_items" ]; then
     rm -f "$counter_file"
     exit 0
 fi
 
-# Increment block counter
+# Increment counter
 count=$(cat "$counter_file" 2>/dev/null || echo 0)
 count=$((count + 1))
 echo "$count" > "$counter_file"
 
-# Hit limit → give up (AI willfully bypassed; next turn's REFLECT-A will catch it)
+# Hit MAX_BLOCKS — give up to prevent infinite loop
 if [ "$count" -ge "$MAX_BLOCKS" ]; then
     rm -f "$counter_file"
     exit 0
 fi
 
-# Build reason text
+# Build failure description
 if [ "$status_missing" = "1" ]; then
-    failed_section="Status file $status_file does NOT exist. Run init_corporal.sh first, OR create .claude_status/status.md manually with the template at content/templates/status.md."
+    failed_section="Status file $status_file does NOT exist. The UserPromptSubmit hook should have created it; if it didn't, run init_corporal.sh in $cwd (creates .claude_status/) and re-send a message."
 else
-    failed_section="Status gate items NOT YET satisfied (each must = 1):\n${zero_items}\n\nUpdate $status_file: set each failing item to 1 ONLY when truly done. Do NOT just flip the value — actually do the work first."
+    failed_section="STOP-GATE items NOT YET satisfied (each must = 1):
+${zero_items}
+
+Update $status_file: set each failing item to 1 ONLY when truly done.
+Flipping without doing the work = Decree 2 fraud."
 fi
 
-# Emit JSON block reason
-python3 - "$count" "$MAX_BLOCKS" "$failed_section" << 'PYEOF'
+python3 - "$count" "$MAX_BLOCKS" "$failed_section" "$status_file" << 'PYEOF'
 import json, sys
-count, max_b, failed = sys.argv[1], sys.argv[2], sys.argv[3]
-reason = f"""Stop BLOCKED (attempt {count}/{max_b}). Your .claude_status/status.md [STOP-GATE] is not all 1s yet.
+count, max_b, failed, sfile = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+reason = f"""Stop BLOCKED (attempt {count}/{max_b}).
 
 {failed}
 
@@ -92,18 +137,23 @@ Items meaning:
                                (retest 3-Qs passed for hands-on; cited evidence for Q&A)
   action_log_written       1 = corporal_action.md (or soldier_action.md if Private) has
                                an entry written this turn
-  six_decree_audit_done    1 = REFLECT-A 6-row table written this turn (D1..D6 each with
-                               Followed Y/N + evidence)
-  violations_all_recorded  1 = no "I broke X" confessions left unrecorded; if you confessed,
-                               you wrote W-XXX to /home/yguo173/Programs/claude-config/content/templates/global_rules/violation.md
+  six_decree_audit_done    1 = REFLECT-A 6-row table written this turn
+  violations_all_recorded  1 = no unrecorded confessions; if you said "I broke X", you
+                               wrote W-XXX to /home/yguo173/Programs/claude-config/content/templates/global_rules/violation.md
                                AND mirrored in action.md
-  no_abandoned_work        1 = no mid-flight work being skipped; either complete or
-                               explicitly handed back to Commander
+  no_abandoned_work        1 = no mid-flight work being skipped
+
+⚠️ If you have a background bash job running (sbatch / training / long command), DO NOT
+keep trying to stop. Use the Monitor tool with a long timeout (e.g. 15 min) on the
+bash_id to actively wait for output. Monitor blocks the main thread WITHOUT firing
+this Stop hook, lets you wait cheaply (token-light), and naturally resumes when the
+job emits output or finishes. Record each Monitor check in {sfile}'s [LONG_RUNNING_JOBS] section.
+
+⚠️ If you dispatched a subagent (Agent tool), the Stop hook will AUTOMATICALLY allow
+your stop so the subagent can run; PostToolUse:Agent re-triggers your main thread when
+the subagent returns. You don't need to do anything special.
 
 After {max_b} blocks the hook gives up and lets you stop, but the next turn's
-REFLECT-A D6 row will record this willful bypass.
-
-Fix the failing items honestly. Do NOT flip values without doing the work — that
-is Decree 2 fraud."""
+REFLECT-A D6 row will record this willful bypass."""
 print(json.dumps({"decision": "block", "reason": reason}))
 PYEOF

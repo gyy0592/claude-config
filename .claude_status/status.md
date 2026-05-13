@@ -1,11 +1,8 @@
-# Claude Stop-Gate Status (per-session)
+# Claude Stop-Gate Status
 
-<!-- File location: .claude_status/{session_id}_status.md -->
 <!-- Stop hook reads this file. ALL items in [STOP-GATE] must equal 1 for AI to stop. -->
-<!-- UserPromptSubmit hook AUTO-RESETS items at the start of every turn (no AI action needed). -->
-<!-- AI flips each item to 1 as work genuinely completes during the turn. -->
-<!-- Stop hook MAX 100 block attempts per turn; after 100 it gives up. -->
-<!-- Exception: if a subagent (Agent tool) is dispatched and pending return, Stop hook allows stop. -->
+<!-- AI updates these values as work progresses. At start of each new turn, AI resets relevant items to 0. -->
+<!-- File is initialized by init_corporal.sh; AI maintains it from there. -->
 
 [STOP-GATE]
 current_goal_complete: 0     # 1 = goal complete with retest ✅ (hands-on) or cited evidence (Q&A)
