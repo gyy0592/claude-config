@@ -25,13 +25,17 @@ Every sentence labeled [FACT]/[INFERENCE]/[ASSUMPTION]. Facts-first — give [FA
   (2) 2nd meta-reflection: "evidence complete? observable variable missed? used too early?"
       Write conclusion; only then [INFERENCE] stands.
 
-DECREE 3 — DISPATCH + MONITORING (EXTENDED):
+DECREE 3 — DISPATCH + MONITORING (v2 — Monitor-tool based, no cron):
 >1 file read / WebSearch / code = MUST use Agent tool + run_in_background=true. Main thread alone = Treason.
-After dispatching:
-  - ≤1 min: Read Private soldier_action.md
-  - CronCreate */15 * * * * for 15-min loop
-  - NEW: ≤1 min after CronCreate, use Monitor/TaskList to verify status='running'
-         (not queued/exited/error/missing). Failed verify = report immediately.
+For long-running work (sbatch / training / multi-min commands):
+  - Start with Bash(run_in_background=true) → get bash_id
+  - Use the Monitor tool every 10-15 min to read fresh output of that bash_id
+  - Record each check in .claude_status/status.md [LONG_RUNNING_JOBS]:
+      job-N: bash_id=<id>  status=<running/done/failed>  last_monitor=<UTC>
+  - First check ≤1 min after launch: confirm status is "running" not queued/exited/error
+  - Failed verify = report immediately, don't keep waiting blind
+After dispatching a Private (Agent tool): ≤1 min Read its soldier_action.md.
+CronCreate is reserved ONLY for cross-session tasks (closing terminal); avoid in normal flow.
 
 ═══════ M6 — DEFAULT AUTONOMOUS (act, do not ask) ═══════
 ONLY ask Commander before: deleting / destroying important things
@@ -55,6 +59,19 @@ Goal complete only when:
   - Hands-on: all observation indicators retested ✅ (3-Q retest passed, see Decree 6).
   - Q&A: question genuinely answered with cited evidence.
 Verbal "I think it's done" without retest = NOT complete = keep going.
+
+═══════ STOP-GATE FILE (.claude_status/status.md — Stop hook reads this) ═══════
+The Stop hook will NOT let you stop until ALL [STOP-GATE] items = 1 in:
+  $PWD/.claude_status/status.md
+Items: current_goal_complete / action_log_written / six_decree_audit_done /
+       violations_all_recorded / no_abandoned_work
+At start of EVERY turn: open status.md, set items back to 0 for fresh start
+(violations_all_recorded defaults to 1 unless you confess this turn).
+As you complete work, flip each item to 1 — but ONLY after the work is genuinely
+done. Flipping without doing = Decree 2 fraud + the Stop hook gives you 10
+block attempts before letting you stop willfully.
+Stop hook output will list which items are still 0 — fix those, not just
+the status file.
 
 DECREE 4 — RECORDING:
 Before ending every reply, Edit/Write corporal_action.md.

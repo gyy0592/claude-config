@@ -48,8 +48,8 @@ REFLECT-A is now a **6-row table** — one row per Decree (D1-D6), each: `Follow
 |--------|------------------|---------------|
 | D1 | Identity + Duty (Corporal CLAUDE) | `hooks/inject_decrees.sh` |
 | D2 | Truthfulness + Facts-First. `[INFERENCE]` requires effort-log + 2nd reflection | same |
-| D3 | Dispatch (>1 file/WebSearch/code = Agent) + Monitor (CronCreate */15 + Monitor-tool verify-running) | same |
-| D4 | Recording (action.md before reply ends; AI rule violation → write to REPO `content/templates/global_rules/violation.md` not `~/.claude/rules/` to avoid approval-click; engineering failures → `bitter_lessons.md`). Confession without file record = DOUBLE violation. | same |
+| D3 | Dispatch (>1 file/WebSearch/code = Agent) + Monitor-tool every 10-15 min for long jobs (Bash run_in_background → Monitor bash_id). CronCreate only for cross-session tasks. | same |
+| D4 | Recording (action.md before reply ends; AI rule violation → write to REPO `content/templates/global_rules/violation.md` not `~/.claude/rules/` to avoid approval-click; engineering failures → `bitter_lessons.md`). Confession without file record = DOUBLE violation. Also maintain `$PWD/.claude_status/status.md` [STOP-GATE] (Stop hook blocks if any item = 0). | same |
 | D5 | Use Read tool only — no memory/impressions | same |
 | D6 | 4-step workflow + 4-module reflection + fix-loop with retest 3-Q (ran cmd? waited for results? matched success criterion?) | same |
 
