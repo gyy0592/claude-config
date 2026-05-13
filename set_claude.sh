@@ -194,7 +194,10 @@ for f in inject_decrees.sh inject_decrees_to_subagent.sh stop_self_audit.sh rese
         continue
     fi
     # v2-hook: cp + sed substitute __CLAUDE_CONFIG_DIR__ → actual repo path.
-    # NO symlink — symlink would prevent substitution. Re-run set_claude.sh after edits.
+    # MUST `rm -f $dst` first: previous deployments may have left a symlink at $dst
+    # pointing to $src; `cp $src $dst` then fails with "same file" error.
+    # Also sed -i on a symlink would modify the source file in repo — DANGEROUS.
+    rm -f "$dst"
     cp "$src" "$dst"
     "${SED_I[@]}" "s|__CLAUDE_CONFIG_DIR__|${CLAUDE_CONFIG_DIR}|g" "$dst"
     chmod +x "$dst"

@@ -23,8 +23,8 @@ STATUS_FILE="$STATUS_DIR/${session_id}_status.md"
 
 TEMPLATE="__CLAUDE_CONFIG_DIR__/content/templates/status.md"
 
-# If .claude_status/ does not exist, this project hasn't been init'd — skip silently
-[ ! -d "$STATUS_DIR" ] && exit 0
+# Auto-create .claude_status/ if missing (no need to wait for init_corporal.sh)
+mkdir -p "$STATUS_DIR" 2>/dev/null || exit 0
 
 # Create from template if missing
 if [ ! -f "$STATUS_FILE" ] && [ -f "$TEMPLATE" ]; then
