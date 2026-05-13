@@ -86,6 +86,58 @@ if [ "$agent_pending" = "1" ]; then
     exit 0
 fi
 
+# Exception 2: bg bash job state check via [LONG_RUNNING_JOBS] in status.md.
+#   - all running entries have last_monitor < 30 min ago → AI is monitoring
+#     properly, allow stop
+#   - any running entry has last_monitor > 30 min ago (or missing) → STALE,
+#     possibly stuck (until-loop / freeze). Block + remind to use Monitor or
+#     KillBash to recover.
+#   - no running entries → fall through to normal [STOP-GATE] check
+bg_state="none"  # none | fresh | stale
+if [ -f "$status_file" ]; then
+    bg_state=$(python3 - "$status_file" 2>/dev/null << 'PY'
+import sys, re
+from datetime import datetime, timezone, timedelta
+path = sys.argv[1]
+threshold = datetime.now(timezone.utc) - timedelta(minutes=30)
+in_jobs = False
+has_running = False
+any_stale = False
+with open(path) as f:
+    for raw in f:
+        line = raw.rstrip()
+        stripped = line.strip()
+        if stripped.startswith('[LONG_RUNNING_JOBS]'):
+            in_jobs = True; continue
+        if stripped.startswith('[') and in_jobs:
+            in_jobs = False; continue
+        if not in_jobs: continue
+        if re.search(r'status\s*[:=]\s*running', line):
+            has_running = True
+            m = re.search(r'last_monitor\s*[:=]\s*(\S+)', line)
+            if not m:
+                any_stale = True; continue
+            ts = m.group(1).rstrip(',;')
+            for fmt in ('%Y-%m-%dT%H:%M:%SZ','%Y-%m-%dT%H:%MZ','%Y-%m-%d %H:%M UTC','%Y-%m-%d %H:%M:%S UTC'):
+                try:
+                    dt = datetime.strptime(ts, fmt).replace(tzinfo=timezone.utc); break
+                except ValueError: dt = None
+            if dt is None: any_stale = True; continue
+            if dt < threshold: any_stale = True
+if not has_running: print('none')
+elif any_stale: print('stale')
+else: print('fresh')
+PY
+)
+fi
+
+if [ "$bg_state" = "fresh" ]; then
+    rm -f "$counter_file"
+    exit 0
+fi
+# bg_state == "stale" → fall through to block (with stale-specific reminder)
+# bg_state == "none" → fall through to normal [STOP-GATE] check
+
 # Parse [STOP-GATE] zero items (file was auto-created above if missing)
 zero_items=""
 if [ -f "$status_file" ]; then
@@ -122,11 +174,26 @@ if [ "$count" -ge "$MAX_BLOCKS" ]; then
 fi
 
 # Build failure description
-failed_section="STOP-GATE items NOT YET satisfied (each must = 1):
+if [ "$bg_state" = "stale" ]; then
+    failed_section="⚠️ A background job in [LONG_RUNNING_JOBS] has status=running but its
+last_monitor timestamp is > 30 minutes old (or missing). This may indicate:
+  - The job is stuck in an infinite loop (until, while true, etc.)
+  - The job silently exited without you noticing
+  - You forgot to update last_monitor after the most recent check
+
+DO NOT just stop. First: call Monitor(bash_id, timeout=15m) to fetch fresh output.
+If output flowing → update last_monitor=<UTC now>, then stop will be allowed.
+If job hung → KillBash + update status=failed, then stop allowed.
+After resolution, you may stop normally."
+elif [ -n "$zero_items" ]; then
+    failed_section="STOP-GATE items NOT YET satisfied (each must = 1):
 ${zero_items}
 
 Update $status_file: set each failing item to 1 ONLY when truly done.
 Flipping without doing the work = Decree 2 fraud."
+else
+    failed_section="Stop attempted but no obvious reason in status.md. Possibly a state bug. Re-check $status_file."
+fi
 
 python3 - "$count" "$MAX_BLOCKS" "$failed_section" "$status_file" << 'PYEOF'
 import json, sys
