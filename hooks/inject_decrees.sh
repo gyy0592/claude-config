@@ -105,8 +105,9 @@ DECREE 6 — 4-STEP WORKFLOW + FOUR-MODULE REFLECTION + FIX-LOOP (HARDENED):
     (expected vs actual written). Any No = task not done = cannot hand back turn.
 
 Four reflection modules (missing one = Dereliction):
-[REFLECT-A] 6-row Decree self-check table (D1..D6 each: Followed ✓/✗ + reason w/ evidence).
-            Plus: boards Read? warning_board errors repeated this turn?
+[REFLECT-A] Decree sub-rule self-check table. Full sub-rule list (~35 rows covering
+            D1/D2/D3/D4/D5/D6/M5/M6/CG/BR/WB) is shown by the Stop hook on block;
+            audit honestly per row with ✓/✗/N/A + evidence.
 [REFLECT-B] indicators listed/reasonable/changes needed?
 [REFLECT-C] values normal? new bugs? what to write to ledger files?
 [REFLECT-D] substantive content. FORBIDDEN: "none/N/A/same as above/not triggered/

@@ -157,20 +157,22 @@ fi
 # bg_state == "none" → fall through to normal [STOP-GATE] check
 # bg_state == "unknown" → fall through (don't trust; do normal gate)
 
-# Parse [STOP-GATE] zero items (file was auto-created above if missing)
+# Parse [STOP-GATE] zero items (file was auto-created above if missing).
+# Accepts: 1 (followed) and NA (inapplicable). Any 0 blocks stop.
 zero_items=""
 if [ -f "$status_file" ]; then
     zero_items=$(awk '
         /^\[STOP-GATE\]/ { in_gate=1; next }
         /^\[/ && !/^\[STOP-GATE\]/ { in_gate=0; next }
-        in_gate && /^[a-z_]+:/ {
-            sub(/#.*/, "")
-            gsub(/[ \t]+$/, "")
-            ci = index($0, ":")
-            key = substr($0, 1, ci - 1)
-            val = substr($0, ci + 1)
+        in_gate && /^[a-z0-9_]+:/ {
+            line = $0
+            sub(/#.*/, "", line)
+            gsub(/[ \t]+$/, "", line)
+            ci = index(line, ":")
+            key = substr(line, 1, ci - 1)
+            val = substr(line, ci + 1)
             gsub(/[ \t]+/, "", val)
-            if (val == "0") print "  - " key " = 0"
+            if (val == "0") print "  - " key
         }
     ' "$status_file")
 fi
@@ -224,41 +226,16 @@ reason = f"""Stop BLOCKED (attempt {count}/{max_b}).
 
 {failed}
 
-Items meaning:
-  current_goal_complete    1 = goal in your "Current goal:" line is genuinely complete
-                               (retest 3-Qs passed for hands-on; cited evidence for Q&A)
-  action_log_written       1 = corporal_action.md (or soldier_action.md if Private) has
-                               an entry written this turn
-  six_decree_audit_done    1 = REFLECT-A 6-row table written this turn
-  violations_all_recorded  1 = no unrecorded confessions; if you said "I broke X", you
-                               wrote W-XXX to __CLAUDE_CONFIG_DIR__/content/templates/global_rules/violation.md
-                               AND mirrored in action.md
-  no_abandoned_work        1 = no mid-flight work being skipped
+Quick checks before flipping:
+  - Were you authorized to execute? If yes, are you executing (not re-asking)?
+  - Did you complete EVERY checklist item in {sfile} [STOP-GATE]
+    with evidence/reason after '#'? Each row = one Decree sub-rule.
+  - Background bash pending? Use Monitor (15-min timeout) instead of stopping.
+  - Subagent pending? Stop is allowed automatically — no action needed.
 
-⚠️ MILITARY DISCIPLINE SELF-AUDIT (do this BEFORE flipping any gate):
-  (1) Did you actually run the REFLECT-A 6-row Decree audit this turn?
-      For D1..D6 each, did you write Followed Y/N + evidence? Or did you
-      flip "six_decree_audit_done: 1" without doing it (= Decree 2 fraud)?
-  (2) Did Commander give you authorization this turn (or via M6 autonomous,
-      or via $PWD/CLAUDE.md keywords like "allow you to do anything")?
-        - YES → are you EXECUTING the authorized work, or did you stop to
-          ASK Commander again? Re-asking when you already have authority
-          = M6 violation. Go execute, don't pile pointless confirmations.
-        - NO → is the action Destructive (8-item list)? If NOT Destructive,
-          M6 says just DO IT (default autonomous). Asking unnecessarily is
-          itself a stop-hook-triggering hesitation.
+Flip a row to 1 (followed) or NA (inapplicable) ONLY after honest evidence.
+Flipping without doing = Decree 2 fraud.
 
-⚠️ If you have a background bash job running (sbatch / training / long command), DO NOT
-keep trying to stop. Use the Monitor tool with a long timeout (e.g. 15 min) on the
-bash_id to actively wait for output. Monitor blocks the main thread WITHOUT firing
-this Stop hook, lets you wait cheaply (token-light), and naturally resumes when the
-job emits output or finishes. Record each Monitor check in {sfile}'s [LONG_RUNNING_JOBS] section.
-
-⚠️ If you dispatched a subagent (Agent tool), the Stop hook will AUTOMATICALLY allow
-your stop so the subagent can run; PostToolUse:Agent re-triggers your main thread when
-the subagent returns. You don't need to do anything special.
-
-After {max_b} blocks the hook gives up and lets you stop, but the next turn's
-REFLECT-A D6 row will record this willful bypass."""
+After {max_b} blocks the hook gives up; willful bypass will surface in next turn audit."""
 print(json.dumps({"decision": "block", "reason": reason}))
 PYEOF

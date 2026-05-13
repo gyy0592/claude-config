@@ -43,13 +43,9 @@ path = sys.argv[1]
 session_id = os.environ.get('SESSION_ID', '')
 cwd = os.environ.get('CWD', '')
 
-defaults = {
-    'current_goal_complete': '0',
-    'action_log_written': '0',
-    'six_decree_audit_done': '0',
-    'violations_all_recorded': '1',
-    'no_abandoned_work': '0',
-}
+# Reset ALL [STOP-GATE] items to "0" generically (regex match).
+# AI must re-evaluate every item per turn and provide evidence.
+defaults = None  # signal: reset every matching key to "0"
 
 # Find all alive bg tasks (any session for this cwd's slug)
 def find_alive_tasks():
@@ -114,10 +110,10 @@ for line in content.split('\n'):
     if in_jobs:
         continue  # skip old jobs lines; we already wrote the new section
     if in_gate:
-        m = re.match(r'^(\s*)([a-z_]+):\s*\S+(\s*#.*)?$', line)
-        if m and m.group(2) in defaults:
+        m = re.match(r'^(\s*)([a-z0-9_]+):\s*\S+(\s*#.*)?$', line)
+        if m:
             indent = m.group(1); key = m.group(2); comment = m.group(3) or ''
-            out.append(f"{indent}{key}: {defaults[key]}{comment}")
+            out.append(f"{indent}{key}: 0{comment}")
             continue
     out.append(line)
 
