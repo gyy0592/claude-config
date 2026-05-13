@@ -157,28 +157,25 @@ fi
 # bg_state == "none" → fall through to normal [STOP-GATE] check
 # bg_state == "unknown" → fall through (don't trust; do normal gate)
 
-# Parse [STOP-GATE] zero items (file was auto-created above if missing).
-# Accepts: 1 (followed) and NA (inapplicable). Any 0 blocks stop.
-zero_items=""
+# Check if any [STOP-GATE] row is still 0. Accepts 1 (followed) and NA.
+has_zero=0
 if [ -f "$status_file" ]; then
-    zero_items=$(awk '
+    if awk '
         /^\[STOP-GATE\]/ { in_gate=1; next }
         /^\[/ && !/^\[STOP-GATE\]/ { in_gate=0; next }
         in_gate && /^[a-z0-9_]+:/ {
-            line = $0
-            sub(/#.*/, "", line)
-            gsub(/[ \t]+$/, "", line)
-            ci = index(line, ":")
-            key = substr(line, 1, ci - 1)
-            val = substr(line, ci + 1)
-            gsub(/[ \t]+/, "", val)
-            if (val == "0") print "  - " key
+            line = $0; sub(/#.*/, "", line); gsub(/[ \t]+$/, "", line)
+            ci = index(line, ":"); val = substr(line, ci + 1); gsub(/[ \t]+/, "", val)
+            if (val == "0") { found=1 }
         }
-    ' "$status_file")
+        END { exit found ? 0 : 1 }
+    ' "$status_file"; then
+        has_zero=1
+    fi
 fi
 
 # All pass — allow stop
-if [ -z "$zero_items" ]; then
+if [ "$has_zero" = "0" ] && [ "$bg_state" != "stale" ]; then
     rm -f "$counter_file"
     exit 0
 fi
@@ -196,46 +193,24 @@ fi
 
 # Build failure description
 if [ "$bg_state" = "stale" ]; then
-    failed_section="⚠️ A background task (Agent run_in_background or Bash run_in_background)
-is still pending — no task_notification completion event seen — AND no Monitor
-tool call has been made in the last 30 minutes (transcript timestamps).
-
-Possible causes:
-  - The task is stuck in an infinite loop (until, while true, etc.)
-  - The task silently exited without emitting completion
-  - You forgot to call Monitor recently to check progress
-
-DO NOT just stop. First: call the Monitor tool (timeout 15 min) on the pending
-bash_id to fetch fresh output. If output flowing → recent Monitor call updates
-the staleness window → next stop will be allowed. If task hung → KillBash to
-recover. After Monitor or Kill, you may stop normally."
-elif [ -n "$zero_items" ]; then
-    failed_section="STOP-GATE items NOT YET satisfied (each must = 1):
-${zero_items}
-
-Update $status_file: set each failing item to 1 ONLY when truly done.
-Flipping without doing the work = Decree 2 fraud."
+    failed_section="Background task pending; no Monitor in last 30 min. Call Monitor (15min) or KillBash before stopping."
+elif [ "$has_zero" = "1" ]; then
+    failed_section="Some [STOP-GATE] items in $status_file are still 0. Open the file, fill each with 1 / 0 / NA + reason after '#', then stop."
 else
-    failed_section="Stop attempted but no obvious reason in status.md. Possibly a state bug. Re-check $status_file."
+    failed_section="State bug. Check $status_file."
 fi
 
 python3 - "$count" "$MAX_BLOCKS" "$failed_section" "$status_file" << 'PYEOF'
 import json, sys
 count, max_b, failed, sfile = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
-reason = f"""Stop BLOCKED (attempt {count}/{max_b}).
+reason = f"""Stop BLOCKED (attempt {count}/{max_b}). {failed}
 
-{failed}
+Quick checks:
+  - Authorized to execute? If yes, execute, don't re-ask.
+  - Completed every {sfile} [STOP-GATE] row with reason after '#'?
+  - Background bash pending? Use Monitor (15min) instead of stopping.
+  - Subagent pending? Stop is allowed automatically.
 
-Quick checks before flipping:
-  - Were you authorized to execute? If yes, are you executing (not re-asking)?
-  - Did you complete EVERY checklist item in {sfile} [STOP-GATE]
-    with evidence/reason after '#'? Each row = one Decree sub-rule.
-  - Background bash pending? Use Monitor (15-min timeout) instead of stopping.
-  - Subagent pending? Stop is allowed automatically — no action needed.
-
-Flip a row to 1 (followed) or NA (inapplicable) ONLY after honest evidence.
-Flipping without doing = Decree 2 fraud.
-
-After {max_b} blocks the hook gives up; willful bypass will surface in next turn audit."""
+After {max_b} blocks the hook gives up; bypass surfaces in next turn audit."""
 print(json.dumps({"decision": "block", "reason": reason}))
 PYEOF
