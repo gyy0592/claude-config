@@ -1,0 +1,1243 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Pipeline Editor v4 — Single Narrative Scenario (Train LLM → OOM → 3-fail → success)</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #ffffff;
+  --panel: #f3f3f3;
+  --elev: #e7e7e7;
+  --border: #d4d4d4;
+  --text: #1e1e1e;
+  --dim: #6e7681;
+  --red: #cd3131;
+  --blue: #0066b8;
+  --purple: #6f42c1;
+  --green: #008000;
+  --orange: #d16500;
+  --yellow: #b58900;
+}
+html, body { height: 100%; }
+body {
+  font: 14px/1.5 -apple-system, "Helvetica Neue", Arial, "Noto Sans CJK SC", "PingFang SC", sans-serif;
+  background: var(--bg); color: var(--text);
+  display: grid; grid-template-rows: auto auto auto 1fr; height: 100vh; overflow: hidden;
+}
+header {
+  background: linear-gradient(90deg, #f0f4fa, #faf0f0);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+}
+header h1 { font-size: 17px; font-weight: 700; letter-spacing: 0.5px; }
+header .sub { color: var(--dim); font-size: 12px; margin-top: 3px; }
+
+#toolbar {
+  background: var(--panel); border-bottom: 1px solid var(--border);
+  padding: 8px 16px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+}
+#toolbar button {
+  background: #ffffff; color: var(--text); border: 1px solid var(--border);
+  padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 12px;
+  transition: all 0.15s;
+}
+#toolbar button:hover { border-color: var(--blue); }
+#toolbar button.active { background: var(--orange); border-color: var(--orange); color: #fff; }
+#toolbar button.primary { background: var(--green); color: #fff; border-color: var(--green); font-weight: 600; }
+#toolbar button.primary:hover { filter: brightness(1.1); }
+#toolbar .sep { width: 1px; background: var(--border); margin: 0 4px; align-self: stretch; }
+#toolbar .mode-indicator { font-size: 11px; color: var(--dim); padding: 0 6px; }
+#toolbar .mode-indicator.active { color: var(--orange); font-weight: 700; }
+
+#pipelinebar {
+  background: var(--panel); border-bottom: 1px solid var(--border);
+  padding: 8px 16px; display: flex; gap: 6px; flex-wrap: wrap;
+}
+.pipebtn {
+  background: #ffffff; color: var(--text); border: 1px solid var(--border);
+  padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 11px;
+}
+.pipebtn:hover { border-color: var(--blue); }
+.pipebtn.active { background: var(--blue); color: #ffffff; border-color: var(--blue); font-weight: 600; }
+.pipebtn.custom { border-style: dashed; }
+
+main { display: grid; grid-template-columns: 220px 1fr 380px; overflow: hidden; }
+
+#palette {
+  background: var(--panel); border-right: 1px solid var(--border);
+  overflow-y: auto; padding: 12px;
+}
+#palette h3 { font-size: 12px; color: var(--blue); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+#palette .pal-section { margin-bottom: 14px; }
+#palette .pal-section-title { font-size: 11px; font-weight: 600; color: var(--dim); margin: 8px 0 5px; padding-bottom: 3px; border-bottom: 1px solid var(--border); }
+.pal-item {
+  background: #ffffff; border: 1px solid var(--border); border-radius: 5px;
+  padding: 5px 8px; margin-bottom: 3px; font-size: 11px; cursor: grab;
+  transition: all 0.1s;
+}
+.pal-item:hover { border-color: var(--blue); background: #f5fbff; }
+.pal-item .pid { font-family: "JetBrains Mono", monospace; color: var(--dim); font-size: 10px; }
+
+#canvas-wrap {
+  position: relative; overflow: auto; background: #fafafa; cursor: grab;
+}
+#canvas-wrap.panning { cursor: grabbing; user-select: none; }
+#canvas-wrap::-webkit-scrollbar { width: 14px; height: 14px; }
+#canvas-wrap::-webkit-scrollbar-track { background: #e8e8e8; }
+#canvas-wrap::-webkit-scrollbar-thumb { background: #888; border-radius: 7px; border: 2px solid #e8e8e8; }
+#canvas-wrap::-webkit-scrollbar-thumb:hover { background: #555; }
+#canvas-wrap {
+  background-image: radial-gradient(circle, #d8dde6 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+#canvas-svg { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 1; }
+#canvas-svg path.clickable { pointer-events: stroke; cursor: pointer; }
+#canvas-svg path.clickable:hover { stroke-width: 4; }
+#canvas-nodes { position: relative; padding: 32px; min-width: 100%; min-height: 100%; z-index: 2; transform-origin: 0 0; transition: transform 0.2s; }
+#canvas-svg { transform-origin: 0 0; transition: transform 0.2s; }
+#canvas-wrap.zoom-fit #canvas-nodes,
+#canvas-wrap.zoom-fit #canvas-svg { transform: scale(0.5); }
+#canvas-wrap.zoom-quarter #canvas-nodes,
+#canvas-wrap.zoom-quarter #canvas-svg { transform: scale(0.35); }
+
+.node {
+  position: absolute;
+  background: #ffffff; border: 2px solid var(--border);
+  border-radius: 10px; padding: 8px 12px; min-width: 140px; max-width: 220px;
+  cursor: grab; transition: box-shadow 0.15s, transform 0.15s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  user-select: none;
+}
+.node:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+.node.dragging { cursor: grabbing; opacity: 0.7; }
+.node .nid { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--dim); }
+.node .nname { font-weight: 600; margin-top: 2px; font-size: 12px; }
+.node .ntag { font-size: 9px; color: var(--dim); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.node .ncomment { font-size: 10px; color: var(--blue); margin-top: 4px; font-style: italic; max-height: 30px; overflow: hidden; }
+.node.selected { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,102,184,0.20); }
+.node.disabled { opacity: 0.4; }
+.node.modified { border-style: dashed; }
+.node.arrow-source { box-shadow: 0 0 0 3px var(--orange); }
+
+.node-handle {
+  position: absolute; right: -8px; top: 50%; transform: translateY(-50%);
+  width: 14px; height: 14px; background: var(--blue); border-radius: 50%;
+  cursor: crosshair; opacity: 0; transition: opacity 0.15s;
+  border: 2px solid #fff;
+}
+.node:hover .node-handle { opacity: 1; }
+
+.node.tier-event { border-color: var(--yellow); }
+.node.tier-event .nname { color: var(--yellow); }
+.node.tier-meta { border-color: var(--red); }
+.node.tier-meta .nname { color: var(--red); }
+.node.tier-opening { border-color: var(--blue); }
+.node.tier-opening .nname { color: var(--blue); }
+.node.tier-decree { border-color: var(--purple); }
+.node.tier-decree .nname { color: var(--purple); }
+.node.tier-reflect { border-color: var(--green); }
+.node.tier-reflect .nname { color: var(--green); }
+.node.tier-private { border-color: var(--orange); }
+.node.tier-private .nname { color: var(--orange); }
+.node.tier-violation { border-color: var(--red); background: #fdebec; }
+.node.tier-violation .nname { color: var(--red); }
+.node.tier-end { border-color: var(--green); background: #ebf5eb; }
+.node.tier-end .nname { color: var(--green); }
+.node.tier-custom { border-color: var(--purple); background: #f7f0ff; border-style: dotted; }
+
+#sidepanel {
+  background: var(--panel); border-left: 1px solid var(--border);
+  overflow-y: auto; padding: 14px;
+  display: flex; flex-direction: column;
+}
+#sidepanel h2 { font-size: 14px; margin-bottom: 8px; color: var(--blue); border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+.scenario-desc { background: #fff; border-left: 3px solid var(--blue); padding: 8px 10px; border-radius: 4px; font-size: 11px; line-height: 1.6; margin-bottom: 12px; }
+.scenario-desc textarea {
+  width: 100%; min-height: 40px; background: transparent; color: var(--text);
+  border: none; resize: vertical; font: inherit; outline: none;
+}
+.detail-block { margin-bottom: 14px; }
+.detail-block h3 { font-size: 13px; margin-bottom: 5px; }
+.detail-block .id-line { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--dim); margin-bottom: 6px; }
+.detail-block .body { font-size: 11px; line-height: 1.6; background: #fff; padding: 8px; border-radius: 5px; border: 1px solid var(--border); margin-bottom: 8px; white-space: pre-wrap; }
+.detail-block label { display: block; font-size: 10px; color: var(--dim); margin: 6px 0 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+.detail-block textarea {
+  width: 100%; min-height: 60px; background: #fff; color: var(--text);
+  border: 1px solid var(--border); border-radius: 5px; padding: 6px;
+  font: 11px/1.5 inherit; resize: vertical; outline: none;
+}
+.detail-block textarea:focus { border-color: var(--blue); }
+.detail-block .controls { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+.detail-block .controls button {
+  flex: 1; min-width: 80px; background: #fff; color: var(--text);
+  border: 1px solid var(--border); padding: 5px 6px; border-radius: 4px;
+  cursor: pointer; font-size: 11px;
+}
+.detail-block .controls button.active { background: var(--orange); border-color: var(--orange); color: #fff; }
+.detail-block .controls button.danger { background: #fff; border-color: var(--red); color: var(--red); }
+.detail-block .controls button.danger:hover { background: var(--red); color: #fff; }
+
+#status-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--blue); color: #fff; padding: 4px 14px; font-size: 11px;
+  z-index: 50; transform: translateY(100%); transition: transform 0.2s;
+}
+#status-bar.show { transform: translateY(0); }
+
+.modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: center; justify-content: center; padding: 40px; }
+.modal.show { display: flex; }
+.modal .inner { background: #fff; border: 1px solid var(--border); border-radius: 10px; max-width: 900px; width: 100%; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+.modal .head { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.modal .head h2 { font-size: 15px; color: var(--blue); }
+.modal .head .close { background: transparent; color: var(--dim); border: none; font-size: 22px; cursor: pointer; padding: 0 8px; }
+.modal textarea { flex: 1; background: #f8f8f8; color: var(--text); border: none; padding: 12px 16px; font: 12px/1.6 "JetBrains Mono", monospace; resize: none; outline: none; }
+.modal .actions { padding: 10px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+.modal .actions button { background: var(--blue); color: #fff; border: none; padding: 7px 14px; border-radius: 5px; cursor: pointer; font-size: 12px; }
+.modal .actions button.secondary { background: #fff; color: var(--text); border: 1px solid var(--border); }
+
+.help-box { background: #f5fbff; border: 1px solid #b3d4f0; border-radius: 5px; padding: 8px 10px; font-size: 11px; line-height: 1.5; color: var(--text); }
+.help-box strong { color: var(--blue); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Pipeline Editor v4 — Single Narrative Scenario (Train LLM → OOM → 3-fail → success)</h1>
+  <div class="sub">One concrete story: train LLM on GSM8K, stochastic 8 runs, batch=32 → OOM at step 30 → fix-loop → 3 failures → AUTH branch / no-AUTH branch</div>
+</header>
+
+<div id="toolbar">
+  <button id="btn-arrow-mode" onclick="toggleArrowMode()">⇨ Draw Arrow Mode</button>
+  <span id="arrow-mode-ind" class="mode-indicator">OFF</span>
+  <span class="sep"></span>
+  <button onclick="addPipeline()">+ New Pipeline</button>
+  <button onclick="renamePipeline()">✎ Rename Pipeline</button>
+  <button onclick="deletePipeline()" style="color:var(--red)">✕ Delete Pipeline</button>
+  <span class="sep"></span>
+  <button onclick="openExport()">📋 Export Spec</button>
+  <button class="primary" onclick="saveHTML()">💾 Save HTML w/ State</button>
+  <button onclick="exportState()">⬇ Export State JSON</button>
+  <button onclick="importState()">⬆ Import State JSON</button>
+  <input type="file" id="state-file-input" style="display:none" accept=".json" onchange="handleStateImport(event)">
+  <span class="sep"></span>
+  <button onclick="cycleZoom()" id="btn-zoom">🔍 Zoom: 100%</button>
+  <button onclick="resetAll()" style="color:var(--red)">↺ Reset All</button>
+</div>
+
+<div id="pipelinebar"></div>
+
+<main>
+  <div id="palette">
+    <h3>📦 Rule Palette</h3>
+    <div class="help-box" style="margin-bottom:10px">
+      <strong>Drag → Drop on canvas</strong> to add a rule node to this pipeline. Or just click to add at default position.
+    </div>
+    <div id="palette-body"></div>
+  </div>
+
+  <div id="canvas-wrap">
+    <svg id="canvas-svg" width="100%" height="100%">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#0066b8"></path>
+        </marker>
+      </defs>
+    </svg>
+    <div id="canvas-nodes"></div>
+  </div>
+
+  <div id="sidepanel">
+    <h2 id="sp-title">SCN-MAIN</h2>
+    <div class="scenario-desc">
+      <strong>Description (editable):</strong>
+      <textarea id="sp-desc-edit" placeholder="Edit pipeline description..."></textarea>
+    </div>
+    <div id="sp-detail"></div>
+  </div>
+</main>
+
+<div id="status-bar"></div>
+
+<!-- Export modal -->
+<div id="export-modal" class="modal">
+  <div class="inner">
+    <div class="head"><h2>Exported Workflow Spec</h2><button class="close" onclick="closeModal('export-modal')">×</button></div>
+    <textarea id="export-text" readonly=""></textarea>
+    <div class="actions">
+      <button onclick="copyText('export-text')">Copy</button>
+      <button onclick="downloadText('export-text', 'workflow_spec.md')">Download .md</button>
+      <button class="secondary" onclick="closeModal('export-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edge detail modal -->
+<div id="edge-modal" class="modal">
+  <div class="inner">
+    <div class="head"><h2>Edit Edge</h2><button class="close" onclick="closeModal('edge-modal')">×</button></div>
+    <div style="padding:14px 18px; font-size:12px;">
+      <div><strong>From:</strong> <span id="edge-from"></span></div>
+      <div><strong>To:</strong> <span id="edge-to"></span></div>
+      <label style="display:block; margin:10px 0 4px; font-size:10px; color:var(--dim); text-transform:uppercase">Edge comment / label</label>
+      <textarea id="edge-comment" style="width:100%; height:80px; border:1px solid var(--border); border-radius:5px; padding:6px; font:11px monospace;"></textarea>
+    </div>
+    <div class="actions">
+      <button onclick="saveEdgeComment()">Save</button>
+      <button class="secondary" onclick="deleteEdge()" style="background:var(--red); color:#fff">Delete Edge</button>
+      <button class="secondary" onclick="closeModal('edge-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== INITIAL STATE — DO NOT EDIT THIS BLOCK MANUALLY ====== -->
+<script id="state-init" type="application/json">{"currentPipeline": "SCN-MAIN", "pipelines": {"SCN-MAIN": {"name": "Train LLM \u2192 OOM debug \u2192 3-fail branch \u2192 success", "desc": "Commander says: 'train LLM on GSM8K, stochastic 8 runs, batch=32, submit to SLURM cluster'. Single concrete narrative covering: hook injection \u2192 init_corporal \u2192 boards \u2192 weak-prompt detection \u2192 M5 reinforce \u2192 goal.md read \u2192 reflect \u2192 dispatch Private (run_in_background=true) \u2192 spot-check \u2192 Bash run_in_background \u2192 SLURM PENDING \u2192 Monitor verify \u2192 RUNNING \u2192 OOM at step 30 \u2192 fix-loop FL-1/FL-2/FL-3 \u2192 3 attempts fail (bs=16, grad_ckpt, model-parallel) \u2192 attempts_ledger + bitter_lessons \u2192 read $PWD/CLAUDE.md for AUTH \u2192 Branch A (AUTH): suspend stop, FL-2 fourth try (bs=8 + grad_ckpt) succeeds, successful_fixes, retest 3-Q, op_log, REFLECT-A/B/C/D, D4 record, STOP-GATE check, bg-mtime check, RESPOND, WAIT \u2192 Branch B (no AUTH): A-ESC, ASK_CMD, STOP. Plus side-thread: [INFERENCE] effort-log + 2nd reflection on 'this is OOM not deadlock'. Plus side-thread: silence violation during 40-min queue wait \u2192 violation.md global record.", "instances": [{"iid": "u1", "base": "USER_MSG", "x": 60, "y": 60}, {"iid": "hook", "base": "HOOK_INJECT", "x": 220, "y": 60}, {"iid": "f1", "base": "F1", "x": 380, "y": 60}, {"iid": "o2", "base": "O2", "x": 540, "y": 60}, {"iid": "weak", "base": "WEAK_PMT", "x": 700, "y": 60}, {"iid": "m5", "base": "M5", "x": 860, "y": 60}, {"iid": "pre", "base": "PRE_DISP", "x": 1020, "y": 60}, {"iid": "ask", "base": "ASK_CMD", "x": 1180, "y": 60}, {"iid": "goal", "base": "GOAL_READ", "x": 1340, "y": 60}, {"iid": "o3", "base": "O3", "x": 1500, "y": 60}, {"iid": "d6", "base": "D6", "x": 220, "y": 200}, {"iid": "ob", "base": "OB", "x": 380, "y": 200}, {"iid": "pre2", "base": "PRE_DISP", "x": 540, "y": 200}, {"iid": "dp", "base": "DP", "x": 700, "y": 200}, {"iid": "priv", "base": "PRIV_DONE", "x": 860, "y": 200}, {"iid": "sc", "base": "SC-FULL", "x": 1020, "y": 200}, {"iid": "bash", "base": "BASH_BG", "x": 1180, "y": 200}, {"iid": "qp", "base": "QUEUE_PENDING", "x": 1340, "y": 200}, {"iid": "mon", "base": "MON_TOOL", "x": 1500, "y": 200}, {"iid": "qr", "base": "QUEUE_RUNNING", "x": 1660, "y": 200}, {"iid": "fs", "base": "FAIL_SIG", "x": 60, "y": 380}, {"iid": "oom1", "base": "OOM", "x": 220, "y": 380}, {"iid": "fl1", "base": "FL-1", "x": 380, "y": 380}, {"iid": "att1", "base": "ATT_LEDGER", "x": 540, "y": 380}, {"iid": "bit1", "base": "BITTER", "x": 700, "y": 380}, {"iid": "fl2a", "base": "FL-2", "x": 860, "y": 380}, {"iid": "oom2", "base": "OOM", "x": 1020, "y": 380}, {"iid": "att2", "base": "ATT_LEDGER", "x": 1180, "y": 380}, {"iid": "bit2", "base": "BITTER", "x": 1340, "y": 380}, {"iid": "fl2b", "base": "FL-2", "x": 1500, "y": 380}, {"iid": "oom3", "base": "OOM", "x": 1660, "y": 380}, {"iid": "att3", "base": "ATT_LEDGER", "x": 1820, "y": 380}, {"iid": "fx", "base": "FAIL_3X", "x": 1980, "y": 380}, {"iid": "rpc", "base": "READ_PROJ_CLAUDE", "x": 2140, "y": 380}, {"iid": "auth", "base": "AUTH_DETECTED", "x": 2140, "y": 240}, {"iid": "fl2c", "base": "FL-2", "x": 2300, "y": 240}, {"iid": "sfix", "base": "SUCC_FIX", "x": 2460, "y": 240}, {"iid": "fl3", "base": "FL-3", "x": 2620, "y": 240}, {"iid": "oplog", "base": "OP_LOG", "x": 2780, "y": 240}, {"iid": "ra", "base": "R-A", "x": 2940, "y": 160}, {"iid": "rb", "base": "R-B", "x": 2940, "y": 260}, {"iid": "rc", "base": "R-C", "x": 2940, "y": 360}, {"iid": "rd", "base": "R-D", "x": 2940, "y": 460}, {"iid": "d4", "base": "D4", "x": 3100, "y": 300}, {"iid": "sg", "base": "STOP_GATE_CHECK", "x": 3260, "y": 300}, {"iid": "bgm", "base": "BG_MTIME_CHECK", "x": 3420, "y": 300}, {"iid": "resp", "base": "RESPOND", "x": 3580, "y": 300}, {"iid": "wait", "base": "WAIT", "x": 3740, "y": 300}, {"iid": "noauth", "base": "NO_AUTH", "x": 2140, "y": 520}, {"iid": "aesc", "base": "A-ESC", "x": 2300, "y": 520}, {"iid": "ask2", "base": "ASK_CMD", "x": 2460, "y": 520}, {"iid": "stop", "base": "STOP", "x": 2620, "y": 520}, {"iid": "el", "base": "EFFORT_LOG", "x": 220, "y": 520}, {"iid": "rf2", "base": "REFLECT2", "x": 380, "y": 520}, {"iid": "d2", "base": "D2", "x": 540, "y": 520}, {"iid": "viol", "base": "VIOL", "x": 3100, "y": 500}, {"iid": "vf", "base": "VIOL_FILE", "x": 3260, "y": 500}], "edges": [["u1", "hook"], ["hook", "f1"], ["f1", "o2"], ["o2", "weak"], ["weak", "m5"], ["m5", "pre"], ["pre", "ask"], ["ask", "goal"], ["goal", "o3"], ["o3", "d6"], ["d6", "ob"], ["ob", "pre2"], ["pre2", "dp"], ["dp", "priv"], ["priv", "sc"], ["sc", "bash"], ["bash", "qp"], ["qp", "mon"], ["mon", "qr"], ["qr", "fs"], ["fs", "oom1"], ["oom1", "fl1"], ["fl1", "att1"], ["att1", "bit1"], ["bit1", "fl2a"], ["fl2a", "oom2"], ["oom2", "att2"], ["att2", "bit2"], ["bit2", "fl2b"], ["fl2b", "oom3"], ["oom3", "att3"], ["att3", "fx"], ["fx", "rpc"], ["rpc", "auth"], ["auth", "fl2c"], ["fl2c", "sfix"], ["sfix", "fl3"], ["fl3", "oplog"], ["oplog", "ra"], ["oplog", "rb"], ["oplog", "rc"], ["oplog", "rd"], ["ra", "d4"], ["rb", "d4"], ["rc", "d4"], ["rd", "d4"], ["d4", "sg"], ["sg", "bgm"], ["bgm", "resp"], ["resp", "wait"], ["rpc", "noauth"], ["noauth", "aesc"], ["aesc", "ask2"], ["ask2", "stop"], ["oom1", "el"], ["el", "rf2"], ["rf2", "d2"], ["d2", "fl1"], ["viol", "d4"], ["viol", "vf"], ["vf", "oplog"]]}}, "toggles": {}, "comments": {"SCN-MAIN": {"u1": "Commander: 'train LLM on GSM8K, stochastic 8 runs, batch=32, submit to SLURM cluster'", "hook": "UserPromptSubmit hook fires inject_decrees.sh \u2014 ~7.5 KB of Six Decrees + Iron Rules + Prompt Reinforcement auto-prepended", "f1": "No militar_camp/ detected \u2192 bash init_corporal.sh $PWD creates corporal_X/, 5 ledger files, status.md", "weak": "Detected: Commander's instruction has NO observable variable (no metric / no cadence / no completion criterion) \u2192 weak prompt", "m5": "AUTO-INJECTED via PreToolUse:Agent hook: adds observable indicators (loss, GPU util, NPZ count, sacct STATUS, freeze threshold)", "ask": "goal.md empty or unclear \u2192 ask Commander to confirm: 'is the success criterion loss<0.5 at step 10000? OR is it just NPZ growth?'", "goal": "Read $PWD/.claude_status/goal.md (Commander-controlled file, AI reads only \u2014 see consolidated STOP-GATE design)", "priv": "Private wrote sbatch file under militar_camp/corporal_X/numberY/. Returns. PostToolUse:Agent hook re-injects Decrees.", "sc": "Main thread Reads sbatch file line-by-line, checks G1-G16 perf-protect, no unauth config tamper (W-001/W-002)", "bash": "Bash sbatch run.sbatch with run_in_background=true \u2192 bash_id captured \u2192 stored for Monitor tool", "qp": "sacct shows PENDING. Could silently hang here. MUST proceed to MON_TOOL.", "mon": "Monitor bash_id every 10-15 min (L-014: cross-check nvidia-smi + NPZ count growth)", "qr": "sacct RUNNING. nvidia-smi util > 0. NPZ count growing. \u2192 observation indicators all healthy.", "fs": "At step 30: events.jsonl shows CUDA OutOfMemoryError. Failure signal triggered.", "oom1": "OOM batch=32 / model 7B / single GPU 80GB. Triggers fix-loop.", "fl1": "Locate: read training log, traceback shows attn forward at seq_len=4096 \u2192 root cause = KV cache + batch size", "att1": "ATTEMPT-1: tried batch=16 \u2192 still OOM at step 30. Logged with commit_id, before/after, verdict=failed", "bit1": "WRONG WAY 1: 'reduce batch size alone' \u2014 batch was not the dominant memory term, abandoned", "fl2a": "FL-2 try-2: gradient_checkpointing=true (no other change)", "att2": "ATTEMPT-2: grad_ckpt enabled, batch=32. Still OOM. Verdict=failed. before/after shows peak VRAM only dropped 8%", "bit2": "WRONG WAY 2: 'grad_ckpt alone' \u2014 trades compute for memory but not enough margin", "fl2b": "FL-2 try-3: model parallel (tensor parallel size=2). Different error: NCCL init failure", "att3": "ATTEMPT-3: model parallel \u2014 fails differently (NCCL). Verdict=wrong-direction. 3rd consecutive failure.", "fx": "3 same-target failures \u2192 default rule is STOP+escalate (L-010). But first check AUTH override.", "rpc": "Read $PWD/CLAUDE.md. Search for 'allow you to do anything' / 'you have the authorization' / 'no stop until X' keywords.", "auth": "Branch A: AUTH keyword FOUND \u2192 suspend 3-failure-stop, log [AUTH_DETECTED], keep trying", "fl2c": "FL-2 fourth try: bs=8 + grad_ckpt + fix NCCL by setting NCCL_P2P_DISABLE=1. Step 30 passes. Training proceeds.", "sfix": "successful_fixes.md FIX-1: bs=8 + grad_ckpt + NCCL_P2P_DISABLE=1 \u2014 the winning combination after 4 attempts", "fl3": "RE-RUN measurement: step 30 OK, step 100 OK, NPZ count growing, loss decreasing. Retest 3-Q: (a) ran cmd? YES (b) waited for results? YES (c) matched success criterion? YES", "oplog": "operation_log.md append: 'modified sbatch: bs=8, +gradient_checkpointing, +NCCL_P2P_DISABLE=1' with timestamp", "d4": "D4 Recording: action.md entry before reply ends. attempts_ledger + bitter_lessons + successful_fixes all consistent.", "sg": "$PWD/.claude_status/{sid}_status.md \u2014 15-item STOP-GATE all 1 or N/A. Stop hook would block if any = 0.", "bgm": "bg .output mtime check: stop hook's 15-min activity gate. SLURM still running (fresh mtime) \u2192 ALLOW STOP. WAIT for next turn.", "resp": "Reply to Commander: full report (status / root cause / 4 attempts / winning fix / retest results / next steps). No follow-up question needed (W-004).", "noauth": "Branch B: NO AUTH keyword \u2192 default 3-failure stop rule applies", "aesc": "A-ESC: stop. List Attempts 1-3 + before/after + WRONG WAY rationale + request Commander intervention", "ask2": "AskUserQuestion with 4-element kit: current status / root cause / recommendation / authorization needed", "stop": "STOP \u2014 halt + escalate. Effort-proof attached per v3 STOP hardening (files read, searches, experiments).", "el": "EFFORT_LOG for [INFERENCE] 'this is OOM not deadlock': read code 3 files, WebSearch 12 keywords, ran py-spy on hung process", "rf2": "2nd meta-reflection: is evidence complete? Any observable variable missed (e.g. nvidia-smi MEM, dmesg)? \u2192 [INFERENCE] stands", "d2": "D2 Truthfulness: every sentence [FACT]/[INFERENCE]/[ASSUMPTION] tagged. [INFERENCE] supported by EFFORT_LOG + REFLECT2.", "viol": "Side-thread: during sbatch 40-min PENDING wait, Corporal forgot [SILENCE_START] declaration \u2192 W-005 violation", "vf": "$REPO/content/templates/global_rules/violation.md \u2014 append W-XXX entry with tags:[silence-violation, fatigue, slurm]. (Avoid ~/.claude/rules/ approval click per D4.)"}}, "edgeComments": {"SCN-MAIN": {"rpc\u2192auth": "AUTH keyword found", "rpc\u2192noauth": "no AUTH \u2192 default stop", "fx\u21923rpc": "3 failures \u2192 read project CLAUDE.md", "auth\u2192fl2c": "suspend stop, keep trying", "fl2c\u2192sfix": "4th try succeeds", "fl3\u2192oplog": "retest 3-Q passes", "oom1\u2192el": "[INFERENCE] requires EFFORT_LOG", "viol\u2192d4": "silence-violation \u2192 triple-record"}}, "customNodes": {}}</script>
+
+<script>
+// =========================================================
+// NODE LIBRARY (rule definitions) — v3 set + v4 additions
+// =========================================================
+const NODES = {
+  "USER_MSG":  { tier: "event", name: "User sends message", body: "Commander submits prompt. UserPromptSubmit hook fires." },
+  "NEW_REPO":  { tier: "event", name: "Entering new repo", body: "ls militar_camp/corporal_* empty. First-time setup needed." },
+  "CRON_FIRE": { tier: "event", name: "Cron fires (*/15)", body: "CronCreate iteration triggers UserPromptSubmit + Stop hooks." },
+  "PRIV_DONE": { tier: "event", name: "Private completes", body: "Subagent returns. PostToolUse matcher=Agent fires." },
+  "FAIL_SIG":  { tier: "event", name: "Failure signal", body: "Observation indicator hit failure threshold. Enter 3-step fix-loop." },
+  "DESTR_NEED":{ tier: "event", name: "Destructive op needed", body: "Operation matches one of 8 Destructive items. Stop, ask Commander." },
+  "INFERENCE": { tier: "event", name: "[INFERENCE] given", body: "Assistant used [INFERENCE]. Decree 2 triggers observation upgrade." },
+  "WEAK_PMT":  { tier: "event", name: "Weak prompt received", body: "Instruction missing 4-item kit (observable / cadence / reflection / completion)." },
+  "VIOL":      { tier: "event", name: "Violation occurred", body: "Any rule broken. Triple-record required (action.md + W-XXX + bitter_lessons)." },
+  "FAIL_3X":   { tier: "event", name: "3 failures same target", body: "Brute-forcing detected. Stop, escalate. v3+: Read $PWD/CLAUDE.md for AUTH override first." },
+
+  "PC0":   { tier: "opening", name: "PC0: Recited?", body: "All 6 verbatim, no abbreviation? (In target design: hook auto-injection.)" },
+  "PC0.5": { tier: "opening", name: "PC0.5: Dispatched?", body: ">1 file/WebSearch/code → dispatched Private?" },
+  "PC0.6": { tier: "opening", name: "PC0.6: init_corporal run?", body: "If new repo, was script run?" },
+  "PC0.7": { tier: "opening", name: "PC0.7: Reflection written?", body: "Edit/Write truly called?" },
+
+  "F1": { tier: "private", name: "init_corporal.sh", body: "bash /home/yguo173/Programs/claude-config/init_corporal.sh $PWD\nIdempotent. Auto-create militar_camp/ + 5 ledger files + next-numbered corporal_X/." },
+  "F2": { tier: "private", name: "init_soldier.sh", body: "bash init_soldier.sh <CorpNum> <PrivNum> $PWD\nPrivate's first action on arrival." },
+
+  "M1": { tier: "meta", name: "M1: Recite Decrees [DELETED]", body: "DELETED in v3/v4 design. Hook (UserPromptSubmit + PostToolUse:Agent + PreToolUse:Agent) auto-injects full Decrees + Prompt Reinforcement. No recitation needed." },
+  "M2": { tier: "meta", name: "M2: Dispatch", body: ">1 file/WebSearch/code = Agent + run_in_background=true. Main thread alone = Treason. v3+: dispatched Agent tool_input.prompt is auto-augmented by PreToolUse:Agent hook — no manual copy of Iron Rules A-G + Decrees." },
+  "M3": { tier: "meta", name: "M3: 4-module reflection", body: "Edit/Write [REFLECT-A/B/C/D] to action log. Verbal = not done. v3+: REFLECT-A is 6-row table. REFLECT-C includes 3 retest Qs." },
+  "M4": { tier: "meta", name: "M4: 15-min monitoring", body: "CronCreate */15 or Monitor tool every 10-15 min. No blocking/background monitoring." },
+  "M5": { tier: "meta", name: "M5: Prompt Reinforcement (AUTOMATED)", body: "v3+: AUTO-INJECTED via PreToolUse matcher=Agent hook. Hook detects missing 4-item kit keywords (observable/cadence/reflection/completion), auto-prepends reinforcement template. action.md gets [AUTO_REINFORCED] trace." },
+  "M6": { tier: "meta", name: "M6: Default autonomous (+AUTH override)", body: "Non-Destructive autonomous; only 8-item Destructive asks. v3+: On 3 consecutive failures, Read $PWD/CLAUDE.md. If AUTH keyword found → suspend 3-failure-stop, keep trying, log [AUTH_DETECTED]." },
+
+  "O1": { tier: "opening", name: "O1: Recite [DELETED]", body: "DELETED. 4-Step Opening becomes 3-Step (O2 → O3 → O4). Hook injection handles Decree visibility." },
+  "O2": { tier: "opening", name: "O2: Read boards (NEW LIST)", body: "v3+ list: violation.md (global), lessons.md (global), operation_log.md, attempts_ledger.md, bitter_lessons.md, successful_fixes.md, corporal_situation, corporal_status (observation checklist), corporal_action last section, all active soldier_action.md. v4: ALSO read $PWD/.claude_status/goal.md. Write [BOARD_READ] entry." },
+  "O3": { tier: "opening", name: "O3: Write reflection", body: "Four-module [REFLECT-A/B/C/D] to corporal_action.md. Substantive content." },
+  "O4": { tier: "opening", name: "O4: Respond", body: "After opening, read Commander instruction and respond." },
+
+  "D1": { tier: "decree", name: "D1: Identity", body: "Corporal CLAUDE. Address other as Commander. Self = Corporal. Forbidden: user/Claude/assistant." },
+  "D2": { tier: "decree", name: "D2: Facts-First (HARDENED)", body: "Every sentence [FACT]/[INFERENCE]/[ASSUMPTION]. [INFERENCE] requires: (1) EFFORT LOG inline (WebSearch count + keywords, files Read + ranges, experiments + outputs). (2) SECOND meta-reflection: evidence complete? observable var missed? used too early?" },
+  "D3": { tier: "decree", name: "D3: Dispatch+Monitor", body: ">1 file/WebSearch/code = Agent with run_in_background=true. Long bash jobs = Bash run_in_background → Monitor bash_id every 10-15 min. CronCreate only for cross-session tasks." },
+  "D4": { tier: "decree", name: "D4: Recording", body: "corporal_action.md BEFORE ending reply. AI rule violation → write to REPO content/templates/global_rules/violation.md (NOT ~/.claude/rules/ — that triggers approval click). Engineering failures → bitter_lessons.md. Confession without file record = DOUBLE violation. Also: maintain $PWD/.claude_status/status.md [STOP-GATE] (Stop hook blocks if any item=0)." },
+  "D5": { tier: "decree", name: "D5: Reading", body: "Read tool only. No memory/impressions." },
+  "D6": { tier: "decree", name: "D6: Workflow+Fix-loop (HARDENED)", body: "List → act+monitor → reflect → retest until OK. v3+ retest 3-Q: (a) did I actually run the test cmd? (b) did I wait for results? (c) does output match success criterion? Any No = retest fails." },
+
+  "R-A": { tier: "reflect", name: "REFLECT-A (6-row table)", body: "STRUCTURED 6-row markdown table — one row per Decree D1-D6: | Decree | Followed Y/N | Full reason with evidence |. PLUS: read all boards? warning_board errors repeated?" },
+  "R-B": { tier: "reflect", name: "REFLECT-B", body: "Workflow + observation validity. Observable indicators listed in corporal_status.md ## observation checklist?" },
+  "R-C": { tier: "reflect", name: "REFLECT-C", body: "Monitoring analysis. Values normal? New bugs? 3 retest Qs answered?" },
+  "R-D": { tier: "reflect", name: "REFLECT-D", body: "Contextual thinking. Forbidden boilerplate: none / N/A / same as above / not triggered / no new / nothing special." },
+
+  "OB": { tier: "reflect", name: "Observation 3-set", body: "(1) measurement command (2) expected output (3) failure signal. ≤10 items. v4: nvidia-smi util / NPZ count / sacct STATUS / loss / VRAM trend." },
+
+  "P-A": { tier: "private", name: "P-A: Real-time report", body: "Write soldier_action.md within 30s per step. 30s silent = Treason." },
+  "P-B": { tier: "private", name: "P-B: SILENCE_START", body: "Only truly blocking ops. Overtime without END = False Military Report." },
+  "P-C": { tier: "private", name: "P-C: 4-step opening", body: "Same as Corporal — every reply." },
+  "P-D": { tier: "private", name: "P-D: No unauth changes", body: "G1~G16 performance protection (W-001/W-002)." },
+  "P-E": { tier: "private", name: "P-E: Write before op", body: "Record-before-act invariant (W-007)." },
+  "P-F": { tier: "private", name: "P-F: Truthfulness", body: "Same as D2." },
+  "P-G": { tier: "private", name: "P-G: Autonomy", body: "Same as M6." },
+
+  "DP":  { tier: "private", name: "Dispatch prompt 6 sec", body: "Verbatim a-f: init_soldier / Iron rules A-G / 3 meta / D2 / D6 / autonomous. v3+: PreToolUse:Agent hook auto-injects ~6 KB of A-G + Decrees." },
+  "PRE_DISP": { tier: "private", name: "Prompt Reinforcement", body: "4-item kit check + [PROMPT REINFORCED] 3-item set. v3+: hook-automated when missing kit detected." },
+  "CRON": { tier: "private", name: "CronCreate */15", body: "Schedule */15 + prompt = read soldier_action.md + run observation cmds + write [OBSERVE]. v3+ NOTE: must pair with MON_TOOL to verify task actually running, not queued/exited/error." },
+  "CRON_END":{ tier: "private", name: "CronDelete", body: "After all COMPLETED + retest ✅." },
+
+  "FL-1": { tier: "reflect", name: "FL-1: Locate", body: "Find root cause. Read relevant files. Read traceback / log / events.jsonl." },
+  "FL-2": { tier: "reflect", name: "FL-2: Handle", body: "Apply fix. Record commit_id + before/after observation." },
+  "FL-3": { tier: "reflect", name: "FL-3: Retest", body: "RE-RUN measurement commands. Compare. Write [RETEST]. Answer 3-Q." },
+
+  "DST": { tier: "meta", name: "Destructive checklist", body: "8 items: rm-rf / force-push / dotfile / new hooks / perf-degrade / commit-to-main / user data / core prompt." },
+  "ASK_CMD": { tier: "event", name: "Ask Commander", body: "AskUserQuestion 4-element kit: status + root cause + recommendation + authorization needed (W-004)." },
+
+  "A-LIST": { tier: "private", name: "List assumption", body: "[Attempt N] Assumption/Direction/Expected." },
+  "A-REC":  { tier: "private", name: "Record result", body: "operation/result/reason/next correction." },
+  "A-ESC":  { tier: "private", name: "Escalate after 3 fails", body: "Stop. List Attempts 1-3 + before/after + WRONG WAY rationale + request Commander intervention." },
+
+  "VL": { tier: "violation", name: "violation.md [GLOBAL]", body: "v3+: ~/.claude/rules/violation.md (GLOBAL, auto-loaded). AI rule violations only. Schema: W-XXX + tags + what happened + why bad + how to prevent. WRITE via repo content/templates/global_rules/violation.md to avoid approval click." },
+  "LS": { tier: "violation", name: "attempts_ledger.md", body: "v3+: project-level. Schema: ATTEMPT_ID + bug/target + what tried + commit_id + before/after + verdict." },
+  "TR": { tier: "violation", name: "bitter_lessons.md", body: "v3+: project-level. Archives FAILED efforts: WRONG WAY 1, 2, ... — what tried, commit_id, before/after, why failed, cost paid, abandon criteria." },
+
+  "SC-FULL": { tier: "reflect", name: "Full check (blocker)", body: "100% Read original + re-run ≥1 cmd." },
+  "SC-MIN":  { tier: "reflect", name: "Spot check (minor)", body: "≥2 spot checks." },
+  "SC-ALL":  { tier: "reflect", name: "Re-run pass (anti-forgery)", body: "≥1 'pass' must be re-run." },
+  "SC-RFLT": { tier: "reflect", name: "≥2 rounds reflection", body: "Credible? Disguised failure?" },
+  "SC-REJ":  { tier: "violation", name: "Reject + redo", body: "status.md 'rejected' + bitter entry. Failed conclusion → fix-loop." },
+
+  "RESPOND": { tier: "end", name: "Respond to Commander", body: "Reply. Before end: Edit corporal_action.md. Append to relevant ledger or [no new ledger entries]." },
+  "WAIT":    { tier: "end", name: "Wait for next event", body: "Idle." },
+  "STOP": { tier: "end", name: "Stop & escalate (HARDENED)", body: "Halt + escalate. v3+: stop report must include effort-proof (files read, searches done, experiments run, multi-round self-QA). 'I cannot do it' is rejected." },
+
+  "OP_LOG": { tier: "private", name: "operation_log.md", body: "Project-level (militar_camp/operation_log.md). Every meaningful operation (yaml field change, flag toggle, file add). Flat chronological journal." },
+  "ATT_LEDGER": { tier: "private", name: "attempts_ledger.md", body: "Project-level. Per-attempt grouped log. Each entry: ATTEMPT_ID + bug/target + what tried + commit_id + before/after + verdict." },
+  "BITTER": { tier: "violation", name: "bitter_lessons.md", body: "Project-level. WRONG WAY 1, 2, ... verbose entries with cost paid + abandon criteria." },
+  "SUCC_FIX": { tier: "end", name: "successful_fixes.md", body: "Project-level. Final winning fixes after many attempts. Each entry = one victory." },
+  "VIOL_FILE": { tier: "violation", name: "violation.md [GLOBAL repo path]", body: "WRITE to repo content/templates/global_rules/violation.md (not ~/.claude/rules/ — avoid approval click). Append W-XXX with tags." },
+  "REFLECT2": { tier: "reflect", name: "2nd meta-reflection ([INFERENCE])", body: "After EFFORT_LOG: reflect AGAIN: evidence complete? observable variable missed? [INFERENCE] used too early?" },
+  "READ_PROJ_CLAUDE": { tier: "event", name: "Read $PWD/CLAUDE.md (auth check)", body: "Before 3-failure stop: Read $PWD/CLAUDE.md (project-level, NOT ~/.claude/). Search keywords. Found → suspend stop + log [AUTH_DETECTED]. Not found → default stop." },
+  "MON_TOOL": { tier: "private", name: "Monitor/TaskList verify-running", body: "After Bash run_in_background or CronCreate, within ≤1 min, use Monitor tool with bash_id to verify task status. Flag: queued (silent hang) / exited / error / missing. L-014: cross-check nvidia-smi + NPZ count." },
+  "EFFORT_LOG": { tier: "reflect", name: "Effort log (evidence list)", body: "Required content before [INFERENCE]: WebSearch count + keywords. Files Read line-by-line + ranges. Experiments run + cmd + output. Multi-round self-QA trace. Must appear in action.md AND user-facing reply." },
+
+  // ===== v4 ADDITIONS =====
+  "HOOK_INJECT": { tier: "meta", name: "Hook injects Decrees", body: "v4 NEW. UserPromptSubmit + PostToolUse:Agent hooks fire inject_decrees.sh (~7.5 KB injection of Six Decrees + Iron Rules + Prompt Reinforcement). PreToolUse:Agent hook fires inject_decrees_to_subagent.sh (~6 KB) into every subagent's initial prompt. Source: ~/.claude/hooks/. Registered by ~/.claude/settings.json (bash set_claude.sh). Refusing = refusing Commander." },
+  "GOAL_READ": { tier: "opening", name: "Read $PWD/.claude_status/goal.md", body: "v4 NEW. Commander-controlled goal file. AI READS ONLY (never writes). Contains current high-level goal + success criterion. Empty/unclear → trigger ASK_CMD. Stop hook checks 15-min staleness as part of STOP-GATE bg-activity audit." },
+  "STOP_GATE_CHECK": { tier: "meta", name: "STOP-GATE 15-item audit", body: "v4 NEW. Stop hook reads $PWD/.claude_status/{sid}_status.md ~15 STOP-GATE sub-rules. Each must be 1 or N/A. Any 0 → Stop hook BLOCKS with audit message. Items cover: military-audit checklist, REFLECT-A 6-row table, retest 3-Q, observation indicators, action.md entries, ledger writes, dispatch evidence, etc." },
+  "BG_MTIME_CHECK": { tier: "meta", name: "bg .output mtime < 15min", body: "v4 NEW. Stop hook stop_self_audit.sh checks: any background bash process .output file with mtime < 15 min = still active. SLURM running with fresh log → ALLOW stop (don't busy-wait). Stale > 15 min + STOP-GATE = 1 → cleanly stop. Stop is blocked if STOP-GATE has 0s AND ledger/action.md missing." },
+  "BASH_BG": { tier: "private", name: "Bash run_in_background → bash_id", body: "v4 NEW. Decree 3: long jobs use Bash tool with run_in_background=true. Capture bash_id. Hand bash_id to Monitor tool. DO NOT block on long ops in main thread. NEVER use cron for in-session jobs (cron only for cross-session)." },
+  "QUEUE_PENDING": { tier: "event", name: "SLURM job PENDING", body: "v4 NEW. Observable: sacct -j <jobid> shows STATUS=PENDING. Job is in queue, not yet running. Silent hang risk. Proceed to MON_TOOL immediately; do not assume it will start." },
+  "QUEUE_RUNNING": { tier: "event", name: "SLURM job RUNNING", body: "v4 NEW. Observable: sacct STATUS=RUNNING + nvidia-smi util > 0 + NPZ count growing. L-014/L-015: VRAM growth rate is superior frozen-vs-computing discriminator for stochastic jobs." },
+  "OOM": { tier: "event", name: "CUDA OutOfMemoryError", body: "v4 NEW. Failure signal observed at step 30. events.jsonl entry: torch.cuda.OutOfMemoryError. Triggers fix-loop." },
+  "AUTH_DETECTED": { tier: "opening", name: "AUTH override detected", body: "v4 NEW. $PWD/CLAUDE.md contains 'allow you to do anything' / 'you have the authorization' / 'no stop until X'. Suspends 3-failure stop rule. Log [AUTH_DETECTED] in action.md. Keep trying." },
+  "NO_AUTH": { tier: "opening", name: "No AUTH override", body: "v4 NEW. $PWD/CLAUDE.md has no AUTH keyword. Default 3-failure stop rule applies. Proceed to A-ESC → ASK_CMD → STOP." },
+};
+
+// Group palette by tier
+const PALETTE_GROUPS = {
+  "Events / Triggers": ["USER_MSG","NEW_REPO","CRON_FIRE","PRIV_DONE","FAIL_SIG","DESTR_NEED","INFERENCE","WEAK_PMT","VIOL","FAIL_3X"],
+  "Pre-check": ["PC0","PC0.5","PC0.6","PC0.7"],
+  "First Action": ["F1","F2"],
+  "Meta-Rules": ["M1","M2","M3","M4","M5","M6","DST"],
+  "4-Step Opening": ["O1","O2","O3","O4"],
+  "Six Decrees": ["D1","D2","D3","D4","D5","D6"],
+  "Reflection / Observation": ["R-A","R-B","R-C","R-D","OB"],
+  "Private Iron Rules": ["P-A","P-B","P-C","P-D","P-E","P-F","P-G"],
+  "Dispatch": ["DP","PRE_DISP","CRON","CRON_END"],
+  "Fix-loop": ["FL-1","FL-2","FL-3"],
+  "Autonomy": ["A-LIST","A-REC","A-ESC"],
+  "Error Learning": ["VL","LS","TR"],
+  "Spot-check": ["SC-FULL","SC-MIN","SC-ALL","SC-RFLT","SC-REJ"],
+  "Ask / End": ["ASK_CMD","RESPOND","WAIT","STOP"],
+  "v3 NEW: Ledger files": ["OP_LOG","ATT_LEDGER","BITTER","SUCC_FIX","VIOL_FILE"],
+  "v3 NEW: Reflection enhanced": ["EFFORT_LOG","REFLECT2"],
+  "v3 NEW: Monitoring enhanced": ["MON_TOOL"],
+  "v3 NEW: Authorization": ["READ_PROJ_CLAUDE"],
+  "v4 NEW: Train scenario": ["HOOK_INJECT","GOAL_READ","STOP_GATE_CHECK","BG_MTIME_CHECK","BASH_BG","QUEUE_PENDING","QUEUE_RUNNING","OOM","AUTH_DETECTED","NO_AUTH"],
+};
+
+// =========================================================
+// DEFAULT PIPELINES (single SCN-MAIN — same as state-init)
+// =========================================================
+const DEFAULT_PIPELINES = {
+  "SCN-MAIN": {
+    name: "Train LLM → OOM debug → 3-fail branch → success",
+    desc: "Commander says: 'train LLM on GSM8K, stochastic 8 runs, batch=32, submit to SLURM cluster'. Single concrete narrative covering hook injection → init_corporal → boards → weak-prompt → M5 → goal → reflect → dispatch → spot-check → SLURM PENDING → Monitor → RUNNING → OOM step 30 → fix-loop → 3 attempts fail → AUTH branch / no-AUTH branch.",
+    instances: [
+      { iid: "u1",   base: "USER_MSG",         x: 109,   y: 60 },
+      { iid: "hook", base: "HOOK_INJECT",      x: 220,  y: 60 },
+      { iid: "f1",   base: "F1",               x: 380,  y: 60 },
+      { iid: "o2",   base: "O2",               x: 540,  y: 60 },
+      { iid: "weak", base: "WEAK_PMT",         x: 700,  y: 60 },
+      { iid: "m5",   base: "M5",               x: 860,  y: 60 },
+      { iid: "pre",  base: "PRE_DISP",         x: 1020, y: 60 },
+      { iid: "ask",  base: "ASK_CMD",          x: 1180, y: 60 },
+      { iid: "goal", base: "GOAL_READ",        x: 1340, y: 60 },
+      { iid: "o3",   base: "O3",               x: 1500, y: 60 },
+
+      { iid: "d6",   base: "D6",               x: 220,  y: 200 },
+      { iid: "ob",   base: "OB",               x: 380,  y: 200 },
+      { iid: "pre2", base: "PRE_DISP",         x: 540,  y: 200 },
+      { iid: "dp",   base: "DP",               x: 700,  y: 200 },
+      { iid: "priv", base: "PRIV_DONE",        x: 860,  y: 200 },
+      { iid: "sc",   base: "SC-FULL",          x: 1020, y: 200 },
+      { iid: "bash", base: "BASH_BG",          x: 1180, y: 200 },
+      { iid: "qp",   base: "QUEUE_PENDING",    x: 1340, y: 200 },
+      { iid: "mon",  base: "MON_TOOL",         x: 1500, y: 200 },
+      { iid: "qr",   base: "QUEUE_RUNNING",    x: 1660, y: 200 },
+
+      { iid: "fs",   base: "FAIL_SIG",         x: 109,   y: 380 },
+      { iid: "oom1", base: "OOM",              x: 220,  y: 380 },
+      { iid: "fl1",  base: "FL-1",             x: 380,  y: 380 },
+      { iid: "att1", base: "ATT_LEDGER",       x: 540,  y: 380 },
+      { iid: "bit1", base: "BITTER",           x: 700,  y: 380 },
+      { iid: "fl2a", base: "FL-2",             x: 860,  y: 380 },
+      { iid: "oom2", base: "OOM",              x: 1020, y: 380 },
+      { iid: "att2", base: "ATT_LEDGER",       x: 1180, y: 380 },
+      { iid: "bit2", base: "BITTER",           x: 1340, y: 380 },
+      { iid: "fl2b", base: "FL-2",             x: 1500, y: 380 },
+      { iid: "oom3", base: "OOM",              x: 1660, y: 380 },
+      { iid: "att3", base: "ATT_LEDGER",       x: 1820, y: 380 },
+      { iid: "fx",   base: "FAIL_3X",          x: 1980, y: 380 },
+      { iid: "rpc",  base: "READ_PROJ_CLAUDE", x: 2140, y: 380 },
+
+      { iid: "auth", base: "AUTH_DETECTED",    x: 2140, y: 240 },
+      { iid: "fl2c", base: "FL-2",             x: 2300, y: 240 },
+      { iid: "sfix", base: "SUCC_FIX",         x: 2460, y: 240 },
+      { iid: "fl3",  base: "FL-3",             x: 2620, y: 240 },
+      { iid: "oplog",base: "OP_LOG",           x: 2780, y: 240 },
+      { iid: "ra",   base: "R-A",              x: 2940, y: 160 },
+      { iid: "rb",   base: "R-B",              x: 2940, y: 260 },
+      { iid: "rc",   base: "R-C",              x: 2940, y: 360 },
+      { iid: "rd",   base: "R-D",              x: 2940, y: 460 },
+      { iid: "d4",   base: "D4",               x: 3100, y: 300 },
+      { iid: "sg",   base: "STOP_GATE_CHECK",  x: 3260, y: 300 },
+      { iid: "bgm",  base: "BG_MTIME_CHECK",   x: 3420, y: 300 },
+      { iid: "resp", base: "RESPOND",          x: 3580, y: 300 },
+      { iid: "wait", base: "WAIT",             x: 3740, y: 300 },
+
+      { iid: "noauth",base: "NO_AUTH",         x: 2140, y: 520 },
+      { iid: "aesc", base: "A-ESC",            x: 2300, y: 520 },
+      { iid: "ask2", base: "ASK_CMD",          x: 2460, y: 520 },
+      { iid: "stop", base: "STOP",             x: 2620, y: 520 },
+
+      { iid: "el",   base: "EFFORT_LOG",       x: 220,  y: 520 },
+      { iid: "rf2",  base: "REFLECT2",         x: 380,  y: 520 },
+      { iid: "d2",   base: "D2",               x: 540,  y: 520 },
+
+      { iid: "viol", base: "VIOL",             x: 3100, y: 500 },
+      { iid: "vf",   base: "VIOL_FILE",        x: 3260, y: 500 },
+    ],
+    edges: [
+      ["u1","hook"],["hook","f1"],["f1","o2"],["o2","weak"],["weak","m5"],
+      ["m5","pre"],["pre","ask"],["ask","goal"],["goal","o3"],
+      ["o3","d6"],["d6","ob"],["ob","pre2"],["pre2","dp"],["dp","priv"],
+      ["priv","sc"],["sc","bash"],["bash","qp"],["qp","mon"],["mon","qr"],
+      ["qr","fs"],["fs","oom1"],["oom1","fl1"],["fl1","att1"],["att1","bit1"],
+      ["bit1","fl2a"],["fl2a","oom2"],["oom2","att2"],["att2","bit2"],
+      ["bit2","fl2b"],["fl2b","oom3"],["oom3","att3"],["att3","fx"],["fx","rpc"],
+      ["rpc","auth"],["auth","fl2c"],["fl2c","sfix"],["sfix","fl3"],
+      ["fl3","oplog"],["oplog","ra"],["oplog","rb"],["oplog","rc"],["oplog","rd"],
+      ["ra","d4"],["rb","d4"],["rc","d4"],["rd","d4"],
+      ["d4","sg"],["sg","bgm"],["bgm","resp"],["resp","wait"],
+      ["rpc","noauth"],["noauth","aesc"],["aesc","ask2"],["ask2","stop"],
+      ["oom1","el"],["el","rf2"],["rf2","d2"],["d2","fl1"],
+      ["viol","d4"],["viol","vf"],["vf","oplog"],
+    ],
+  },
+};
+
+// =========================================================
+// STATE (everything user can change)
+// =========================================================
+let STATE = {
+  currentPipeline: "SCN-MAIN",
+  pipelines: {},
+  toggles: {},
+  comments: {},
+  edgeComments: {},
+  customNodes: {},
+};
+
+let arrowMode = false;
+let arrowSource = null;
+let selectedNode = null;
+let currentEdge = null;
+
+// =========================================================
+// STATE INIT / PERSISTENCE
+// =========================================================
+function initState() {
+  const tag = document.getElementById("state-init");
+  let loaded = null;
+  try {
+    const raw = tag.textContent.trim();
+    if (raw && raw !== "{}") loaded = JSON.parse(raw);
+  } catch (e) { console.warn("state-init parse failed:", e); }
+
+  if (!loaded) {
+    try {
+      const raw = localStorage.getItem("pipeline_v4_state");
+      if (raw) loaded = JSON.parse(raw);
+    } catch (e) { console.warn("localStorage parse failed:", e); }
+  }
+
+  if (loaded && loaded.pipelines) {
+    STATE = loaded;
+  } else {
+    STATE.pipelines = JSON.parse(JSON.stringify(DEFAULT_PIPELINES));
+  }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem("pipeline_v4_state", JSON.stringify(STATE));
+  } catch (e) { console.warn("localStorage save failed:", e); }
+}
+
+function showStatus(msg, ms=2000) {
+  const bar = document.getElementById("status-bar");
+  bar.textContent = msg;
+  bar.classList.add("show");
+  clearTimeout(showStatus._t);
+  showStatus._t = setTimeout(() => bar.classList.remove("show"), ms);
+}
+
+// =========================================================
+// NODE RESOLUTION
+// =========================================================
+function getNodeDef(baseId, pipelineId) {
+  if (NODES[baseId]) return NODES[baseId];
+  const custom = STATE.customNodes[pipelineId];
+  if (custom && custom[baseId]) return custom[baseId];
+  return { tier: "custom", name: baseId + " (missing def)", body: "Definition not found." };
+}
+
+function currentPipe() {
+  return STATE.pipelines[STATE.currentPipeline];
+}
+
+// =========================================================
+// RENDER
+// =========================================================
+function renderPipelineBar() {
+  const bar = document.getElementById("pipelinebar");
+  bar.innerHTML = "";
+  Object.keys(STATE.pipelines).forEach(pid => {
+    const pipe = STATE.pipelines[pid];
+    const btn = document.createElement("button");
+    btn.className = "pipebtn" + (STATE.currentPipeline === pid ? " active" : "") + (pid.startsWith("CUSTOM-") ? " custom" : "");
+    btn.textContent = pipe.name;
+    btn.onclick = () => { STATE.currentPipeline = pid; selectedNode = null; arrowSource = null; renderAll(); saveState(); };
+    bar.appendChild(btn);
+  });
+}
+
+function renderPalette() {
+  const body = document.getElementById("palette-body");
+  body.innerHTML = "";
+  Object.entries(PALETTE_GROUPS).forEach(([groupName, ids]) => {
+    const section = document.createElement("div");
+    section.className = "pal-section";
+    const title = document.createElement("div");
+    title.className = "pal-section-title";
+    title.textContent = groupName;
+    section.appendChild(title);
+    ids.forEach(id => {
+      const def = NODES[id];
+      if (!def) return;
+      const item = document.createElement("div");
+      item.className = "pal-item";
+      item.draggable = true;
+      item.innerHTML = `<div class="pid">${id}</div>${def.name}`;
+      item.addEventListener("dragstart", (e) => {
+        e.dataTransfer.setData("text/plain", id);
+      });
+      item.onclick = () => addNodeToCurrentPipeline(id);
+      section.appendChild(item);
+    });
+    body.appendChild(section);
+  });
+}
+
+function renderCanvas() {
+  const pipe = currentPipe();
+  const canvas = document.getElementById("canvas-nodes");
+  canvas.innerHTML = "";
+
+  let maxX = 800, maxY = 400;
+  pipe.instances.forEach(inst => {
+    maxX = Math.max(maxX, inst.x + 260);
+    maxY = Math.max(maxY, inst.y + 140);
+  });
+  canvas.style.width = (maxX + 80) + "px";
+  canvas.style.height = (maxY + 80) + "px";
+
+  pipe.instances.forEach(inst => {
+    const def = getNodeDef(inst.base, STATE.currentPipeline);
+    const el = document.createElement("div");
+    const toggles = STATE.toggles[STATE.currentPipeline] || {};
+    const comments = STATE.comments[STATE.currentPipeline] || {};
+    el.className = "node tier-" + def.tier;
+    if (toggles[inst.iid] === "disabled") el.classList.add("disabled");
+    if (toggles[inst.iid] === "modified") el.classList.add("modified");
+    if (selectedNode === inst.iid) el.classList.add("selected");
+    if (arrowSource === inst.iid) el.classList.add("arrow-source");
+    el.style.left = inst.x + "px";
+    el.style.top = inst.y + "px";
+    el.innerHTML = `
+      <div class="nid">${inst.base}${inst.iid ? " · " + inst.iid : ""}</div>
+      <div class="nname">${def.name}</div>
+      <div class="ntag">${def.tier}${toggles[inst.iid] ? " · " + toggles[inst.iid] : ""}</div>
+      ${comments[inst.iid] ? `<div class="ncomment">💬 ${escapeHtml(comments[inst.iid].slice(0, 60))}${comments[inst.iid].length > 60 ? "..." : ""}</div>` : ""}
+      <div class="node-handle" data-iid="${inst.iid}"></div>
+    `;
+    el.dataset.iid = inst.iid;
+    canvas.appendChild(el);
+
+    el.addEventListener("mousedown", (e) => onNodeMouseDown(e, inst));
+    el.querySelector(".node-handle").addEventListener("mousedown", (e) => onHandleMouseDown(e, inst));
+  });
+
+  renderEdges();
+}
+
+function renderEdges() {
+  const pipe = currentPipe();
+  const svg = document.getElementById("canvas-svg");
+  const canvas = document.getElementById("canvas-nodes");
+  svg.setAttribute("width", canvas.style.width);
+  svg.setAttribute("height", canvas.style.height);
+  svg.innerHTML = `
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#0066b8"/>
+      </marker>
+    </defs>
+  `;
+
+  const ec = STATE.edgeComments[STATE.currentPipeline] || {};
+  pipe.edges.forEach(([from, to]) => {
+    const a = pipe.instances.find(i => i.iid === from);
+    const b = pipe.instances.find(i => i.iid === to);
+    if (!a || !b) return;
+    const x1 = a.x + 100 + 32, y1 = a.y + 35 + 32;
+    const x2 = b.x + 100 + 32, y2 = b.y + 35 + 32;
+    const dx = Math.abs(x2 - x1) / 2;
+    const d = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", d);
+    path.setAttribute("stroke", "#0066b8");
+    path.setAttribute("stroke-width", "2");
+    path.setAttribute("fill", "none");
+    path.setAttribute("marker-end", "url(#arrow)");
+    path.setAttribute("opacity", "0.7");
+    path.classList.add("clickable");
+    path.addEventListener("click", () => openEdgeModal(from, to));
+    svg.appendChild(path);
+
+    const key = from + "→" + to;
+    if (ec[key]) {
+      const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      text.setAttribute("x", (x1 + x2) / 2);
+      text.setAttribute("y", (y1 + y2) / 2 - 4);
+      text.setAttribute("text-anchor", "middle");
+      text.setAttribute("fill", "#0066b8");
+      text.setAttribute("font-size", "10");
+      text.setAttribute("font-style", "italic");
+      text.textContent = ec[key].slice(0, 40);
+      svg.appendChild(text);
+    }
+  });
+}
+
+function renderDetail() {
+  const detail = document.getElementById("sp-detail");
+  const descEdit = document.getElementById("sp-desc-edit");
+  const titleEl = document.getElementById("sp-title");
+  const pipe = currentPipe();
+  titleEl.textContent = pipe.name;
+  descEdit.value = pipe.desc || "";
+  descEdit.oninput = (e) => { pipe.desc = e.target.value; saveState(); };
+
+  if (!selectedNode) {
+    detail.innerHTML = `<div class="help-box">
+      Click any node to see/edit its detail.<br><br>
+      <strong>KEEP / MODIFY / DROP</strong> tags affect Export Spec output.<br>
+      <strong>Comment</strong> field is your free-form note attached to that node instance.<br><br>
+      <strong>To draw an arrow:</strong> hover a node, drag the blue handle (●) on its right edge to another node.<br>
+      <strong>Or:</strong> toggle Draw Arrow Mode → click source → click target.
+    </div>`;
+    return;
+  }
+
+  const inst = pipe.instances.find(i => i.iid === selectedNode);
+  if (!inst) { selectedNode = null; renderDetail(); return; }
+  const def = getNodeDef(inst.base, STATE.currentPipeline);
+  const toggles = STATE.toggles[STATE.currentPipeline] || {};
+  const comments = STATE.comments[STATE.currentPipeline] || {};
+  const cur = toggles[inst.iid] || "active";
+  const comment = comments[inst.iid] || "";
+
+  detail.innerHTML = `
+    <div class="detail-block">
+      <h3>${escapeHtml(def.name)}</h3>
+      <div class="id-line">${inst.base} · instance: ${inst.iid} · tier: ${def.tier}</div>
+      <div class="body">${escapeHtml(def.body)}</div>
+      <label>Toggle</label>
+      <div class="controls">
+        <button class="${cur === 'active' ? 'active' : ''}" onclick="setToggle('${inst.iid}', null)">✓ KEEP</button>
+        <button class="${cur === 'modified' ? 'active' : ''}" onclick="setToggle('${inst.iid}', 'modified')">✎ MODIFY</button>
+        <button class="${cur === 'disabled' ? 'active' : ''}" onclick="setToggle('${inst.iid}', 'disabled')">✕ DROP</button>
+      </div>
+      <label>Comment (your note for this instance)</label>
+      <textarea id="comment-edit" placeholder="Free-form comment...">${escapeHtml(comment)}</textarea>
+      <div class="controls">
+        <button class="danger" onclick="deleteNode('${inst.iid}')">🗑 Delete Node from Pipeline</button>
+      </div>
+    </div>
+  `;
+  const ce = document.getElementById("comment-edit");
+  ce.oninput = (e) => {
+    if (!STATE.comments[STATE.currentPipeline]) STATE.comments[STATE.currentPipeline] = {};
+    STATE.comments[STATE.currentPipeline][inst.iid] = e.target.value;
+    saveState();
+    renderCanvas();
+  };
+}
+
+function renderAll() {
+  renderPipelineBar();
+  renderPalette();
+  renderCanvas();
+  renderDetail();
+}
+
+function escapeHtml(s) {
+  return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+// =========================================================
+// INTERACTIONS — drag node, draw arrow, palette drop
+// =========================================================
+let dragInst = null;
+let dragOffset = {x:0, y:0};
+let dragMoved = false;
+
+function onNodeMouseDown(e, inst) {
+  if (e.target.classList.contains("node-handle")) return;
+  if (arrowMode) {
+    e.preventDefault();
+    if (!arrowSource) { arrowSource = inst.iid; renderCanvas(); }
+    else if (arrowSource !== inst.iid) { addEdge(arrowSource, inst.iid); arrowSource = null; renderCanvas(); }
+    else { arrowSource = null; renderCanvas(); }
+    return;
+  }
+  dragInst = inst;
+  dragMoved = false;
+  const rect = e.currentTarget.getBoundingClientRect();
+  dragOffset.x = e.clientX - rect.left;
+  dragOffset.y = e.clientY - rect.top;
+  e.currentTarget.classList.add("dragging");
+  document.addEventListener("mousemove", onNodeMouseMove);
+  document.addEventListener("mouseup", onNodeMouseUp);
+}
+
+function onNodeMouseMove(e) {
+  if (!dragInst) return;
+  const canvas = document.getElementById("canvas-nodes");
+  const cRect = canvas.getBoundingClientRect();
+  const newX = e.clientX - cRect.left - dragOffset.x + canvas.scrollLeft;
+  const newY = e.clientY - cRect.top - dragOffset.y + canvas.scrollTop;
+  dragInst.x = Math.max(0, newX);
+  dragInst.y = Math.max(0, newY);
+  dragMoved = true;
+  renderCanvas();
+}
+
+function onNodeMouseUp(e) {
+  if (dragInst && !dragMoved) {
+    selectedNode = dragInst.iid;
+    renderDetail();
+    renderCanvas();
+  } else if (dragMoved) {
+    saveState();
+  }
+  document.querySelectorAll(".node.dragging").forEach(n => n.classList.remove("dragging"));
+  dragInst = null;
+  document.removeEventListener("mousemove", onNodeMouseMove);
+  document.removeEventListener("mouseup", onNodeMouseUp);
+}
+
+// Handle drag — direct arrow creation
+let handleStart = null;
+let handleLine = null;
+
+function onHandleMouseDown(e, inst) {
+  e.preventDefault();
+  e.stopPropagation();
+  handleStart = inst;
+  const canvas = document.getElementById("canvas-nodes");
+  const cRect = canvas.getBoundingClientRect();
+  const svg = document.getElementById("canvas-svg");
+  handleLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  handleLine.setAttribute("stroke", "#d16500");
+  handleLine.setAttribute("stroke-width", "2");
+  handleLine.setAttribute("stroke-dasharray", "5,3");
+  const x1 = inst.x + 220, y1 = inst.y + 35 + 32;
+  handleLine.setAttribute("x1", x1);
+  handleLine.setAttribute("y1", y1);
+  handleLine.setAttribute("x2", x1);
+  handleLine.setAttribute("y2", y1);
+  svg.appendChild(handleLine);
+  document.addEventListener("mousemove", onHandleMouseMove);
+  document.addEventListener("mouseup", onHandleMouseUp);
+}
+
+function onHandleMouseMove(e) {
+  if (!handleLine) return;
+  const canvas = document.getElementById("canvas-nodes");
+  const cRect = canvas.getBoundingClientRect();
+  const x = e.clientX - cRect.left + canvas.scrollLeft;
+  const y = e.clientY - cRect.top + canvas.scrollTop;
+  handleLine.setAttribute("x2", x);
+  handleLine.setAttribute("y2", y);
+}
+
+function onHandleMouseUp(e) {
+  if (!handleStart) return;
+  const target = e.target.closest(".node");
+  if (target && target.dataset.iid && target.dataset.iid !== handleStart.iid) {
+    addEdge(handleStart.iid, target.dataset.iid);
+  }
+  handleStart = null;
+  if (handleLine) { handleLine.remove(); handleLine = null; }
+  document.removeEventListener("mousemove", onHandleMouseMove);
+  document.removeEventListener("mouseup", onHandleMouseUp);
+  renderCanvas();
+}
+
+function addEdge(from, to) {
+  const pipe = currentPipe();
+  if (pipe.edges.some(([f,t]) => f===from && t===to)) {
+    showStatus("Edge already exists.");
+    return;
+  }
+  pipe.edges.push([from, to]);
+  saveState();
+  showStatus("Edge added: " + from + " → " + to);
+}
+
+// Canvas drop handling for palette
+document.addEventListener("DOMContentLoaded", () => {
+  const canvas = document.getElementById("canvas-wrap");
+  canvas.addEventListener("dragover", (e) => e.preventDefault());
+  canvas.addEventListener("drop", (e) => {
+    e.preventDefault();
+    const baseId = e.dataTransfer.getData("text/plain");
+    if (!baseId) return;
+    const cRect = document.getElementById("canvas-nodes").getBoundingClientRect();
+    const x = e.clientX - cRect.left + canvas.scrollLeft - 100;
+    const y = e.clientY - cRect.top + canvas.scrollTop - 30;
+    addNodeToCurrentPipeline(baseId, Math.max(0, x), Math.max(0, y));
+  });
+});
+
+function addNodeToCurrentPipeline(baseId, x=null, y=null) {
+  const pipe = currentPipe();
+  let iid = baseId.toLowerCase().replace(/[^a-z0-9]/g,"_") + "_" + Date.now().toString(36).slice(-4);
+  if (x===null) x = 60 + Math.random()*400;
+  if (y===null) y = 60 + Math.random()*200;
+  pipe.instances.push({ iid, base: baseId, x, y });
+  saveState();
+  renderAll();
+  showStatus("Added: " + baseId + " (instance " + iid + ")");
+}
+
+function deleteNode(iid) {
+  if (!confirm("Delete node " + iid + " and all its edges?")) return;
+  const pipe = currentPipe();
+  pipe.instances = pipe.instances.filter(i => i.iid !== iid);
+  pipe.edges = pipe.edges.filter(([f,t]) => f !== iid && t !== iid);
+  if (STATE.toggles[STATE.currentPipeline]) delete STATE.toggles[STATE.currentPipeline][iid];
+  if (STATE.comments[STATE.currentPipeline]) delete STATE.comments[STATE.currentPipeline][iid];
+  selectedNode = null;
+  saveState();
+  renderAll();
+}
+
+function setToggle(iid, val) {
+  if (!STATE.toggles[STATE.currentPipeline]) STATE.toggles[STATE.currentPipeline] = {};
+  if (val === null) delete STATE.toggles[STATE.currentPipeline][iid];
+  else STATE.toggles[STATE.currentPipeline][iid] = val;
+  saveState();
+  renderCanvas();
+  renderDetail();
+}
+
+// =========================================================
+// ARROW MODE
+// =========================================================
+function toggleArrowMode() {
+  arrowMode = !arrowMode;
+  arrowSource = null;
+  const btn = document.getElementById("btn-arrow-mode");
+  const ind = document.getElementById("arrow-mode-ind");
+  if (arrowMode) {
+    btn.classList.add("active");
+    ind.classList.add("active");
+    ind.textContent = "ON — click source node, then target";
+  } else {
+    btn.classList.remove("active");
+    ind.classList.remove("active");
+    ind.textContent = "OFF";
+  }
+  renderCanvas();
+}
+
+// =========================================================
+// EDGE EDIT
+// =========================================================
+function openEdgeModal(from, to) {
+  currentEdge = { from, to };
+  document.getElementById("edge-from").textContent = from;
+  document.getElementById("edge-to").textContent = to;
+  const ec = STATE.edgeComments[STATE.currentPipeline] || {};
+  document.getElementById("edge-comment").value = ec[from + "→" + to] || "";
+  document.getElementById("edge-modal").classList.add("show");
+}
+
+function saveEdgeComment() {
+  if (!currentEdge) return;
+  if (!STATE.edgeComments[STATE.currentPipeline]) STATE.edgeComments[STATE.currentPipeline] = {};
+  STATE.edgeComments[STATE.currentPipeline][currentEdge.from + "→" + currentEdge.to] = document.getElementById("edge-comment").value;
+  saveState();
+  renderCanvas();
+  closeModal("edge-modal");
+}
+
+function deleteEdge() {
+  if (!currentEdge) return;
+  if (!confirm("Delete edge " + currentEdge.from + " → " + currentEdge.to + "?")) return;
+  const pipe = currentPipe();
+  pipe.edges = pipe.edges.filter(([f,t]) => !(f===currentEdge.from && t===currentEdge.to));
+  if (STATE.edgeComments[STATE.currentPipeline]) {
+    delete STATE.edgeComments[STATE.currentPipeline][currentEdge.from + "→" + currentEdge.to];
+  }
+  saveState();
+  renderCanvas();
+  closeModal("edge-modal");
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove("show"); }
+
+// =========================================================
+// PIPELINE OPS
+// =========================================================
+function addPipeline() {
+  const name = prompt("New pipeline name?", "Custom-" + (Object.keys(STATE.pipelines).length + 1));
+  if (!name) return;
+  const id = "CUSTOM-" + Date.now().toString(36);
+  STATE.pipelines[id] = { name, desc: "", instances: [], edges: [] };
+  STATE.currentPipeline = id;
+  saveState();
+  renderAll();
+}
+
+function renamePipeline() {
+  const pipe = currentPipe();
+  const name = prompt("Pipeline name:", pipe.name);
+  if (!name) return;
+  pipe.name = name;
+  saveState();
+  renderAll();
+}
+
+function deletePipeline() {
+  if (Object.keys(STATE.pipelines).length <= 1) { alert("Cannot delete last pipeline."); return; }
+  if (!confirm("Delete pipeline '" + currentPipe().name + "'?")) return;
+  delete STATE.pipelines[STATE.currentPipeline];
+  delete STATE.toggles[STATE.currentPipeline];
+  delete STATE.comments[STATE.currentPipeline];
+  delete STATE.edgeComments[STATE.currentPipeline];
+  STATE.currentPipeline = Object.keys(STATE.pipelines)[0];
+  saveState();
+  renderAll();
+}
+
+// =========================================================
+// EXPORT / IMPORT
+// =========================================================
+function generateExportSpec() {
+  const lines = [];
+  lines.push("# Workflow Modification Spec (v4)");
+  lines.push("");
+  lines.push("Generated " + new Date().toISOString());
+  lines.push("");
+  lines.push("## All pipelines");
+  Object.entries(STATE.pipelines).forEach(([pid, pipe]) => {
+    lines.push("");
+    lines.push(`### ${pipe.name} (${pid})`);
+    lines.push("");
+    lines.push(pipe.desc || "_(no description)_");
+    lines.push("");
+
+    const toggles = STATE.toggles[pid] || {};
+    const comments = STATE.comments[pid] || {};
+    const ec = STATE.edgeComments[pid] || {};
+
+    const dropped = [], modified = [], kept = [];
+    pipe.instances.forEach(inst => {
+      const t = toggles[inst.iid];
+      if (t === "disabled") dropped.push(inst);
+      else if (t === "modified") modified.push(inst);
+      else kept.push(inst);
+    });
+
+    if (dropped.length) {
+      lines.push("#### DROP ✕");
+      dropped.forEach(inst => {
+        const def = getNodeDef(inst.base, pid);
+        lines.push(`- **${inst.base}** (${inst.iid}) — ${def.name}`);
+        if (comments[inst.iid]) lines.push(`  - Note: ${comments[inst.iid]}`);
+      });
+      lines.push("");
+    }
+    if (modified.length) {
+      lines.push("#### MODIFY ✎");
+      modified.forEach(inst => {
+        const def = getNodeDef(inst.base, pid);
+        lines.push(`- **${inst.base}** (${inst.iid}) — ${def.name}`);
+        if (comments[inst.iid]) lines.push(`  - Change: ${comments[inst.iid]}`);
+        else lines.push(`  - Change: [TODO describe]`);
+      });
+      lines.push("");
+    }
+    if (kept.length) {
+      lines.push("#### KEEP");
+      kept.forEach(inst => {
+        const def = getNodeDef(inst.base, pid);
+        let line = `- ${inst.base} (${inst.iid}): ${def.name}`;
+        if (comments[inst.iid]) line += ` — _${comments[inst.iid]}_`;
+        lines.push(line);
+      });
+      lines.push("");
+    }
+
+    lines.push("#### Flow");
+    lines.push("```");
+    pipe.edges.forEach(([f,t]) => {
+      const lbl = ec[f+"→"+t];
+      lines.push(`${f} → ${t}${lbl ? " [" + lbl + "]" : ""}`);
+    });
+    lines.push("```");
+  });
+  return lines.join("\n");
+}
+
+function openExport() {
+  document.getElementById("export-text").value = generateExportSpec();
+  document.getElementById("export-modal").classList.add("show");
+}
+
+function copyText(id) {
+  const ta = document.getElementById(id);
+  ta.select();
+  document.execCommand("copy");
+  showStatus("Copied.");
+}
+function downloadText(id, filename) {
+  const text = document.getElementById(id).value;
+  const blob = new Blob([text], {type:"text/markdown"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function exportState() {
+  const json = JSON.stringify(STATE, null, 2);
+  const blob = new Blob([json], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "pipeline_state.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showStatus("State JSON downloaded.");
+}
+
+function importState() { document.getElementById("state-file-input").click(); }
+
+function handleStateImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const loaded = JSON.parse(e.target.result);
+      if (!loaded.pipelines) throw new Error("Invalid state file");
+      STATE = loaded;
+      saveState();
+      renderAll();
+      showStatus("State imported.");
+    } catch (err) { alert("Import failed: " + err.message); }
+  };
+  reader.readAsText(file);
+}
+
+// =========================================================
+// SAVE HTML WITH STATE
+// =========================================================
+function saveHTML() {
+  try {
+    const tag = document.getElementById("state-init");
+    if (!tag) throw new Error("state-init script tag missing");
+    tag.textContent = JSON.stringify(STATE);
+
+    const html = "<!doctype html>\n" + document.documentElement.outerHTML;
+
+    const blob = new Blob([html], {type:"text/html"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "pipeline_visualization_v4.html";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    showStatus("HTML saved with current state (" + (html.length/1024).toFixed(1) + " KB). Replace your file with the downloaded one.", 4000);
+  } catch (err) {
+    alert("Save HTML failed: " + err.message + "\n\nFallback: use 'Export State JSON' button.");
+  }
+}
+
+function resetAll() {
+  if (!confirm("Reset ALL state (pipelines + toggles + comments + custom edges)? This cannot be undone.")) return;
+  STATE = {
+    currentPipeline: "SCN-MAIN",
+    pipelines: JSON.parse(JSON.stringify(DEFAULT_PIPELINES)),
+    toggles: {}, comments: {}, edgeComments: {}, customNodes: {},
+  };
+  saveState();
+  selectedNode = null;
+  renderAll();
+  showStatus("Reset complete.");
+}
+
+
+// v4: Alt+drag to pan canvas (also works on empty space without Alt)
+(function setupPan() {
+  const wrap = document.getElementById("canvas-wrap");
+  if (!wrap) return;
+  let panning = false, sx=0, sy=0, sl=0, st=0;
+  wrap.addEventListener("mousedown", (e) => {
+    // Only pan on background (not on a node) or when Alt held
+    if (e.target.closest(".node") && !e.altKey) return;
+    if (e.button !== 0) return;
+    panning = true;
+    sx = e.clientX; sy = e.clientY;
+    sl = wrap.scrollLeft; st = wrap.scrollTop;
+    wrap.classList.add("panning");
+    e.preventDefault();
+  });
+  window.addEventListener("mousemove", (e) => {
+    if (!panning) return;
+    wrap.scrollLeft = sl - (e.clientX - sx);
+    wrap.scrollTop  = st - (e.clientY - sy);
+  });
+  window.addEventListener("mouseup", () => {
+    if (panning) { panning = false; wrap.classList.remove("panning"); }
+  });
+})();
+
+
+// v4: Cycle zoom for fitting wide workflow to screen
+let zoomLevel = 0; // 0=100%, 1=50% (fit), 2=35% (quarter)
+function cycleZoom() {
+  const wrap = document.getElementById("canvas-wrap");
+  const btn = document.getElementById("btn-zoom");
+  zoomLevel = (zoomLevel + 1) % 3;
+  wrap.classList.remove("zoom-fit","zoom-quarter");
+  if (zoomLevel === 1) { wrap.classList.add("zoom-fit"); btn.textContent="🔍 Zoom: 50%"; }
+  else if (zoomLevel === 2) { wrap.classList.add("zoom-quarter"); btn.textContent="🔍 Zoom: 35%"; }
+  else { btn.textContent="🔍 Zoom: 100%"; }
+}
+
+// =========================================================
+// INIT
+// =========================================================
+initState();
+renderAll();
+</script>
+
+</body></html>
