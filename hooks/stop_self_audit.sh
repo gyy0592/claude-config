@@ -80,20 +80,29 @@ try:
 
             tur = obj.get('toolUseResult') if isinstance(obj.get('toolUseResult'), dict) else None
             if tur:
+                # Launch: agent with isAsync==true, OR bash with backgroundTaskId.
                 if tur.get('isAsync') is True and tur.get('agentId'):
                     launched_ids.add(tur['agentId'])
                 bgid = tur.get('backgroundTaskId')
                 if bgid:
                     launched_ids.add(bgid)
 
-            # Completion format 1: SDK structured task_notification
+                # Completion (form 1, current Claude Code): agent finished result
+                # has agentId + totalDurationMs (and status=="completed"). This
+                # replaced system/task_notification in newer Claude Code.
+                if tur.get('agentId') and (
+                    tur.get('totalDurationMs') is not None
+                    or tur.get('status') == 'completed'
+                ):
+                    completed_ids.add(tur['agentId'])
+
+            # Completion (form 2, legacy SDK): system/task_notification event.
             if obj.get('type') == 'system' and obj.get('subtype') == 'task_notification':
                 tid = obj.get('task_id')
                 if tid: completed_ids.add(tid)
 
-            # Completion format 2: legacy queue-operation enqueue with
-            # <task-notification><task-id>...</task-id> embedded in content.
-            # humanize loop-bg-tasks.sh:238-244 handles this; we missed it.
+            # Completion (form 3, very old): queue-operation enqueue containing
+            # <task-notification><task-id>...</task-id> in content.
             if obj.get('type') == 'queue-operation' and obj.get('operation') == 'enqueue':
                 content = obj.get('content', '')
                 if isinstance(content, str) and '<task-notification>' in content:
@@ -103,21 +112,15 @@ try:
 
     pending = launched_ids - completed_ids
 
-    # Liveness prune: output file gone OR no process holds it → task dead.
-    if pending and tasks_dir and os.path.isdir(tasks_dir):
-        import subprocess
-        alive = set()
-        for tid in pending:
-            output_file = os.path.join(tasks_dir, f"{tid}.output")
-            if not os.path.exists(output_file):
-                continue
-            try:
-                r = subprocess.run(['lsof', '-t', output_file], capture_output=True, timeout=2)
-                if r.returncode == 0 and r.stdout.strip():
-                    alive.add(tid)
-            except Exception:
-                alive.add(tid)  # fail open
-        pending = alive
+    # Liveness prune is SKIPPED for agent tasks: Claude Code stores agent
+    # .output as a symlink to subagents/<id>.jsonl, which is opened/closed
+    # per write, so lsof reports zero holders even while the agent is alive.
+    # We rely purely on (launched - completed) sets — Claude Code's own
+    # completion result event is authoritative.
+    #
+    # For Bash backgroundTaskId tasks the underlying shell process DOES hold
+    # the output, but distinguishing agent IDs vs bash IDs in this scope is
+    # not worth the code; the completion set is sufficient for both.
 
     print('pending' if pending else 'none')
 except Exception:
