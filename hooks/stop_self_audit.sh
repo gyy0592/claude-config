@@ -42,91 +42,79 @@ if [ "$stop_hook_active" = "false" ]; then
     rm -f "$counter_file"
 fi
 
-# Exception: if a subagent (Agent tool) is dispatched and pending return,
-# allow stop (no block) so main thread can idle and be re-triggered.
-agent_pending=0
+# Background-task detection (humanize-style — parse transcript for
+# toolUseResult.isAsync (subagent) AND toolUseResult.backgroundTaskId (bash bg);
+# subtract task_notification completion events).
+#
+# 30-min staleness: among pending bg tasks, find the LATEST Monitor tool_use
+# call timestamp on any pending bash_id. If > 30 min ago (or no Monitor call
+# ever) → STALE (likely until-loop / freeze) → block + remind.
+# Else → FRESH → allow stop (AI is monitoring properly; PostToolUse:Agent
+# or natural completion will re-trigger).
+bg_state="none"  # none | fresh | stale | unknown
 if [ -n "$transcript_path" ] && [ -f "$transcript_path" ]; then
-    agent_pending=$(python3 - "$transcript_path" 2>/dev/null << 'PY'
-import sys, json
+    bg_state=$(python3 - "$transcript_path" 2>/dev/null << 'PY'
+import sys, json, re
+from datetime import datetime, timezone, timedelta
 path = sys.argv[1]
-uses, results = set(), set()
+threshold = datetime.now(timezone.utc) - timedelta(minutes=30)
+
+launched_ids = set()  # bg task ids that were launched
+completed_ids = set()  # bg task ids that completed (task_notification)
+last_monitor_ts = None  # latest Monitor tool_use timestamp
+
+def parse_ts(s):
+    if not s: return None
+    s = s.rstrip('Z')
+    for fmt in ('%Y-%m-%dT%H:%M:%S.%f','%Y-%m-%dT%H:%M:%S','%Y-%m-%dT%H:%M'):
+        try:
+            return datetime.strptime(s, fmt).replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+    return None
+
 try:
     with open(path) as f:
         for line in f:
             line = line.strip()
-            if not line:
-                continue
-            try:
-                obj = json.loads(line)
-            except Exception:
-                continue
+            if not line: continue
+            try: obj = json.loads(line)
+            except: continue
+
+            # launch detection — toolUseResult-bearing user records
+            tur = obj.get('toolUseResult') if isinstance(obj.get('toolUseResult'), dict) else None
+            if tur:
+                if tur.get('isAsync') is True and tur.get('agentId'):
+                    launched_ids.add(tur['agentId'])
+                bgid = tur.get('backgroundTaskId')
+                if bgid:
+                    launched_ids.add(bgid)
+
+            # completion — system task_notification
+            if obj.get('type') == 'system' and obj.get('subtype') == 'task_notification':
+                tid = obj.get('task_id')
+                if tid: completed_ids.add(tid)
+
+            # Monitor call timestamp (latest)
             t = obj.get('type', '')
             msg = obj.get('message', {})
             content = msg.get('content', []) if isinstance(msg, dict) else []
-            if not isinstance(content, list):
-                continue
-            if t == 'assistant':
+            if t == 'assistant' and isinstance(content, list):
                 for c in content:
-                    if isinstance(c, dict) and c.get('type') == 'tool_use' and c.get('name') == 'Agent':
-                        uses.add(c.get('id'))
-            elif t == 'user':
-                for c in content:
-                    if isinstance(c, dict) and c.get('type') == 'tool_result':
-                        results.add(c.get('tool_use_id'))
-    pending = uses - results
-    print(1 if pending else 0)
+                    if isinstance(c, dict) and c.get('type') == 'tool_use' and c.get('name') == 'Monitor':
+                        ts = parse_ts(obj.get('timestamp', ''))
+                        if ts and (last_monitor_ts is None or ts > last_monitor_ts):
+                            last_monitor_ts = ts
+
+    pending = launched_ids - completed_ids
+    if not pending:
+        print('none')
+    elif last_monitor_ts is None or last_monitor_ts < threshold:
+        print('stale')
+    else:
+        print('fresh')
 except Exception:
-    print(0)
-PY
-)
-fi
-
-if [ "$agent_pending" = "1" ]; then
-    rm -f "$counter_file"
-    exit 0
-fi
-
-# Exception 2: bg bash job state check via [LONG_RUNNING_JOBS] in status.md.
-#   - all running entries have last_monitor < 30 min ago → AI is monitoring
-#     properly, allow stop
-#   - any running entry has last_monitor > 30 min ago (or missing) → STALE,
-#     possibly stuck (until-loop / freeze). Block + remind to use Monitor or
-#     KillBash to recover.
-#   - no running entries → fall through to normal [STOP-GATE] check
-bg_state="none"  # none | fresh | stale
-if [ -f "$status_file" ]; then
-    bg_state=$(python3 - "$status_file" 2>/dev/null << 'PY'
-import sys, re
-from datetime import datetime, timezone, timedelta
-path = sys.argv[1]
-threshold = datetime.now(timezone.utc) - timedelta(minutes=30)
-in_jobs = False
-has_running = False
-any_stale = False
-with open(path) as f:
-    for raw in f:
-        line = raw.rstrip()
-        stripped = line.strip()
-        if stripped.startswith('[LONG_RUNNING_JOBS]'):
-            in_jobs = True; continue
-        if stripped.startswith('[') and in_jobs:
-            in_jobs = False; continue
-        if not in_jobs: continue
-        if re.search(r'status\s*[:=]\s*running', line):
-            has_running = True
-            m = re.search(r'last_monitor\s*[:=]\s*(\S+)', line)
-            if not m:
-                any_stale = True; continue
-            ts = m.group(1).rstrip(',;')
-            for fmt in ('%Y-%m-%dT%H:%M:%SZ','%Y-%m-%dT%H:%MZ','%Y-%m-%d %H:%M UTC','%Y-%m-%d %H:%M:%S UTC'):
-                try:
-                    dt = datetime.strptime(ts, fmt).replace(tzinfo=timezone.utc); break
-                except ValueError: dt = None
-            if dt is None: any_stale = True; continue
-            if dt < threshold: any_stale = True
-if not has_running: print('none')
-elif any_stale: print('stale')
-else: print('fresh')
+    print('unknown')
 PY
 )
 fi
@@ -135,8 +123,9 @@ if [ "$bg_state" = "fresh" ]; then
     rm -f "$counter_file"
     exit 0
 fi
-# bg_state == "stale" → fall through to block (with stale-specific reminder)
+# bg_state == "stale" → block with stale-specific reminder (fall through)
 # bg_state == "none" → fall through to normal [STOP-GATE] check
+# bg_state == "unknown" → fall through (don't trust; do normal gate)
 
 # Parse [STOP-GATE] zero items (file was auto-created above if missing)
 zero_items=""
@@ -175,16 +164,19 @@ fi
 
 # Build failure description
 if [ "$bg_state" = "stale" ]; then
-    failed_section="⚠️ A background job in [LONG_RUNNING_JOBS] has status=running but its
-last_monitor timestamp is > 30 minutes old (or missing). This may indicate:
-  - The job is stuck in an infinite loop (until, while true, etc.)
-  - The job silently exited without you noticing
-  - You forgot to update last_monitor after the most recent check
+    failed_section="⚠️ A background task (Agent run_in_background or Bash run_in_background)
+is still pending — no task_notification completion event seen — AND no Monitor
+tool call has been made in the last 30 minutes (transcript timestamps).
 
-DO NOT just stop. First: call Monitor(bash_id, timeout=15m) to fetch fresh output.
-If output flowing → update last_monitor=<UTC now>, then stop will be allowed.
-If job hung → KillBash + update status=failed, then stop allowed.
-After resolution, you may stop normally."
+Possible causes:
+  - The task is stuck in an infinite loop (until, while true, etc.)
+  - The task silently exited without emitting completion
+  - You forgot to call Monitor recently to check progress
+
+DO NOT just stop. First: call the Monitor tool (timeout 15 min) on the pending
+bash_id to fetch fresh output. If output flowing → recent Monitor call updates
+the staleness window → next stop will be allowed. If task hung → KillBash to
+recover. After Monitor or Kill, you may stop normally."
 elif [ -n "$zero_items" ]; then
     failed_section="STOP-GATE items NOT YET satisfied (each must = 1):
 ${zero_items}
