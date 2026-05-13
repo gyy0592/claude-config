@@ -186,7 +186,7 @@ fi
 
 mkdir -p "$HOOKS_DST"
 
-for f in inject_decrees.sh inject_decrees_to_subagent.sh; do
+for f in inject_decrees.sh inject_decrees_to_subagent.sh stop_self_audit.sh; do
     src="${HOOKS_SRC}/${f}"
     dst="${HOOKS_DST}/${f}"
     if [ ! -f "$src" ]; then
@@ -298,9 +298,10 @@ if cfg.get("effortLevel") != "high":
 
 hooks = cfg.setdefault("hooks", {})
 
-# ── v2-hook NEW: register UserPromptSubmit, PostToolUse:Agent, PreToolUse:Agent ──
+# ── v2-hook NEW: register UserPromptSubmit, PostToolUse:Agent, PreToolUse:Agent, Stop ──
 INJECT_SCRIPT = os.path.expanduser("~/.claude/hooks/inject_decrees.sh")
 INJECT_SUBAGENT_SCRIPT = os.path.expanduser("~/.claude/hooks/inject_decrees_to_subagent.sh")
+STOP_AUDIT_SCRIPT = os.path.expanduser("~/.claude/hooks/stop_self_audit.sh")
 
 def ensure_hook(event, matcher, command):
     """Idempotent: add (event, matcher, command) hook entry if not present."""
@@ -329,6 +330,9 @@ ensure_hook("PostToolUse", "Agent", f"bash {INJECT_SCRIPT}")
 
 # PreToolUse matcher=Agent: inject Iron Rules + Decrees into subagent's prompt
 ensure_hook("PreToolUse", "Agent", f"bash {INJECT_SUBAGENT_SCRIPT}")
+
+# Stop: self-audit checklist (blocks first stop, lets second through via stop_hook_active)
+ensure_hook("Stop", None, f"bash {STOP_AUDIT_SCRIPT}")
 
 # ── v2 preserved: PostToolUse=Bash background logger (debug use, unrelated to memory) ──
 BG_HOOK_CMD = (
@@ -413,6 +417,7 @@ echo "  Registered in ~/.claude/settings.json:"
 echo "    UserPromptSubmit  → inject_decrees.sh   (user msg + cron tick)"
 echo "    PostToolUse:Agent → inject_decrees.sh   (re-inject after subagent returns)"
 echo "    PreToolUse:Agent  → inject_decrees_to_subagent.sh (inject into subagent prompt)"
+echo "    Stop              → stop_self_audit.sh (blocks 1st stop, prompts self-audit; 2nd stop allowed)"
 echo ""
 echo "Runtime archive templates (read directly by init_*.sh):"
 echo "  ${CONTENT_DIR}/templates/                  (project-level: operation_log/attempts_ledger/bitter_lessons/successful_fixes + corporal_X/* + soldier_X/*)"
