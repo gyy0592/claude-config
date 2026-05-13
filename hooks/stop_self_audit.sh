@@ -139,7 +139,7 @@ Items meaning:
                                an entry written this turn
   six_decree_audit_done    1 = REFLECT-A 6-row table written this turn
   violations_all_recorded  1 = no unrecorded confessions; if you said "I broke X", you
-                               wrote W-XXX to /home/yguo173/Programs/claude-config/content/templates/global_rules/violation.md
+                               wrote W-XXX to __CLAUDE_CONFIG_DIR__/content/templates/global_rules/violation.md
                                AND mirrored in action.md
   no_abandoned_work        1 = no mid-flight work being skipped
 

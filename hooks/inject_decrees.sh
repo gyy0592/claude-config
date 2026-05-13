@@ -79,7 +79,7 @@ Before ending every reply, Edit/Write corporal_action.md.
 ⚠️ CONFESSION ≠ COMPLIANCE. Saying "I broke X" / "I violated Decree N" /
 "I forgot Y" / "I should Z" means you owe Decree 4 NOW:
   (a) append W-XXX to REPO file (no approval-click):
-      /home/yguo173/Programs/claude-config/content/templates/global_rules/violation.md
+      __CLAUDE_CONFIG_DIR__/content/templates/global_rules/violation.md
       schema = W-id + tags + what + why + fix. Commander syncs to ~/.claude/rules/ later.
       DO NOT write to ~/.claude/rules/ directly (approval-click triggers).
   (b) mirror entry in corporal_action.md (or soldier_action.md if Private)
@@ -124,7 +124,7 @@ Dispatch / execute MUST use reinforced version.
 ═══════ FILE TAXONOMY — DO NOT CROSS-CONTAMINATE ═══════
 Category A — AI rule-following (cross-project):
   READ ~/.claude/rules/{violation,lessons}.md (auto-loaded by Claude every session).
-  WRITE repo /home/yguo173/Programs/claude-config/content/templates/global_rules/{violation,lessons}.md
+  WRITE repo __CLAUDE_CONFIG_DIR__/content/templates/global_rules/{violation,lessons}.md
         (no approval-click; Commander syncs via set_claude.sh).
   violation.md = AI broke a rule (W-XXX + tags). lessons.md = AI behavior wisdom (L-XXX + tags).
 Category B — engineering work (per-project, militar_camp/):

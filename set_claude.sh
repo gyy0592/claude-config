@@ -193,16 +193,12 @@ for f in inject_decrees.sh inject_decrees_to_subagent.sh stop_self_audit.sh rese
         echo "[deploy] ⚠ hook source missing: ${src} (skipping)"
         continue
     fi
-    # Hooks are deterministic transformations; safe to overwrite (no user content stored)
-    if [ "$SYMLINK_OK" -eq 1 ]; then
-        rm -f "$dst"
-        ln -s "$src" "$dst"
-        echo "[deploy] ✓ ${dst} → ${src} (symlink)"
-    else
-        cp "$src" "$dst"
-        chmod +x "$dst"
-        echo "[deploy] ✓ ${dst} (cp + chmod)"
-    fi
+    # v2-hook: cp + sed substitute __CLAUDE_CONFIG_DIR__ → actual repo path.
+    # NO symlink — symlink would prevent substitution. Re-run set_claude.sh after edits.
+    cp "$src" "$dst"
+    "${SED_I[@]}" "s|__CLAUDE_CONFIG_DIR__|${CLAUDE_CONFIG_DIR}|g" "$dst"
+    chmod +x "$dst"
+    echo "[deploy] ✓ ${dst} (cp + sed-substitute __CLAUDE_CONFIG_DIR__)"
 done
 
 chmod +x "${HOOKS_SRC}"/*.sh 2>/dev/null || true
@@ -409,14 +405,11 @@ echo "Auto-loaded global rules (v2-hook NEW):"
 echo "  ~/.claude/rules/violation.md     (cross-project AI rule violations)"
 echo "  ~/.claude/rules/lessons.md       (cross-project AI behavior wisdom)"
 echo ""
-echo "Hooks (v2-hook NEW):"
-if [ "$SYMLINK_OK" -eq 1 ]; then
-    echo "  ~/.claude/hooks/inject_decrees.sh                → symlink to repo"
-    echo "  ~/.claude/hooks/inject_decrees_to_subagent.sh    → symlink to repo"
-else
-    echo "  ~/.claude/hooks/inject_decrees.sh                (cp copy fallback)"
-    echo "  ~/.claude/hooks/inject_decrees_to_subagent.sh    (cp copy fallback)"
-fi
+echo "Hooks (v2-hook — cp + sed-substituted, NOT symlinked):"
+echo "  ~/.claude/hooks/inject_decrees.sh                (cp+sed; re-run set_claude.sh after edits)"
+echo "  ~/.claude/hooks/inject_decrees_to_subagent.sh    (cp+sed)"
+echo "  ~/.claude/hooks/stop_self_audit.sh               (cp+sed)"
+echo "  ~/.claude/hooks/reset_session_status.sh          (cp+sed)"
 echo "  Registered in ~/.claude/settings.json:"
 echo "    UserPromptSubmit  → inject_decrees.sh   (user msg + cron tick)"
 echo "    PostToolUse:Agent → inject_decrees.sh   (re-inject after subagent returns)"

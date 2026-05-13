@@ -21,14 +21,7 @@ cwd=$(echo "$input" | jq -r '.cwd // ""')
 STATUS_DIR="$cwd/.claude_status"
 STATUS_FILE="$STATUS_DIR/${session_id}_status.md"
 
-# Find template — try v2 worktree first, then main repo
-TEMPLATE=""
-for candidate in \
-    "/home/yguo173/Programs/v2/content/templates/status.md" \
-    "/home/yguo173/Programs/claude-config/content/templates/status.md"
-do
-    if [ -f "$candidate" ]; then TEMPLATE="$candidate"; break; fi
-done
+TEMPLATE="__CLAUDE_CONFIG_DIR__/content/templates/status.md"
 
 # If .claude_status/ does not exist, this project hasn't been init'd — skip silently
 [ ! -d "$STATUS_DIR" ] && exit 0
