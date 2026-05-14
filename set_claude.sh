@@ -201,6 +201,18 @@ if [ -d "$V4_RULES_SRC" ]; then
             echo "[deploy] ✓ ${dst} (v4 policy / states)"
         done
     fi
+    # v2.1 P14: deploy scenario patches under patches/
+    if [ -d "${V4_RULES_SRC}/patches" ]; then
+        mkdir -p "${RULES_DST}/patches"
+        # Clean stale patches first (so deleted-in-repo patches don't linger).
+        find "${RULES_DST}/patches" -maxdepth 1 -type f -name '*.md' -delete 2>/dev/null || true
+        for src in "${V4_RULES_SRC}/patches"/*.md; do
+            f="$(basename "$src")"
+            dst="${RULES_DST}/patches/${f}"
+            cp "$src" "$dst"
+            echo "[deploy] ✓ ${dst} (v4 policy / patches)"
+        done
+    fi
     shopt -u nullglob
 else
     echo "[deploy] ⚠ ${V4_RULES_SRC} missing — v4 rules not deployed"

@@ -19,3 +19,7 @@ Three meta-rules (always on):
 
 FSM: BOOT → PREPARE → REFLECT ↔ EXECUTE_LOOP. transition.sh <event> on each edge.
 3-failure stop: after 3 autonomous-loop failures, stop + report (override: $PWD/CLAUDE.md AUTH keywords). Detail in failure_stop.md.
+
+Scenario-specific deltas live in `~/.claude/rules/patches/*.md` (long_monitor / bug_debug / perf_debug / simple_fast / exploration). Check each patch's `applies_to` (state + scenario + triggers) before applying.
+
+Before replying to user OR writing deliverables: grep lessons.md `tags:` for user-preference matches (minimal-edits / brevity / language) and comply.
