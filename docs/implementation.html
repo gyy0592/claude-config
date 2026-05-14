@@ -759,8 +759,14 @@ esac</code></pre>
     <p><b>设计上完全可以</b>每个 subagent 写到 <code>.barry_workflow/agent_&lt;aid&gt;/{state,action}.md</code>，子 FSM 走 BOOT/PREPARE/EXECUTE 简化版。<b>当前未实现</b>：subagent_rules.md rule B 规定了"写自己的 action.md"，但没 hook 自动建目录、subagent 自己也没机制强制按规则写。这是 v2.1 改善点。</p>
 
     <h3>Q6: 当前 [ROUTER] 块在哪个文档？</h3>
-    <p><b>不是单独的 .md 文件</b>。是 <code>hooks/inject_router.sh</code> 里的 <code>cat &lt;&lt;'EOF' ... EOF</code> here-doc，每个 turn 直接 echo 这段文字到 stdout，Claude Code runtime 把它当 context 附加。</p>
-    <p>这个设计是<b>故意的</b>：router 既是 hook 输出又是 user 看到的文字，放脚本里能保证两边一致；放 .md 还得 hook 去读再 echo，多一层 IO。</p>
+    <p><b>是单独的 .md 文件</b>：<code>content/rules/router.md</code>（source-of-truth）→ <code>set_claude.sh</code> 部署到 <code>~/.claude/rules/router.md</code> → <code>hooks/inject_router.sh</code> 每轮 <code>cat</code> 它。</p>
+    <p>改 router 文字的工作流：</p>
+    <ol>
+      <li>编辑 <code>content/rules/router.md</code></li>
+      <li>跑 <code>bash set_claude.sh</code> 一遍</li>
+      <li>下一轮 user 消息就生效（hook 每次都重新 cat 文件）</li>
+    </ol>
+    <p>无需改 shell 脚本。设计早期一度硬编码在 hook 里 here-doc，2026-05-14 改正。</p>
 
     <h3>Q7: 一次 session 产生哪些文件？</h3>
     <p>详见前一个 tab「产物文件清单」。简版：</p>

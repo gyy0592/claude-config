@@ -156,14 +156,20 @@ for f in violation.md lessons.md; do
             echo "          Differences (first 20 lines):"
             diff "$src" "$dst" 2>/dev/null | head -20 | sed 's/^/            /'
             echo ""
-            read -r -p "          Overwrite ${dst}? [y/N]: " ans </dev/tty || ans="N"
+            # v4 P2: source-of-truth wins by default; user can `cp dst src` to preserve old.
+            # Non-interactive (no tty) defaults to overwrite — set_claude.sh is idempotent re-deploy.
+            if [ -t 0 ]; then
+                read -r -p "          Overwrite ${dst}? [Y/n]: " ans </dev/tty || ans="Y"
+            else
+                ans="Y"
+            fi
             case "$ans" in
-                y|Y|yes|YES)
-                    cp "$src" "$dst"
-                    echo "[deploy] ✓ ${dst} overwritten"
+                n|N|no|NO)
+                    echo "[deploy] - ${dst} kept as-is (skipped overwrite)"
                     ;;
                 *)
-                    echo "[deploy] - ${dst} kept as-is (skipped overwrite)"
+                    cp "$src" "$dst"
+                    echo "[deploy] ✓ ${dst} overwritten"
                     ;;
             esac
         else
