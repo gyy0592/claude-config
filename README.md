@@ -1,8 +1,82 @@
  [🇨🇳 中文版](README.zh.md)
 
-# claude-config
+# claude-config — a state-controller for Claude Code
 
-Personal Claude Code configuration with automated development pipeline. Clone and run to restore on a new machine.
+> **What it is**: a finite state machine that constrains what Claude (the AI) is allowed to do at any moment, plus a structured patch system that lets the machine evolve as you (or it) discover where the defaults fall short. **Not** a prompt collection. **Not** a wrapper. A behaviour controller.
+
+## Why
+
+LLM coding sessions fail in predictable ways: skipping checks, claiming "done" before running tests, polling forever, losing context across restarts. v4 fixes these by **constraining state, not generating better prompts**.
+
+## Big picture
+
+```
+                              ┌─────────────────────────┐
+                              │     FSM skeleton        │  ← invariant
+                              │  BOOT → PREPARE →       │
+                              │  REFLECT ↔ EXECUTE_LOOP │
+                              │  → END                  │
+                              └─────────────────────────┘
+                                          ▲
+                                          │ enforced by hooks
+                              ┌───────────┴─────────────┐
+                              │   seed rules            │  ← initial best-guess
+                              │  ~/.claude/rules/*.md   │     (replaceable)
+                              └───────────┬─────────────┘
+                                          ▲
+                                          │ overrides
+                              ┌───────────┴─────────────┐
+                              │   patches/ (planned)    │  ← grows over time
+                              │  human-written OR       │     human-curated
+                              │  auto-extracted from    │     auto-drafted
+                              │  bitter_lessons.md      │
+                              └─────────────────────────┘
+```
+
+- **FSM skeleton** (`content/rules/fsm.md`): the 6-state controller. Doesn't change.
+- **Seed rules** (`content/rules/*.md`): 10 policy files covering identity, dispatch, recording, REFLECT rebuttal, FSM details, Codex adapter, etc. Initial defaults; can be overridden by patches.
+- **Patches** (planned, v4.1): structured deltas that augment or override seed rules per scenario. Two sources — human-written when you spot a gap, auto-drafted by AI when it ships a fix.
+
+Read in order:
+
+1. [`big_picture.md`](big_picture.md) — design essence + patch system + self-evolution. **Start here.**
+2. [`fsm_visualization.html`](fsm_visualization.html) — click-through diagram of the 6 states, with each state's expected sub-flow and predicted failure modes. Light theme.
+3. [`scenarios.html`](scenarios.html) — 5 concrete scenarios (long-monitor, code-bug, perf-bug, simple, exploratory) with state-by-state expected behaviour + common pitfalls.
+4. [`v4_plan.md`](v4_plan.md) — the original implementation plan (P1–P10).
+5. [`RESEARCH_NOTES_GOAL_HOOK.md`](RESEARCH_NOTES_GOAL_HOOK.md) — why `/goal` replaces stop hooks.
+
+## Current status (2026-05-14)
+
+| P | Task | Status |
+|---|---|---|
+| P1 | de-cosplay + neutral terminology | ✅ |
+| P2 | rules split + slim router inject (1166 B) | ✅ |
+| P3 | state file template + BOOT hook + transition.sh | ✅ |
+| P4 | PREPARE helper (cache_hit_map + 4-element check) | ✅ |
+| P5 | EXECUTE_LOOP discipline + audit (regex expanded post-rebuttal) | ✅ |
+| P6 | REFLECT rebuttal protocol (SendMessage-driven) — live-tested 2 rounds | ✅ |
+| P7 | PreToolUse short-nudge hook (≤100 char, non-blocking) | ✅ |
+| P8 | Demo task end-to-end (Qwen-0.5B + GSM8K + activation hook) | ⏸ awaiting user supervision |
+| P9 | `/goal` supersedes stop_self_audit.sh | ✅ |
+| P10 | Codex adapter (tool mapping + SendMessage poll fallback) | ✅ |
+| — | `patches/` system (v4.1) | ❌ not started |
+
+**Active hooks** (`~/.claude/settings.json`):
+- `UserPromptSubmit` → `inject_router.sh` + `session_boot.sh`
+- `PreToolUse` → `pretooluse_short_nudge.sh`
+- `PostToolUse:Bash` → bg-log
+
+Legacy `inject_decrees.sh` / `stop_self_audit.sh` / `reset_session_status.sh` are on disk but **unregistered** (kept for git history).
+
+## Concrete real-world cost (measured this session)
+
+| Operation | Time | Tokens |
+|---|---|---|
+| REFLECT rebuttal — round 1 | 11 min 21 s | ~55 k (agent-side) |
+| REFLECT rebuttal — round 2 (push back) | 48 s | +6.6 k |
+| Total rebuttal cost | 12.1 min | ~61.5 k (agent), ~3-5 k (main) |
+
+→ Worth it for design decisions / complex plans. Skip for trivial edits (see scenario 3 in `scenarios.html`).
 
 ---
 
