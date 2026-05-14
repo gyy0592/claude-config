@@ -185,7 +185,7 @@ done
 V4_RULES_SRC="${CONTENT_DIR}/rules"
 if [ -d "$V4_RULES_SRC" ]; then
     shopt -s nullglob
-    for src in "${V4_RULES_SRC}"/*.md; do
+    for src in "${V4_RULES_SRC}"/*.md "${V4_RULES_SRC}"/*.yaml; do
         f="$(basename "$src")"
         dst="${RULES_DST}/${f}"
         cp "$src" "$dst"
