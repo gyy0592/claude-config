@@ -165,7 +165,7 @@ AI 在 EXECUTE_LOOP 中按需调用，扫 action.md 中的 `[PLAN]`/`[OBSERVE]` 
 - `action.md` — 本 session 的操作日志（`[PLAN]` / `[OBSERVE]` / `[BOARD_READ]`）
 - `nudge_counters.json` — pretooluse_short_nudge 的工具调用计数
 
-**`workspace/`** — 仓库级共享 ledger，跨 session 跨 task 长期保留（由 `scripts/new_task.sh` 首次铺一次模板，之后所有 task 共用）
+**`workspace/`** — 仓库级共享 ledger，跨 session 跨 task 长期保留（每次 UserPromptSubmit 由 `hooks/session_boot.sh` 幂等检查并补齐缺失文件；`scripts/new_task.sh` 也会做同样的 seeding 作为兜底）
 - `bitter_lessons.md` — 项目级技术陷阱（L-N，每条带 `task: <name>` + `tags:`）
 - `successful_fixes.md` — 已验证有效的修复（FIX-N + `task:` + `tags:`）
 - `attempts_ledger.md` — 每轮意图记录（ATT-N + `task:` + `tags:`）

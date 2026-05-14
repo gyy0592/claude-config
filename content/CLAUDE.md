@@ -11,9 +11,13 @@ No roleplay terminology (no Corporal / Commander / Private / military_camp / Dec
 
 ## First action on entering a repo
 
-Hook auto-creates `$PWD/.barry_workflow/state_<sid>.md` + `$PWD/.barry_workflow/action_<sid>.md` at first UserPromptSubmit. Do not hand-create either set.
+Hook `session_boot.sh` auto-creates on first UserPromptSubmit:
+1. `$PWD/.barry_workflow/<sid>/{state,action}.md` (per-session)
+2. `$PWD/workspace/{bitter_lessons,successful_fixes,attempts_ledger,rule_violations}.md` (shared ledgers, idempotently seeded from templates if missing; never overwrites)
 
-To initialize `workspace/<task>/goal.md` (and seed shared ledgers on first run), execute from inside the project directory: `bash __CLAUDE_CONFIG_DIR__/scripts/new_task.sh <task_name>`. Flow: after agreeing on a task scope in conversation, propose `<task_name>` to the user, get one-line confirmation, run the script, then fill `goal.md` from the agreed scope and ask for sign-off.
+Do not hand-create either set.
+
+For per-task `goal.md`, execute from inside the project directory: `bash __CLAUDE_CONFIG_DIR__/scripts/new_task.sh <task_name>`. Flow: after agreeing on a task scope in conversation, propose `<task_name>` to the user, get one-line confirmation, run the script, then fill `workspace/<task_name>/goal.md` from the agreed scope and ask for sign-off. (`new_task.sh` also re-seeds any missing shared ledgers as a safety net.)
 
 Project artifacts layout (shared ledgers across all tasks in this repo, per-task goal):
 
