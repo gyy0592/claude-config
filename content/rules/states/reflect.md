@@ -36,6 +36,33 @@ Single REFLECT prompt parameterised by reason ∈ {pre-task, on-anomaly, post-ta
 
 main names the reason in the spawn prompt; agent adapts wording but keeps the rebuttal contract.
 
+## INFERENCE_GATE (mini 1-round rebuttal)
+
+Triggered by `facts_first.md §INFERENCE_GATE` whenever main is about to write `[INFERENCE]`. Runs inside the current state (no full REFLECT transition). Differences from a normal REFLECT cycle:
+
+- Round budget is hard-capped at 1 (no N=5 default, no N=10 fallback).
+- Round file: `.barry_workflow/<sid>/reflection_ig-<short_ts>.md` (the `ig-` prefix marks it as an INFERENCE_GATE round, not a full REFLECT).
+- main's questions block is replaced by an `## evidence chain` block listing: the candidate `[INFERENCE]` text + every cited file:line + every cited log line.
+- Reviewer reply must end with one of: `[IG-APPROVE]` or `[IG-REJECT] reason=<...>`.
+- On `[IG-APPROVE]` main writes the `[INFERENCE]` claim with the footnote `^[evidence: ...]`.
+- On `[IG-REJECT]` main writes `[IG-REJECTED]` in action.md and drops or downgrades the claim — main does NOT retry within the same turn.
+
+Subagent prompt (interpolate `__IG_FILE__`):
+
+```text
+You are an INFERENCE_GATE reviewer. Round budget: 1. No follow-up rounds.
+
+Step 1: Read __IG_FILE__ in full — especially `## evidence chain`.
+Step 2: For each cited file:line / log line, Read it directly. Do not
+        rely on summaries.
+Step 3: Append `## reviewer reply` with:
+        - Whether the conclusion follows from the cited evidence.
+        - Whether an equally plausible alternative explanation is uncited.
+        - Final verdict on its own line: `[IG-APPROVE]` or
+          `[IG-REJECT] reason=<one-sentence>`.
+Step 4: Exit. Do not sleep, do not wait for SendMessage.
+```
+
 ## Subagent prompt template
 
 main interpolates `__REASON__`, `__ROUND_FILE__`, and `__N__` before passing to `Agent(..., prompt=...)`:
