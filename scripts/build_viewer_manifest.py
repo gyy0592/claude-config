@@ -121,53 +121,47 @@ def compute_state_durations(parsed_state: dict, last_ts_iso: str | None = None) 
     return out
 
 
-def bucket_by_state(events: list[dict], parsed_state: dict) -> dict:
-    """For each (timestamp, usage) event, decide which FSM state was active.
-
-    Bucket sums input/output/cache tokens per state.
-    """
+def build_visit_spans(parsed_state: dict) -> list[dict]:
+    """Return [{state, start, end (None if open)}] in chronological order, one row per visit."""
     sh = list(reversed(parsed_state.get("stage_history", [])))
     created = parse_iso(parsed_state.get("created_at") or "")
-    # Build ordered list of (state, start_ts, end_ts).
     spans = []
     if created is not None and sh:
-        # BOOT span: created → first transition
         first_t = parse_iso(sh[0].get("at", ""))
         if first_t is not None:
-            spans.append(("BOOT", created, first_t))
+            spans.append({"state": "BOOT", "start": created, "end": first_t})
     for i, entry in enumerate(sh):
         t = parse_iso(entry.get("at", ""))
         if t is None:
             continue
-        if i + 1 < len(sh):
-            t_end = parse_iso(sh[i + 1].get("at", ""))
-        else:
-            t_end = None  # open-ended (current)
-        spans.append((entry.get("to"), t, t_end))
+        t_end = parse_iso(sh[i + 1].get("at", "")) if i + 1 < len(sh) else None
+        spans.append({"state": entry.get("to"), "start": t, "end": t_end})
+    return spans
 
-    buckets = {}
+
+def bucket_by_visit(events: list[dict], spans: list[dict]) -> list[dict]:
+    """One bucket per visit (not per state-name). Returns list aligned with spans."""
+    buckets = [{
+        "input_tokens": 0, "output_tokens": 0,
+        "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0,
+        "turns": 0,
+    } for _ in spans]
     for ev in events:
         t = parse_iso(ev.get("ts") or "")
         if t is None:
             continue
-        target_state = "?"
-        for s, t0, t1 in spans:
-            if t0 is None:
+        for i, sp in enumerate(spans):
+            if sp["start"] is None:
                 continue
-            if t >= t0 and (t1 is None or t < t1):
-                target_state = s
+            if t >= sp["start"] and (sp["end"] is None or t < sp["end"]):
+                u = ev.get("usage") or {}
+                b = buckets[i]
+                b["input_tokens"]                += int(u.get("input_tokens") or 0)
+                b["output_tokens"]               += int(u.get("output_tokens") or 0)
+                b["cache_read_input_tokens"]     += int(u.get("cache_read_input_tokens") or 0)
+                b["cache_creation_input_tokens"] += int(u.get("cache_creation_input_tokens") or 0)
+                b["turns"]                       += 1
                 break
-        b = buckets.setdefault(target_state, {
-            "input_tokens": 0, "output_tokens": 0,
-            "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0,
-            "turns": 0,
-        })
-        u = ev.get("usage") or {}
-        b["input_tokens"]              += int(u.get("input_tokens") or 0)
-        b["output_tokens"]             += int(u.get("output_tokens") or 0)
-        b["cache_read_input_tokens"]   += int(u.get("cache_read_input_tokens") or 0)
-        b["cache_creation_input_tokens"] += int(u.get("cache_creation_input_tokens") or 0)
-        b["turns"]                     += 1
     return buckets
 
 
@@ -353,30 +347,30 @@ def main() -> None:
     parsed = None
     if state_md.exists():
         parsed = parse_state_yaml(state_md.read_text(errors="replace"))
-        durations = compute_state_durations(parsed)
-        # Token bucketing: needs main JSONL events.
+        spans = build_visit_spans(parsed)
+        # Token bucketing: per visit (one bucket per span entry).
         events = []
         if project_cwd is not None:
             mj = find_session_jsonl(project_cwd, sid)
             if mj is not None:
                 events = parse_jsonl_usage(mj)
-        buckets = bucket_by_state(events, parsed)
-        # Merge: list one row per FSM state with duration_s + token usage.
-        seen = set()
-        for d in durations:
-            row = {"state": d["state"], "seconds": d["seconds"]}
-            tok = buckets.get(d["state"])
+        per_visit_tok = bucket_by_visit(events, spans) if events else [None] * len(spans)
+        # One row per visit. Aggregation by state name happens in viewer.js.
+        for sp, tok in zip(spans, per_visit_tok):
+            if sp["start"] is None:
+                continue
+            secs = None
+            if sp["end"] is not None:
+                secs = max(0, int((sp["end"] - sp["start"]).total_seconds()))
+            row = {
+                "state": sp["state"],
+                "from": sp["start"].isoformat().replace("+00:00", "Z"),
+                "to": sp["end"].isoformat().replace("+00:00", "Z") if sp["end"] else None,
+                "seconds": secs,
+            }
             if tok:
                 row.update({f"tok_{k}": v for k, v in tok.items()})
             metrics["per_state"].append(row)
-            seen.add(d["state"])
-        # Include states that have token usage but no duration (rare — out-of-order entries).
-        for s, tok in buckets.items():
-            if s not in seen:
-                metrics["per_state"].append({
-                    "state": s, "seconds": None,
-                    **{f"tok_{k}": v for k, v in tok.items()},
-                })
 
     manifest = {
         "sid": sid,

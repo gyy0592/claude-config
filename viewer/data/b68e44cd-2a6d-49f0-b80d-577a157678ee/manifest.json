@@ -21,23 +21,39 @@
     "per_state": [
       {
         "state": "BOOT",
+        "from": "2026-05-14T07:18:13Z",
+        "to": "2026-05-14T07:19:46Z",
         "seconds": 93
       },
       {
         "state": "PREPARE",
+        "from": "2026-05-14T07:19:46Z",
+        "to": "2026-05-14T07:20:22Z",
         "seconds": 36
       },
       {
         "state": "REFLECT",
+        "from": "2026-05-14T07:20:22Z",
+        "to": "2026-05-14T07:22:40Z",
         "seconds": 138
       },
       {
         "state": "EXECUTE_LOOP",
+        "from": "2026-05-14T07:22:40Z",
+        "to": "2026-05-14T07:32:01Z",
         "seconds": 561
       },
       {
         "state": "REFLECT",
+        "from": "2026-05-14T07:32:01Z",
+        "to": "2026-05-14T07:33:32Z",
         "seconds": 91
+      },
+      {
+        "state": "EXECUTE_LOOP",
+        "from": "2026-05-14T07:33:32Z",
+        "to": null,
+        "seconds": null
       }
     ]
   },
