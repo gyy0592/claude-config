@@ -5,6 +5,9 @@
 #      main to fill in (YES/NO) based on its own KV-cache self-report.
 #   3. Echo a prompt-reinforcement checklist (4 elements: observable, cadence,
 #      reflection, completion) for main to verify against the user instruction.
+#
+# Tunables (v2.1 P13): see content/rules/workflow_config.yaml
+#   prompt_reinforce.required_elements  → 4-element checklist printed below
 set -euo pipefail
 
 CWD="${PWD}"

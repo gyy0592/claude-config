@@ -2,6 +2,9 @@
 # execute_loop_audit.sh — quick audit of the current EXECUTE_LOOP discipline.
 # main can call this at any point inside the loop (or before EXECUTE_EXIT) to
 # verify [PLAN]/[OBSERVE] pairing and failure-budget consumption.
+#
+# Tunables (v2.1 P13): see content/rules/workflow_config.yaml
+#   execute_loop.failure_budget  → "$ANOM_CNT -ge 3" check below
 set -euo pipefail
 
 CWD="${PWD}"

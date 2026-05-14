@@ -3,6 +3,10 @@
 # Emits at most one ≤100-char reminder per tool call. Strictly informational
 # (permissionDecision="allow") to avoid blocking; no policy text inlined.
 # Counters live under $PWD/.barry_workflow/nudge_counters.json (best-effort).
+#
+# Tunables (v2.1 P13): see content/rules/workflow_config.yaml
+#   pretool_nudge.read_threshold  → "$cnt -ge 3" check below
+#   pretool_nudge.max_chars       → 100-char truncation in nudge()
 set -euo pipefail
 
 INPUT="$(cat || true)"
