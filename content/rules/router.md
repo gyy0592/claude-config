@@ -22,4 +22,4 @@ FSM: BOOT → PREPARE → REFLECT ↔ EXECUTE_LOOP. transition.sh <event> on eac
 
 Scenario-specific deltas live in `~/.claude/rules/patches/*.md` (long_monitor / bug_debug / perf_debug / simple_fast / exploration). Check each patch's `applies_to` (state + scenario + triggers) before applying.
 
-Before replying to user OR writing deliverables: grep lessons.md `tags:` for user-preference matches (minimal-edits / brevity / language) and comply.
+lessons.md grep — before replying to user OR writing deliverables, grep ~/.claude/rules/lessons.md `tags:` for matches (minimal-edits / brevity / language / scope-creep / etc.) and comply.

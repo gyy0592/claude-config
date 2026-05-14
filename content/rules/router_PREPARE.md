@@ -17,4 +17,4 @@ Always-on:
   - facts_first.md (INFERENCE_GATE).
   - dispatch.md.
   - recording.md.
-  - Before replying / writing deliverables: grep lessons.md `tags:` for user-preference matches and comply.
+  - lessons.md grep — before replying to user OR writing deliverables, grep ~/.claude/rules/lessons.md `tags:` for matches (minimal-edits / brevity / language / scope-creep / etc.) and comply.
