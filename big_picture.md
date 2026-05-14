@@ -12,6 +12,83 @@ BOOT → PREPARE → REFLECT ↔ EXECUTE_LOOP → END
 
 骨架不解决"具体怎么干"，只解决"现在该处于哪个阶段、不许跳出"。
 
+## 1.5 为什么要状态机 — "跳过中间步直奔结论"病
+
+LLM 训练数据（GitHub commit / StackOverflow / blog 教程）大量是这种格式：
+
+```
+错误描述 → fix 代码
+慢 → 改 bs / 加 amp / num_workers=8
+KeyError → try/except 兜住
+```
+
+→ AI 学到的是**直接的 `状态A → 状态Z` 状态转移**，中间所有「验证、对照、读完整代码、测 baseline、小实验确认、跑通再上报」这些步骤**在训练数据里根本没出现**（commit 不会写"我先 read 了 200 行才改这 1 行"，SO 答主不会写"我先复现了 5 次才下结论"）。
+
+结果是 AI 默认行为是：
+
+```
+接受任务  ───────────跳────────────►  "我认为我做完了"
+```
+
+中间的 **复现 / 读细节 / 三栏假设 / 小实验 / 看 nvidia-smi / 跑通验证 / 反思校对** 全省。
+
+### 经典反例
+
+| 任务 | AI 默认反应 | 跳过了什么 |
+|---|---|---|
+| "代码慢" | 改 batch size 一把梭 | 没测 baseline、没 profile、没看 GPU util、没考虑 IO/CPU 瓶颈 |
+| "报 KeyError" | try/except 包住 | 没查为什么 key 不存在、没看上游为什么没塞这个 key |
+| "写一个 HTML 可视化" | 写完 commit 报"完成" | 没用浏览器打开、没点击验证 JS、没看 console error（本会话刚发生） |
+| "训练 loss NaN" | 加 grad clip | 没看是从哪个 step 开始 NaN、没查 loss 公式、没对比 dtype |
+| "修 OOM" | 降 batch | 没查 activation memory 占多少、没看 cache、没考虑 grad checkpoint |
+
+### 状态机怎么修
+
+强制把 "接受任务 → 我做完了" 这条**单跳边**切成多个**必须显式走过**的 state：
+
+```
+接受任务
+   ▼
+PREPARE       ← 必须明确 observable / 完成判据 / 失败信号
+   ▼
+REFLECT pre   ← 必须列假设三栏 + 外部 reviewer 1 轮
+   ▼
+EXECUTE       ← 每步必须有意图 + 观察证据
+   ▼
+REFLECT post  ← 必须验：真的做完了吗？deliverable 对齐 goal 吗？跑通过吗？
+   ▼
+"做完了"
+```
+
+**REFLECT post 的 checklist**（针对 AI 跳步病最重要的反制）：
+- [ ] 语法 / 编译 / 解析<b>真</b>通过了？（不是看一眼觉得没事）
+- [ ] 必要时<b>真</b>打开运行 / 浏览器试过？（HTML 必点击，脚本必跑一次）
+- [ ] 看过 console / log，没有错误 / 警告？
+- [ ] 有没有撞 violation.md / rule_violations.md 里记录过的同类陷阱？
+- [ ] 对照 goal / acceptance criteria，每一条都验过？
+- [ ] 是修了 root cause 还是绕了 symptom？
+
+任何一条 ❌ → 回 EXECUTE_LOOP 补，**不允许直接进 END**。
+
+### 这也是 prompt enhancement 的存在理由
+
+user 的 prompt 经常只有「干啥」，没有「干完怎么算完」。比如：
+
+> "把这个 HTML 改一下，加个长监控场景"
+
+prompt 里没说：
+- 完成判据是什么？（"我能点开看见新场景" vs "代码 commit 即可"）
+- 反思在哪一步做？（"改完跑一遍"vs"我看不到中间过程")
+- 失败信号是什么？（"console 红字" vs "点击没反应"）
+
+prompt 缺这些 → AI 默认用训练集的 `任务 → 我做完了` 单跳。
+
+PREPARE 阶段的 **4 要素检查**（observable / cadence / reflection / completion）就是用来把这些隐式假设**强制显式化**。任何一个要素 prompt 没给 → AI 必须自己提议默认值 + 写 `[PROMPT_REINFORCED]` 标注 → user 有机会修正。
+
+→ **状态机 + REFLECT post + 4 要素 prompt enhancement = 三道防线对抗"跳到结论"病**。三道都漏 = 这次 HTML 那种低级 bug 就发生了。
+
+---
+
 ## 2. 当前 workflow = 通用初始模板（Seed）
 
 写在 `~/.claude/rules/*.md` + `content/rules/*.md` 里的所有内容（policy / FSM 细节 / cadence 默认值 / rebuttal N=5 / [PLAN]/[OBSERVE] 形式）—— 都是**初始最佳猜测**，按"对大多数任务管用"做的。
