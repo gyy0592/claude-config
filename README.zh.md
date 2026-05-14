@@ -10,12 +10,39 @@
 </p>
 
 <p align="center">
-  <a href="docs/big_picture.html"><b>📖 big_picture</b></a> ·
-  <a href="docs/scenarios.html"><b>🎬 scenarios</b></a> ·
-  <a href="docs/implementation.html"><b>🔧 implementation</b></a> ·
-  <a href="docs/p8_e2e_notes.md"><b>✅ P8 demo 报告</b></a> ·
+  <a href="docs/big_picture.md"><b>📖 big_picture</b></a> ·
   <a href="README.md"><b>🇬🇧 English</b></a>
 </p>
+
+---
+
+## ⚡ 快速上手 — 60 秒
+
+```bash
+# 1. 安装（一条命令，幂等，可反复跑）
+git clone https://github.com/gyy0592/claude-config.git ~/Programs/claude-config \
+  && cd ~/Programs/claude-config \
+  && bash set_claude.sh
+```
+
+> 需要手动输入吗？只在你 `~/.claude/rules/` 下已经有 `violation.md` 或 `lessons.md`（老安装残留）时，脚本会问 `[Y/n]` 要不要覆盖。非交互模式（管道）自动选 `Y`。其他情况一路自动。
+
+```bash
+# 2. 像往常一样跑 claude —— 在有 .git / CLAUDE.md / workspace/ 的 repo 里 FSM 自动启用
+cd <你的项目>
+claude
+
+# 3. 关掉（简单一次性任务不想要 FSM 跟 [ROUTER] 头）
+bash ~/Programs/claude-config/scripts/switch_hooks.sh off
+
+# 4. 再打开
+bash ~/Programs/claude-config/scripts/switch_hooks.sh on
+
+# 5. 看当前状态
+bash ~/Programs/claude-config/scripts/switch_hooks.sh status
+```
+
+就这些。下面是「为什么这么设计」+ 可调细节。
 
 ---
 
@@ -317,9 +344,10 @@ rm -rf ~/.claude/rules/{router*.md,states,patches,messages,facts_first.md,dispat
 
 | 文档 | 给谁 | 内容 |
 |---|---|---|
-| [`docs/big_picture.html`](docs/big_picture.html) | 非工程师 / 初次了解的人 | 动机 + entropy collapse + 两个核心原则 + 设计哲学 |
-| [`docs/scenarios.html`](docs/scenarios.html) | 想知道理想行为 | 5 个场景的 state-by-state 预期 + 常见陷阱 |
+| [`docs/big_picture.md`](docs/big_picture.md) | 非工程师 / 初次了解的人 | 动机 + entropy collapse + 两个核心原则 + 设计哲学 |
 | [`docs/skills.md`](docs/skills.md) / [`docs/skills.zh.md`](docs/skills.zh.md) | skill 使用者 | 完整 skill 清单 + 触发条件 |
+
+> `docs/` 下还有 `big_picture.html` + `scenarios.html` + `big_picture_en.html` 几个 HTML 版本，本地浏览器开（`python3 -m http.server` 起一下）效果更丰富。GitHub 网页上只渲染上面两个 markdown。
 
 ---
 

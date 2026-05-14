@@ -10,12 +10,39 @@
 </p>
 
 <p align="center">
-  <a href="docs/big_picture.html"><b>📖 big_picture</b></a> ·
-  <a href="docs/scenarios.html"><b>🎬 scenarios</b></a> ·
-  <a href="docs/implementation.html"><b>🔧 implementation</b></a> ·
-  <a href="docs/p8_e2e_notes.md"><b>✅ P8 demo report</b></a> ·
+  <a href="docs/big_picture.md"><b>📖 big_picture</b></a> ·
   <a href="README.zh.md"><b>🇨🇳 中文</b></a>
 </p>
+
+---
+
+## ⚡ Get started — 60 seconds
+
+```bash
+# 1. Install (one command, idempotent, safe to re-run)
+git clone https://github.com/gyy0592/claude-config.git ~/Programs/claude-config \
+  && cd ~/Programs/claude-config \
+  && bash set_claude.sh
+```
+
+> Manual input? Only when you already have a `~/.claude/rules/violation.md` or `lessons.md` from an earlier install — the script asks `[Y/n]` to overwrite. Non-interactive shells auto-pick `Y`. Otherwise zero prompts.
+
+```bash
+# 2. Run claude as usual — the FSM auto-engages in any repo that has .git, CLAUDE.md, or workspace/
+cd <your-project>
+claude
+
+# 3. Turn it OFF for a trivial one-shot (no FSM, no [ROUTER] header)
+bash ~/Programs/claude-config/scripts/switch_hooks.sh off
+
+# 4. Turn it back ON
+bash ~/Programs/claude-config/scripts/switch_hooks.sh on
+
+# 5. Check current state
+bash ~/Programs/claude-config/scripts/switch_hooks.sh status
+```
+
+That's it. The rest of this README is "why it works that way" + tunable extras.
 
 ---
 
@@ -317,9 +344,10 @@ Won't touch `~/.claude/skills/` (those symlinks are installed separately).
 
 | Doc | Audience | Content |
 |---|---|---|
-| [`docs/big_picture.html`](docs/big_picture.html) | Non-engineers / first-time readers | Motivation + entropy collapse + two core principles + design philosophy |
-| [`docs/scenarios.html`](docs/scenarios.html) | "What's the ideal behavior?" | 5 scenarios with state-by-state expected behavior + common pitfalls |
+| [`docs/big_picture.md`](docs/big_picture.md) | Non-engineers / first-time readers | Motivation + entropy collapse + two core principles + design philosophy |
 | [`docs/skills.md`](docs/skills.md) / [`docs/skills.zh.md`](docs/skills.zh.md) | Skill users | Full skill catalog + triggers |
+
+> The `docs/` folder also has `big_picture.html` + `scenarios.html` + `big_picture_en.html` for richer offline viewing (open via `python3 -m http.server` if you want). GitHub renders only the markdown above.
 
 ---
 
