@@ -29,3 +29,7 @@ humanize_analysis.md
 # Codex/Humanize cache for ask-codex skill
 .humanize/
 .claude_status/
+
+# v4 barry-workflow per-session runtime state
+.barry_workflow/
+.barry_workflow_temp/
