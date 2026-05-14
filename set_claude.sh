@@ -5,9 +5,9 @@
 # ██████████████████████████████████████████████████████████
 #
 # v1.1 changes:
-#   - Startup injection file has no hard byte limit (Commander explicitly said "no matter the cost")
+#   - Startup injection file has no hard byte limit (user explicitly said "no matter the cost")
 #   - User-layer memory uses content/memory/ single source (on-demand Read, not resident)
-#   - Forceful repetition prompt reinforcement (recite Decrees + four-module reflection + 5-min monitor + facts-first + 4-step opening)
+#   - Repeated prompt reinforcement (recite policies + four-module reflection + 5-min monitor + facts-first + 4-step opening)
 #   - Monitoring interval can be dynamically adjusted by set_monitor_time.sh
 #   - Skill system (e.g. censor) deployed manually via README ## 4 with ln -sfn
 #
@@ -48,7 +48,7 @@ if ! command -v ln >/dev/null 2>&1; then
 fi
 echo "[health-hard] ✓ ln command exists"
 
-# (Hard) content/CLAUDE.md must exist — no hard byte limit (Commander 2026-05-07 decision: three meta-rules reinforcement needs more tokens, removed 8192 hard cap)
+# (Hard) content/CLAUDE.md must exist — no hard byte limit (user decision 2026-05-07: three meta-rules reinforcement needs more tokens, removed 8192 hard cap)
 CLAUDE_V2_SRC="${CONTENT_DIR}/CLAUDE.md"
 if [ ! -f "$CLAUDE_V2_SRC" ]; then
     echo "[health-hard] ✗ ${CLAUDE_V2_SRC} does not exist"
@@ -147,7 +147,7 @@ for f in violation.md lessons.md; do
         continue
     fi
     if [ -f "$dst" ]; then
-        # Conflict handling per Commander v2-plan: warn + ASK user, do nothing by default
+        # Conflict handling per v2-plan: warn + ASK user, do nothing by default
         if ! cmp -s "$src" "$dst"; then
             echo ""
             echo "[deploy] ⚠ CONFLICT: ${dst} already exists and differs from source."
@@ -420,8 +420,8 @@ echo "  ${CONTENT_DIR}/templates/                  (project-level: operation_log
 echo "  ${CONTENT_DIR}/templates/global_rules/     (source for ~/.claude/rules/)"
 echo ""
 echo "Utility scripts (chmod +x applied):"
-echo "  ${CLAUDE_CONFIG_DIR}/init_corporal.sh         (Military camp init)"
-echo "  ${CLAUDE_CONFIG_DIR}/init_soldier.sh          (Private self-init)"
+echo "  ${CLAUDE_CONFIG_DIR}/init_corporal.sh         (workspace init — to be renamed in P3)"
+echo "  ${CLAUDE_CONFIG_DIR}/init_soldier.sh          (subagent self-init — to be renamed in P3)"
 echo "  ${CLAUDE_CONFIG_DIR}/set_monitor_time.sh      (Dynamic monitoring interval adjustment)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Next time you enter any workspace, Claude runs init_corporal.sh to auto-create militar_camp/."
+echo "Next time you enter any workspace, Claude runs init_corporal.sh to auto-create militar_camp/ (legacy — P3 will replace with BOOT hook → .barry_workflow/)."
