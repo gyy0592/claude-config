@@ -30,6 +30,9 @@ fi
 
 TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
+# Capture OLD status BEFORE the Python mutator rewrites state.md
+OLD_STATUS="$(grep '^current_status:' "$STATE_FILE" | awk '{print $2}' | tr -d '[:space:]')"
+
 # Map event → new status
 case "$EVENT" in
     BOOT_DONE)     NEW=PREPARE ;;
@@ -38,6 +41,10 @@ case "$EVENT" in
     EXECUTE_EXIT)  NEW=REFLECT ;;
     *) echo "transition.sh: unknown event $EVENT" >&2; exit 2 ;;
 esac
+
+# Derive session dir and SID from state file path (layout: .barry_workflow/<sid>/state.md)
+SDIR="$(dirname "$STATE_FILE")"
+SID="$(basename "$SDIR")"
 
 python3 - "$STATE_FILE" "$NEW" "$EVENT" "$REASON" "$TS" <<'PY'
 import sys, re, pathlib
@@ -67,6 +74,13 @@ new_src = src[:m.start(1)] + new_yaml + src[m.end(1):]
 pathlib.Path(path).write_text(new_src)
 print(f"{event} → {new_status}")
 PY
+
+# v2.1 P30: append transition log entry (non-fatal on failure)
+HELPER_SCRIPT="$(dirname "$0")/../scripts/_transition_log_helper.py"
+if [ -f "$HELPER_SCRIPT" ]; then
+    python3 "$HELPER_SCRIPT" "$SDIR" "$SID" "$OLD_STATUS" "$NEW" "$EVENT" "$REASON" "$TS" \
+        || echo "[transition.sh] log helper failed (non-fatal)" >&2
+fi
 
 # v2.1 P26/P28: after switching state, echo the full detailed pipeline
 # (states/<state>.md) so AI sees the step-by-step walkthrough + completion
