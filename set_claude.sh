@@ -228,7 +228,7 @@ else
     echo "[deploy] ⚠ ${V4_RULES_SRC} missing — v4 rules not deployed"
 fi
 
-# ── 5c. Deploy ~/.claude/hooks/ (legacy inject_decrees*.sh kept on disk; v4 P2: inject_router.sh) ──
+# ── 5c. Deploy ~/.claude/hooks/ (v2.1) ──
 HOOKS_SRC="${CLAUDE_CONFIG_DIR}/hooks"
 HOOKS_DST="$HOME/.claude/hooks"
 
@@ -239,7 +239,7 @@ fi
 
 mkdir -p "$HOOKS_DST"
 
-for f in _session_lib.sh inject_decrees.sh inject_decrees_to_subagent.sh stop_self_audit.sh reset_session_status.sh inject_router.sh session_boot.sh transition.sh prepare_helper.sh execute_loop_audit.sh pretooluse_short_nudge.sh state_enforce.sh; do
+for f in _session_lib.sh inject_router.sh session_boot.sh transition.sh prepare_helper.sh execute_loop_audit.sh pretooluse_short_nudge.sh state_enforce.sh; do
     src="${HOOKS_SRC}/${f}"
     dst="${HOOKS_DST}/${f}"
     if [ ! -f "$src" ]; then
@@ -259,22 +259,13 @@ done
 
 chmod +x "${HOOKS_SRC}"/*.sh 2>/dev/null || true
 
-# Smoke-test hooks
-if bash -n "${HOOKS_SRC}/inject_decrees.sh" 2>&1 && bash -n "${HOOKS_SRC}/inject_decrees_to_subagent.sh" 2>&1; then
-    echo "[deploy] ✓ hooks syntax check passed"
-else
-    echo "[deploy] ⚠ hooks syntax check failed — review hook scripts"
-fi
+# Smoke-test core v2.1 hooks
+for h in inject_router.sh session_boot.sh transition.sh; do
+    bash -n "${HOOKS_SRC}/${h}" 2>&1 || echo "[deploy] ⚠ ${h} syntax check failed"
+done
+echo "[deploy] ✓ hooks syntax check passed"
 
-INJECT_BYTES=$(bash "${HOOKS_SRC}/inject_decrees.sh" 2>/dev/null | wc -c)
-echo "[deploy] [INFO] inject_decrees.sh output = ${INJECT_BYTES} bytes (Claude Code hook cap = 10000)"
-if [ "$INJECT_BYTES" -ge 10000 ]; then
-    echo "[deploy] ⚠ inject_decrees.sh output >= 10000 bytes — Claude Code will truncate. Slim the script."
-fi
-
-# ── 6. Grant execute permissions (scripts are already in repo, chmod directly) ────────────
-chmod +x "${CLAUDE_CONFIG_DIR}/init_corporal.sh"
-chmod +x "${CLAUDE_CONFIG_DIR}/init_soldier.sh"
+# ── 6. Grant execute permissions on utility scripts ────────────
 chmod +x "${CLAUDE_CONFIG_DIR}/set_monitor_time.sh"   2>/dev/null || true
 chmod +x "${CLAUDE_CONFIG_DIR}/set_tg.sh"             2>/dev/null || true
 
@@ -351,10 +342,35 @@ if cfg.get("showThinkingSummaries") is not True:
 
 hooks = cfg.setdefault("hooks", {})
 
-# ── v2-hook NEW: register UserPromptSubmit, PostToolUse:Agent, PreToolUse:Agent, Stop ──
-INJECT_SCRIPT = os.path.expanduser("~/.claude/hooks/inject_decrees.sh")
-INJECT_SUBAGENT_SCRIPT = os.path.expanduser("~/.claude/hooks/inject_decrees_to_subagent.sh")
-STOP_AUDIT_SCRIPT = os.path.expanduser("~/.claude/hooks/stop_self_audit.sh")
+# v2.1 cleanup: purge any v1 hook entries from settings.json
+V1_HOOK_PATHS = (
+    "inject_decrees.sh",
+    "inject_decrees_to_subagent.sh",
+    "reset_session_status.sh",
+    "stop_self_audit.sh",
+    "disciplinary_check.sh",
+)
+for event in list(hooks.keys()):
+    new_bucket = []
+    for grp in hooks[event]:
+        kept_hooks = [
+            h for h in grp.get("hooks", [])
+            if not any(v1 in h.get("command", "") for v1 in V1_HOOK_PATHS)
+        ]
+        if kept_hooks:
+            new_entry = {"hooks": kept_hooks}
+            if "matcher" in grp:
+                new_entry["matcher"] = grp["matcher"]
+            new_bucket.append(new_entry)
+    if len(new_bucket) != len(hooks[event]) or any(
+        len(new_bucket[i].get("hooks", [])) != len(hooks[event][i].get("hooks", []))
+        for i in range(len(new_bucket))
+    ):
+        changed = True
+    if new_bucket:
+        hooks[event] = new_bucket
+    else:
+        del hooks[event]
 
 def ensure_hook(event, matcher, command):
     """Idempotent: add (event, matcher, command) hook entry if not present."""
@@ -375,10 +391,7 @@ def ensure_hook(event, matcher, command):
     bucket.append(entry)
     changed = True
 
-# v4 P2: slim router hook replaces the four legacy v2-hook registrations.
-# Legacy scripts (inject_decrees.sh / inject_decrees_to_subagent.sh /
-# reset_session_status.sh / stop_self_audit.sh) remain on disk for reference
-# but are no longer auto-registered.
+# v2.1: state-aware router (replaces all legacy injection hooks)
 ROUTER_SCRIPT = os.path.expanduser("~/.claude/hooks/inject_router.sh")
 ensure_hook("UserPromptSubmit", None, f"bash {ROUTER_SCRIPT}")
 
@@ -466,24 +479,14 @@ echo "Auto-loaded global rules (v2-hook NEW):"
 echo "  ~/.claude/rules/violation.md     (cross-project AI rule violations)"
 echo "  ~/.claude/rules/lessons.md       (cross-project AI behavior wisdom)"
 echo ""
-echo "Hooks (v2-hook — cp + sed-substituted, NOT symlinked):"
-echo "  ~/.claude/hooks/inject_decrees.sh                (cp+sed; re-run set_claude.sh after edits)"
-echo "  ~/.claude/hooks/inject_decrees_to_subagent.sh    (cp+sed)"
-echo "  ~/.claude/hooks/stop_self_audit.sh               (cp+sed)"
-echo "  ~/.claude/hooks/reset_session_status.sh          (cp+sed)"
-echo "  Registered in ~/.claude/settings.json:"
-echo "    UserPromptSubmit  → inject_decrees.sh   (user msg + cron tick)"
-echo "    PostToolUse:Agent → inject_decrees.sh   (re-inject after subagent returns)"
-echo "    PreToolUse:Agent  → inject_decrees_to_subagent.sh (inject into subagent prompt)"
-echo "    Stop              → stop_self_audit.sh (blocks 1st stop, prompts self-audit; 2nd stop allowed)"
+echo "Hooks (v2.1 — cp + sed-substituted to ~/.claude/hooks/):"
+echo "  inject_router.sh           — UserPromptSubmit (state-aware [ROUTER] block)"
+echo "  session_boot.sh            — UserPromptSubmit (creates .barry_workflow/<sid>/state+action)"
+echo "  pretooluse_short_nudge.sh  — PreToolUse"
+echo "  state_enforce.sh           — PostToolUse (warns on state/tool mismatch)"
+echo "  transition.sh / prepare_helper.sh / execute_loop_audit.sh — invoked by AI"
 echo ""
-echo "Runtime archive templates (read directly by init_*.sh):"
-echo "  ${CONTENT_DIR}/templates/                  (project-level: operation_log/attempts_ledger/bitter_lessons/successful_fixes + corporal_X/* + soldier_X/*)"
-echo "  ${CONTENT_DIR}/templates/global_rules/     (source for ~/.claude/rules/)"
-echo ""
-echo "Utility scripts (chmod +x applied):"
-echo "  ${CLAUDE_CONFIG_DIR}/init_corporal.sh         (workspace init — to be renamed in P3)"
-echo "  ${CLAUDE_CONFIG_DIR}/init_soldier.sh          (subagent self-init — to be renamed in P3)"
-echo "  ${CLAUDE_CONFIG_DIR}/set_monitor_time.sh      (Dynamic monitoring interval adjustment)"
+echo "Project ledger templates: ${CONTENT_DIR}/templates/  (attempts_ledger / bitter_lessons / successful_fixes / state / action / reflection / goal)"
+echo "Global rules source:      ${CONTENT_DIR}/templates/global_rules/  (→ ~/.claude/rules/)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Next time you enter any workspace, Claude runs init_corporal.sh to auto-create militar_camp/ (legacy — P3 will replace with BOOT hook → .barry_workflow/)."
+echo "On first user prompt in any workspace, session_boot.sh creates \$PWD/.barry_workflow/<sid>/{state,action}.md."
