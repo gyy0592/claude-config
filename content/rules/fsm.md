@@ -27,9 +27,24 @@ State file: `$PWD/.barry_workflow/state_<sid>.md` (hybrid markdown + YAML block,
 - On `[CONSENSUS_REACHED]` or N=5 (fallback 10) rounds: `transition.sh REFLECT_DONE`.
 
 ### EXECUTE_LOOP
-- Inner loop: `[PLAN]` → tool call → `[OBSERVE]` → decide (continue / anomaly / done).
-- main exits when self-judged: bug → REFLECT (on-anomaly); deliverable complete → REFLECT (post-task).
-- Exit call: `transition.sh EXECUTE_EXIT --reason=<bug|done>`.
+Inner loop (one iteration = one tool call):
+1. `[PLAN]` — one line in action_<sid>.md describing what + why + expected observable, BEFORE the tool call.
+2. Tool call (Read / Edit / Write / Bash / Agent).
+3. `[OBSERVE]` — one line in action_<sid>.md citing the concrete output that confirms or refutes the [PLAN] expectation. Empty / hand-waved [OBSERVE] = dereliction.
+4. Decide: continue (another iteration), anomaly (→ REFLECT on-anomaly), or done (→ REFLECT post-task).
+
+Monitor cadence for bg jobs spawned inside EXECUTE_LOOP:
+- Wall-time < 5 min → check once on completion notification.
+- 5–60 min → `Monitor(bash_id=...)` every 10–15 min.
+- > 60 min → also write a `[SILENCE_START]` block in action.md naming task / ETA / completion marker.
+
+Failure budget: after 3 consecutive [OBSERVE] entries refuting their [PLAN]
+in the same EXECUTE_LOOP session, stop and call `transition.sh EXECUTE_EXIT
+--reason=bug` (autonomous-3-failure rule from `p6_workflow.md` M6). Override:
+$PWD/CLAUDE.md AUTH keywords.
+
+Exit call: `transition.sh EXECUTE_EXIT --reason=<bug|done|stuck>`. AI is the sole
+judge of which reason applies — observable evidence must back the choice.
 
 ## transition.sh
 Hook script that:
