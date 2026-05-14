@@ -203,7 +203,7 @@ fi
 
 mkdir -p "$HOOKS_DST"
 
-for f in inject_decrees.sh inject_decrees_to_subagent.sh stop_self_audit.sh reset_session_status.sh inject_router.sh; do
+for f in inject_decrees.sh inject_decrees_to_subagent.sh stop_self_audit.sh reset_session_status.sh inject_router.sh session_boot.sh transition.sh; do
     src="${HOOKS_SRC}/${f}"
     dst="${HOOKS_DST}/${f}"
     if [ ! -f "$src" ]; then
@@ -345,6 +345,10 @@ def ensure_hook(event, matcher, command):
 # but are no longer auto-registered.
 ROUTER_SCRIPT = os.path.expanduser("~/.claude/hooks/inject_router.sh")
 ensure_hook("UserPromptSubmit", None, f"bash {ROUTER_SCRIPT}")
+
+# v4 P3: BOOT hook — creates per-session state + action files under $PWD/.barry_workflow/
+BOOT_SCRIPT = os.path.expanduser("~/.claude/hooks/session_boot.sh")
+ensure_hook("UserPromptSubmit", None, f"bash {BOOT_SCRIPT}")
 
 # ── v2 preserved: PostToolUse=Bash background logger (debug use, unrelated to memory) ──
 BG_HOOK_CMD = (
