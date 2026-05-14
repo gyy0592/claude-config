@@ -28,15 +28,15 @@ git clone https://github.com/gyy0592/claude-config.git ~/Programs/claude-config
 cd ~/Programs/claude-config
 bash set_claude.sh
 
-# 3. cd into your project; initialize a workspace for the first task (per-task one-time)
+# 3. Use Claude Code normally
 cd <your-project>
-bash ~/Programs/claude-config/scripts/new_task.sh <task_name>     # creates workspace/<task_name>/{goal,*ledger}.md
-$EDITOR workspace/<task_name>/goal.md                              # fill the goal (or let the AI propose it on the first turn)
-
-# 4. Use Claude Code normally
 claude
+#    Tell it what you want — it will create workspace/<task_name>/ and draft goal.md
+#    for your sign-off. (optional) manual one-time init:
+#      bash ~/Programs/claude-config/scripts/new_task.sh <task_name>
+#      $EDITOR workspace/<task_name>/goal.md
 
-# 5. Toggle
+# 4. Toggle
 bash ~/Programs/claude-config/scripts/switch_hooks.sh off      # temporarily disable
 bash ~/Programs/claude-config/scripts/switch_hooks.sh on
 bash ~/Programs/claude-config/scripts/switch_hooks.sh status
