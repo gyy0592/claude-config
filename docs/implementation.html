@@ -252,7 +252,7 @@
     <div class="grp-title">第六部分 — Hooks</div>
     <button data-key="inject_router">inject_router.sh <span class="verdict v-ok">实测</span></button>
     <button data-key="session_boot">session_boot.sh <span class="verdict v-ok">实测</span></button>
-    <button data-key="transition">transition.sh <span class="verdict v-warn">smoke</span></button>
+    <button data-key="transition">transition.sh <span class="verdict v-ok">实测</span></button>
     <button data-key="prepare_helper">prepare_helper.sh <span class="verdict v-warn">smoke</span></button>
     <button data-key="exec_audit">execute_loop_audit.sh <span class="verdict v-warn">smoke</span></button>
     <button data-key="pre_nudge">pretooluse_short_nudge.sh <span class="verdict v-warn">smoke</span></button>
@@ -262,6 +262,12 @@
     <div class="grp-title">第七部分 — Config + Messages</div>
     <button data-key="config_yaml">workflow_config.yaml <span class="verdict v-new">新</span></button>
     <button data-key="messages">messages/ <span class="verdict v-new">新</span></button>
+
+    <div class="grp-title">第七 B — Scripts (v2.1+ 辅助工具)</div>
+    <button data-key="script_extract">scripts/extract_transcript.py <span class="verdict v-new">新</span></button>
+    <button data-key="script_switch">scripts/switch_hooks.sh <span class="verdict v-new">新</span></button>
+    <button data-key="script_translog">scripts/_transition_log_helper.py <span class="verdict v-new">新</span></button>
+    <button data-key="script_cleanup">cleanup_v1.sh <span class="verdict v-new">新</span></button>
 
     <div class="grp-title">第八部分 — 运行时</div>
     <button data-key="per_turn">每轮 vs 每次工具 vs 每个 state</button>
@@ -282,7 +288,8 @@ const SECTIONS = {
   intro: () => `
     <h2>0. 这是什么</h2>
     <p><b>Barry's Workflow v2.1</b> 是一套约束 Claude Code（或其他 LLM coding agent）行为的"状态控制器"。不是 prompt 集合，不是 wrapper，是<b>把 AI 的行为切成阶段、强制必须走过每一步</b>的机制。</p>
-    <p><b>v2.1 刚落地</b>（commits 1616bd0–19374f7, 12 个 P-task）：state-aware router（按当前 state 注入不同 router 文件）、INFERENCE_GATE（写 [INFERENCE] 前先 mini-rebuttal）、patches 系统（场景专属补丁与 general 规则分离）、session 子目录（<code>.barry_workflow/&lt;sid&gt;/...</code> 替代平铺）、PostToolUse 状态强制 hook、规则文件大重构（删 v1 残留 / 拆 fsm.md → 5 个 state 文件 / 抢救 M6）、外置 workflow_config.yaml 常量、跨 session inherit 基础。</p>
+    <p><b>v2.1 + v2.1+ 已落地</b>（commits 1616bd0–11c0e40）：state-aware router（按当前 state 注入不同 router 文件）、INFERENCE_GATE（写 [INFERENCE] 前先 mini-rebuttal）、patches 系统（场景专属补丁与 general 规则分离）、session 子目录（<code>.barry_workflow/&lt;sid&gt;/...</code> 替代平铺）、PostToolUse 状态强制 hook、规则文件大重构（删 v1 残留 / 拆 fsm.md → 5 个 state 文件 / 抢救 M6）、外置 workflow_config.yaml 常量、跨 session inherit 基础、states/*.md 全 pipeline + router 瘦身（P28）、v1 残留全清（P29）、transition logging（P30）。</p>
+    <p><b>P8 end-to-end demo PASSED</b>（2026-05-14, awesome-gpu-name 云端）：让 cloud claude 自己接入新 repo，完整走 FSM、建 5 个 ledger、归档 v1 残留。FSM / router / subagent / session_boot 4 项 check 全过；4 个非阻断 issue 记录在 <code>docs/p8_e2e_notes.md</code>。</p>
     <h3>给谁看？</h3>
     <ul>
       <li>已经用过 Claude Code / Cursor / Codex 跑代码任务的人</li>
@@ -460,7 +467,7 @@ const SECTIONS = {
 
   v21_delta: () => `
     <h2>v2 → v2.1 变更摘要</h2>
-    <p>12 个 P-task 已落地（commits 1616bd0 至 19374f7）。按主题分组：</p>
+    <p>v2.1 主线 12 个 P-task（commits 1616bd0 至 19374f7）+ v2.1+ P28/P29/P30 收尾（states 文档展开、v1 残留清理、transition logging）+ P8 end-to-end demo PASSED。按主题分组：</p>
 
     <h3>规则文件重构 (P11 + P18)</h3>
     <ul>
@@ -494,12 +501,56 @@ const SECTIONS = {
       <li><b>P21 lessons 常态化</b>：router always-on 段加「回答 user / 写文件前 grep lessons.md tags」</li>
     </ul>
 
+    <h3>P28 — states 文档全展开 + router 瘦身</h3>
+    <ul>
+      <li><code>states/{boot,prepare,execute,end}.md</code> 之前 10 行存根 → 全 pipeline（step 列表 + Allowed/Forbidden + Completion criteria + Advance 命令）</li>
+      <li><code>router_&lt;STATE&gt;.md</code> 同步瘦身到 ~13 行薄提醒，指向 <code>states/&lt;state&gt;.md</code> 看完整规则</li>
+      <li><code>transition.sh</code> 状态切换后 cat 新 <code>states/&lt;state&gt;.md</code>，让 AI 立刻看见下一阶段完整步骤</li>
+    </ul>
+
+    <h3>P29 — v1 残留清理（commit 10ab2c0）</h3>
+    <ul>
+      <li><code>git rm</code> 14 根目录 v1 文件：<code>init_corporal.sh / init_soldier.sh / disciplinary_check.sh / corporal_understanding.md / RESEARCH_NOTES_HOOKS.md / ten_commandments_*.md / prd_rule_enhance.md / rules_all.md / short_prompt_plan.md / pipeline_state.json / pipeline_visualization{,_v2,_v3}.html / consolidated_mac_compatibility_issues.md</code></li>
+      <li><code>git rm hooks/</code>：<code>inject_decrees.sh / inject_decrees_to_subagent.sh / reset_session_status.sh / stop_self_audit.sh</code></li>
+      <li><code>set_claude.sh</code> 扫除 v1 引用：删 FOR 循环里 v1 hook 名、删 inject_decrees byte-check、删 init_corporal/init_soldier chmod、加 settings.json v1-hook purge 段、重写 deploy summary</li>
+      <li>新增 <code>cleanup_v1.sh</code>：远端执行 — 删 <code>~/.claude/hooks/</code> 里 4 个 v1 hook + <code>~/.claude_status/</code> 运行时残留 + shell-rc 旧 wrapper 行</li>
+    </ul>
+
+    <h3>P30 — transition logging（commit 31baac1 + 5016f00 修部署 bug）</h3>
+    <ul>
+      <li><code>transition.sh</code> 每次状态切换在 mutate state.md 之后，向 <code>.barry_workflow/&lt;sid&gt;/transitions.log</code> 追加 3 行：时间戳 + 旧 → 新 state + event + reason / 自上次 transition 起的 tool_use 计数 + 按 name 拆分 / 上次 transition 之后最后一段 assistant text（≤200 char）。</li>
+      <li><code>scripts/_transition_log_helper.py</code>：glob <code>~/.claude/projects/*/&lt;sid&gt;.jsonl</code> → 按 transitions.log 上次时间戳 cutoff → 统计 tool_use → 抓 last_assistant_text → 写 3 行</li>
+      <li><b>纯代码 audit，零 token</b>。人工 grep transitions.log 即可复盘 FSM 时间线 / 每阶段做了多少事 / AI 转移前最后说啥</li>
+      <li>修部署 bug：helper 路径 <code>$(dirname "$0")/../scripts/</code> 部署后指向不存在的 <code>~/.claude/scripts/</code> → 改成 <code>__CLAUDE_CONFIG_DIR__</code> sed 占位符，部署时被替换为仓库绝对路径</li>
+    </ul>
+
+    <h3>P8 — end-to-end demo PASSED（commits 29cd4de + docs/p8_e2e_notes.md）</h3>
+    <p>云端 awesome-gpu-name 部署 v2.1 后，跑一个真正的 <code>claude -p</code> session 让它把 <code>/home/Barry/github_repo/LLM_sampling_implement</code> 接入 v2 ledger 体系。结果：</p>
+    <ul>
+      <li><b>FSM PASS</b>：5 entries in stage_history，BOOT_DONE → PREPARE_DONE → REFLECT_DONE(pre) → EXECUTE_EXIT → REFLECT_DONE(post)，AI 自己调 <code>transition.sh</code> 每一步</li>
+      <li><b>router 注入 PASS</b>：transcript 含多次 [ROUTER] block，per-state router 文件按 state.md 自动切换</li>
+      <li><b>subagent 派发 PASS</b>：2 次 <code>Agent(run_in_background=true)</code>：pre-task REFLECT 5 题 rebuttal + EXECUTE 阶段建 5 个 ledger</li>
+      <li><b>session_boot PASS</b>：首轮 UserPromptSubmit 自动建 <code>.barry_workflow/&lt;sid&gt;/{state,action}.md</code></li>
+      <li><b>交付</b>：<code>workspace/v5_mini_pipeline/</code> 含 5 个 ledger（L-N / W-N / FIX-N / ATT-N + tags 格式齐全），<code>legacy_v1_20260514/</code> 归档老目录，<code>action.md</code> 含 5 [PLAN] / 5 [OBSERVE] + END_DONE 标记</li>
+      <li><b>发现 4 个 issue</b>（详 <code>docs/p8_e2e_notes.md</code>）：set_claude.sh diff+pipefail 静默死、repo 缺 W-026..W-028、stage_history 反向 chronological、Claude Code /goal stop hook 无 bg-task guard（上游设计）</li>
+    </ul>
+
+    <h3>辅助脚本（v2.1+ 新增）</h3>
+    <ul>
+      <li><code>scripts/extract_transcript.py</code>：从 <code>~/.claude/projects/&lt;encoded&gt;/&lt;sid&gt;.jsonl</code> 输出 clean USER/ASSISTANT/TOOL_USE/TOOL_RESULT 文本。Flags: <code>--tool-result-lines N</code> / <code>--no-system-reminder</code> / <code>--tools-only</code> / <code>--raw-text</code></li>
+      <li><code>scripts/switch_hooks.sh {on|off|status}</code>：在 <code>~/.claude/settings.json</code> 里开关 4 个 v2 hook 注册（inject_router / session_boot / pretooluse_short_nudge / state_enforce），不动 rules/ 和 hook 文件本体。给「简单任务想用纯 claude」的情况</li>
+      <li><code>cleanup_v1.sh</code>：远端清 ~/.claude/ 里 v1 残留（见 P29）</li>
+    </ul>
+
+    <h3>set_claude.sh critical fix（commit a6b5079）</h3>
+    <p>P8 demo 部署时发现：原 <code>diff "$src" "$dst" | head -20 | sed</code> 在 violation/lessons 文件冲突分支里跑。<code>diff</code> 文件不同返 1，配合脚本 <code>set -euo pipefail</code> 让脚本<b>静默退出</b>——只完成 CLAUDE.md + memory symlink，hooks/rules/states 全没部署，但 exit code 报 0。任何"远端已经有 violation/lessons"的用户都中招。修法：<code>(diff ... || true) | head</code>。</p>
+
     <h3>未做 / 部分做 (剩到 v2.2)</h3>
     <ul>
-      <li><b>P19 P8 demo</b>：用户特意要求等监督，未跑</li>
       <li><b>workflow_config.yaml 运行时 source</b>：当前是「引用 by comment」，hook 没真 source YAML</li>
       <li><b>patches/* 自动加载</b>：补丁是静态文件，没机制按 applies_to 自动 detect 场景 → 注入</li>
       <li><b>agent_&lt;aid&gt;/ 子目录自动建</b>：subagent_rules.md 规定写自己的 action.md，但 hook 没自动 mkdir</li>
+      <li><b>W-026..W-028 合并回 repo</b>：用户在远端 ~/.claude/rules/violation.md 加的条目，repo 里还没</li>
     </ul>
   `,
 
@@ -878,6 +929,72 @@ prompt_reinforce:
     <p>设计上未来加 i18n 也容易（多语言文件 + 环境变量切换）。</p>
   `,
 
+  // === scripts ===
+  script_extract: () => `
+    <h2>scripts/extract_transcript.py — session JSONL → 可读对话 (v2.1+ 新)</h2>
+    <p>读 <code>~/.claude/projects/&lt;encoded-cwd&gt;/&lt;sid&gt;.jsonl</code>（Claude Code 自动写的会话记录），输出清干净的 USER / ASSISTANT / TOOL_USE / TOOL_RESULT 文本。给 audit / debug / P8 demo 观察用。</p>
+    <h3>常用调用</h3>
+    <pre><code>python3 scripts/extract_transcript.py /path/to/&lt;sid&gt;.jsonl
+# Flags:
+#   --tool-result-lines N    # 工具返回截 N 行（默认 20）
+#   --no-system-reminder     # 删 &lt;system-reminder&gt; 块
+#   --tools-only             # 只看 TOOL_USE/TOOL_RESULT，跳 prose
+#   --raw-text               # 不要工具细节，输出 USER/ASSISTANT 文本，便于 grep</code></pre>
+    <p>支持 stdin 输入，可以 <code>ssh remote 'cat .../&lt;sid&gt;.jsonl' | python3 extract_transcript.py</code>。Bash 工具的命令 + 描述 / Read 的 file_path / Edit 的 old/new_string / Agent 的 subagent_type+prompt 都格式化输出。</p>
+  `,
+
+  script_switch: () => `
+    <h2>scripts/switch_hooks.sh — barry-workflow hook 开关 (v2.1+ 新)</h2>
+    <p>用例：偶尔做简单一次性任务，不想被 FSM / [ROUTER] 干扰；或者跟人 pair 不想污染他的工作流。</p>
+    <pre><code>bash scripts/switch_hooks.sh on       # 注册 4 个 v2 hook
+bash scripts/switch_hooks.sh off      # 删 4 个注册
+bash scripts/switch_hooks.sh status   # 看当前哪些 hook 活着</code></pre>
+    <h3>动什么、不动什么</h3>
+    <ul>
+      <li>动：<code>~/.claude/settings.json</code> 的 hooks 段</li>
+      <li>不动：<code>~/.claude/rules/</code>（rule 文件作为 memory 还是会被 auto-load）；<code>~/.claude/hooks/</code>（脚本文件本身留着）；PostToolUse:Bash 的 bg-bash 日志 hook（不属于 v2，保留）</li>
+    </ul>
+    <p>双向 idempotent。最坏情况是 <code>set_claude.sh</code> 下次重跑会把 4 个 hook 又加回来（<code>ensure_hook</code> 是 idempotent 但不知道用户的 off 意图），重跑 <code>switch_hooks.sh off</code> 即可。</p>
+  `,
+
+  script_translog: () => `
+    <h2>scripts/_transition_log_helper.py — transition logging 辅助 (v2.1 P30)</h2>
+    <p>由 <code>transition.sh</code> 调用。每次状态切换在 mutate state.md 之后跑一次。</p>
+    <h3>输出位置</h3>
+    <p><code>.barry_workflow/&lt;sid&gt;/transitions.log</code>，append-only。每次 transition 加 3 行：</p>
+    <pre><code>2026-05-14T07:43:33Z  BOOT → PREPARE  event=BOOT_DONE  reason="..."
+  tools_since_prev_transition: 3 (Bash×1, Edit×1, Read×1)
+  last_assistant_text: "Done reading. Calling Edit now."</code></pre>
+    <h3>怎么算的</h3>
+    <ul>
+      <li>找 jsonl：<code>glob(~/.claude/projects/*/&lt;sid&gt;.jsonl)</code></li>
+      <li>cutoff：读自己上次写的 transitions.log 最后一条时间戳，第一次 transition 用 session created_at</li>
+      <li>tool_use 计数：扫 assistant 类 entries 的 content[].tool_use，按 name 分桶</li>
+      <li>last_assistant_text：cutoff 之后最后一段 text 内容，collapse whitespace，截 200 字符</li>
+    </ul>
+    <h3>失败兜底</h3>
+    <ul>
+      <li>jsonl 找不到 → 写 1 行主行 + 「(no transcript yet)」</li>
+      <li>jsonl 解析失败 → 静默跳过坏行，最坏情况 0 工具 + "(no text found)"</li>
+      <li>helper 本身崩 → <code>transition.sh</code> 不挂（<code>|| echo "..." &gt;&amp;2</code>），state.md 已经 mutate 成功</li>
+    </ul>
+    <h3>部署细节</h3>
+    <p><code>transition.sh</code> 引 <code>__CLAUDE_CONFIG_DIR__/scripts/_transition_log_helper.py</code>。set_claude.sh 部署时 sed-substitute <code>__CLAUDE_CONFIG_DIR__</code> 为仓库绝对路径，所以 helper 只活在 repo 里、不需要部署到 ~/.claude/。</p>
+  `,
+
+  script_cleanup: () => `
+    <h2>cleanup_v1.sh — 远端清 v1 残留 (v2.1+ P29)</h2>
+    <p>在已经部署过 v1 的机器上跑：<code>bash cleanup_v1.sh</code>。删的东西：</p>
+    <ul>
+      <li><code>~/.claude/hooks/{inject_decrees,inject_decrees_to_subagent,reset_session_status,stop_self_audit}.sh</code></li>
+      <li><code>~/.claude_status/</code>（v1 平铺 session 状态目录，已被 <code>.barry_workflow/&lt;sid&gt;/</code> 取代）</li>
+      <li><code>~/.claude/system_override.txt</code>（v1 system prompt override，v2 不用）</li>
+      <li>shell-rc 里 <code>append-system-prompt-file</code> / <code>system_override.txt</code> 残留行（先备份 .v1cleanup.bak 再 sed）</li>
+    </ul>
+    <p><b>不动</b>：<code>~/.claude/rules/violation.md + lessons.md</code>（用户内容 — 跑前自己 cp 到 ~/备份/ 保险）。idempotent，可以反复跑。</p>
+    <p>跑完一般再跑一次 <code>bash set_claude.sh</code> 把 settings.json 里 v1 hook 注册也清掉（set_claude.sh v2.1 P29 加了 V1_HOOK_PATHS purge 段）。</p>
+  `,
+
   // === runtime ===
   per_turn: () => `
     <h2>每轮 vs 每次工具 vs 每个 state — 啥时候触发啥 (v2.1)</h2>
@@ -1065,34 +1182,37 @@ prompt_reinforce:
     <h3>✅ 实测验证过</h3>
     <div class="cell verdict">
       <ul>
-        <li><b>inject_router.sh state-aware</b> — 本 session router_BOOT 出现</li>
-        <li><b>session_boot.sh subdir</b> — 本 session 用新路径</li>
-        <li><b>REFLECT rebuttal 协议</b>（v2 已 2 轮实测，v2.1 路径改动后未再跑实测）</li>
+        <li><b>P8 end-to-end demo PASSED</b>（v2.1+ 关键里程碑）— 云端 awesome-gpu-name 跑 <code>claude -p</code> 完整 18min session，4 项核心 check 全过：FSM 5 transitions、router 注入、subagent 派发×2、session_boot.sh 自建 <code>.barry_workflow/&lt;sid&gt;/</code>。交付 5 个 ledger + legacy 归档 + 5 [PLAN]/[OBSERVE] 配对。详见 <code>docs/p8_e2e_notes.md</code>。</li>
+        <li><b>transition.sh</b> — P8 demo 里 cloud claude 调了 5 次（BOOT_DONE / PREPARE_DONE / REFLECT_DONE×2 / EXECUTE_EXIT），全部成功 mutate state.md</li>
+        <li><b>inject_router.sh state-aware</b> — P8 demo transcript 多次 [ROUTER] 注入</li>
+        <li><b>session_boot.sh subdir</b> — 本地 + P8 demo 都自动建 <code>.barry_workflow/&lt;sid&gt;/{state,action}.md</code></li>
+        <li><b>REFLECT rebuttal 协议</b> — P8 demo pre-task REFLECT 派 subagent 跑 5 题 rebuttal，consensus 达成</li>
+        <li><b>subagent dispatch (Agent run_in_background=true)</b> — P8 demo 派 2 次（REFLECT rebuttal + EXECUTE 建 ledger），均 OK</li>
         <li><b>路由 + 按需 Read</b> — main 看 router 后只读相关 policy</li>
+        <li><b>P30 transition logging</b> — 3 分支（无 jsonl / 正常 / 损坏）本地测过，部署后云端继承可用</li>
       </ul>
     </div>
 
     <h3>⚠ Smoke-test 过、真任务里没跑</h3>
     <div class="cell verdict warn">
       <ul>
-        <li><b>transition.sh</b> — YAML 改正确，但本会话 main 没真在工作里调用过</li>
-        <li><b>prepare_helper.sh</b> — 外置 checklist 输出正确，本会话从没跑</li>
+        <li><b>prepare_helper.sh</b> — 外置 checklist 输出正确，P8 demo cloud claude 没显式调用（用了 cache_hit_map 但没跑 helper）</li>
         <li><b>execute_loop_audit.sh</b> — regex + 新路径 OK，3-anomaly 没真触发</li>
-        <li><b>pretooluse_short_nudge.sh</b> — 装载成功，AI 没忘规则没被触发</li>
-        <li><b>state_enforce.sh</b>（v2.1 新）— 警告路径 smoke 过，<b>没真 session 越界触发过</b></li>
-        <li><b>prompt_enhancement.md</b>（v2.1 新规则）— 文件已部署，AI 进 PREPARE 时未真用</li>
+        <li><b>pretooluse_short_nudge.sh</b> — 装载成功，P8 demo 没触发 read_threshold</li>
+        <li><b>state_enforce.sh</b>（v2.1 新）— 警告路径 smoke 过，P8 demo 里 cloud claude 没越界过</li>
+        <li><b>prompt_enhancement.md</b>（v2.1 新规则）— 文件已部署，P8 demo PREPARE 阶段未显式 4 要素 check</li>
         <li><b>patches/*.md</b>（v2.1 新）— 静态文件存在，<b>没自动 detect 场景 → 注入机制</b>，AI 自己判</li>
         <li><b>workflow_config.yaml</b>（v2.1 新）— SoT 已立，<b>hook 没真 source YAML</b>，常量仍硬编码 + comment 引用</li>
-        <li><b>P17 跨 session inherit</b> — 写 inherited_from 逻辑 OK，未真用新 session 测试</li>
+        <li><b>P17 跨 session inherit</b> — 写 inherited_from 逻辑 OK，P8 demo 是新 sid，没继承场景</li>
+        <li><b>switch_hooks.sh</b>（v2.1+ 新）— 本地 on/off/status 三子命令各跑过一遍，没实际用「关掉跑一次再开回」场景</li>
       </ul>
     </div>
 
     <h3>❌ 完全没做 / 不工作</h3>
     <div class="cell verdict bad">
       <ul>
-        <li><b>P19 P8 demo</b>（user 监督下推迟）</li>
         <li><b>Codex 端</b> — codex_adapter.md 纯设计稿</li>
-        <li><b>主动通知 AI 进了新 state</b> — transition 后 AI 要等下一 turn 看 router</li>
+        <li><b>主动通知 AI 进了新 state</b> — transition 后 AI 要等下一 turn 看 router（P28 的 cat states/&lt;state&gt;.md 在同一 turn 算「告诉了」，但是通过 stdout 不是注入）</li>
         <li><b>PreToolUse 真拒绝越界 tool</b> — 当前只 PostToolUse 警告</li>
         <li><b>agent_&lt;aid&gt;/ 子目录自动建</b></li>
         <li><b>patches 自动加载机制</b></li>
