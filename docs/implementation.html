@@ -918,6 +918,23 @@ prompt_reinforce:
     <h3>P21 — global lessons 常态化引用</h3>
     <p>lessons.md 已经 auto-loaded，但 AI 不一定每次 reply 前看。router always-on 段加一行明示："回答 user 前 grep lessons.md tags 检查个人偏好命中"。</p>
 
+    <h3>P22 — session 子目录</h3>
+    <p>当前 <code>.barry_workflow/</code> 下平铺所有 session 的 state / action / reflection / nudge_counters 文件，长项目会堆几十个文件难找。改成每 session 一个子目录：</p>
+    <pre><code>.barry_workflow/
+├── &lt;sid&gt;/
+│   ├── state.md              # 不再是 state_&lt;sid&gt;.md，因为已经在 sid 文件夹里
+│   ├── action.md
+│   ├── reflection_r1-pre-task-....md
+│   ├── reflection_r2-on-anomaly-....md
+│   ├── nudge_counters.json
+│   └── agent_&lt;aid&gt;/         # subagent 子子目录（P11 已规划）
+│       ├── state.md
+│       └── action.md
+└── &lt;older_sid&gt;/
+    └── ...</code></pre>
+    <p>好处：清晰、能 <code>tar czf archive_&lt;sid&gt;.tar.gz .barry_workflow/&lt;sid&gt;/</code> 整段归档、能 <code>rm -rf .barry_workflow/&lt;sid&gt;/</code> 整段清理。</p>
+    <p>改动点：<code>session_boot.sh</code> + <code>transition.sh</code> + <code>prepare_helper.sh</code> + <code>execute_loop_audit.sh</code> + <code>pretooluse_short_nudge.sh</code> 全部要把 <code>.barry_workflow/state_&lt;sid&gt;.md</code> 改成 <code>.barry_workflow/&lt;sid&gt;/state.md</code>。1 个 helper 函数 + 全文搜索替换。</p>
+
     <table>
       <tr><th>P</th><th>工时</th><th>收益</th></tr>
       <tr><td>P11 规则重构</td><td>4h</td><td>★★★ 清掉 v1 包袱</td></tr>
@@ -931,8 +948,10 @@ prompt_reinforce:
       <tr><td>P19 P8 demo</td><td>4h</td><td>★★★ 验证整个系统</td></tr>
       <tr><td>P20 scenario↔patch</td><td>2h</td><td>★★ seed 跟 spec 对齐</td></tr>
       <tr><td>P21 lessons 常态化</td><td>1h</td><td>★ 偏好真生效</td></tr>
+      <tr><td>P22 session 子目录</td><td>2h</td><td>★★ 文件组织清晰</td></tr>
     </table>
-    <p>合计 ~30 小时（4-5 工作日）。</p>
+    <p>合计 ~32 小时（4-5 工作日）。</p>
+    <p>详细计划见 <code>docs/v2.1_plan.md</code>。</p>
   `,
 };
 
