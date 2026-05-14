@@ -324,54 +324,35 @@ const PREPARE_DIAGRAM = `
   <g><rect class="sd-node end-bad" x="355" y="220" width="85" height="30" rx="6"/><text class="sd-text" x="397" y="236">否: [PROMPT_</text><text class="sd-text" x="397" y="247">REINFORCED]</text></g>
 </svg>`;
 
-const REFLECT_PRE_TASK = `
-<svg viewBox="0 0 460 280">
-  <g><rect class="sd-node start" x="20" y="10" width="160" height="34" rx="6"/><text class="sd-text" x="100" y="32">写 reflection_r1-pre-task.md</text></g>
-  <path class="sd-edge" d="M 100,44 L 100,70"/>
-  <g><rect class="sd-node" x="20" y="70" width="160" height="50" rx="6"/><text class="sd-text" x="100" y="88">main 写 3-7 个问题</text><text class="sd-text muted" x="100" y="104">"plan 完整吗? observables 漏没?"</text></g>
-  <path class="sd-edge" d="M 180,95 L 240,95"/>
-  <g><rect class="sd-node" x="240" y="70" width="200" height="50" rx="6"/><text class="sd-text" x="340" y="88">Agent(run_in_background=true)</text><text class="sd-text muted" x="340" y="104">reason=pre-task, prompt=...</text></g>
-  <path class="sd-edge" d="M 340,120 L 340,150"/>
-  <g><rect class="sd-node" x="240" y="150" width="200" height="50" rx="6"/><text class="sd-text" x="340" y="168">agent 写 reviewer reply</text><text class="sd-text muted" x="340" y="184">sleep 30 等 SendMessage</text></g>
-  <path class="sd-edge" d="M 240,175 L 180,175"/>
-  <g><rect class="sd-node decision" x="20" y="150" width="160" height="50" rx="6"/><text class="sd-text" x="100" y="168">main: 共识?</text><text class="sd-text muted" x="100" y="184">SendMessage round N</text></g>
-  <path class="sd-edge" d="M 100,200 L 100,230"/>
-  <g><rect class="sd-node end-ok" x="20" y="230" width="160" height="34" rx="6"/><text class="sd-text" x="100" y="252">[CONSENSUS_REACHED]</text></g>
-  <path class="sd-edge" d="M 340,200 L 340,230"/>
-  <g><rect class="sd-node decision" x="240" y="230" width="200" height="34" rx="6"/><text class="sd-text" x="340" y="252">N≥5? → fallback 10 / 上报</text></g>
+// REFLECT 三个场景共用同一套 rebuttal 骨架，只换 reason 参数 + 验证轴 label。
+function reflectDiagram(reason, axisText, entryText, entryClass) {
+  return `
+<svg viewBox="0 0 460 290">
+  <g><rect class="sd-node ${entryClass}" x="20" y="6" width="420" height="26" rx="6"/><text class="sd-text" x="230" y="23">${entryText}</text></g>
+  <path class="sd-edge" d="M 230,32 L 230,52"/>
+  <g><rect class="sd-node" x="20" y="52" width="200" height="46" rx="6"/><text class="sd-text" x="120" y="70">main 写 reflection_${reason}.md</text><text class="sd-text muted" x="120" y="85">3-7 个具体问题 (引文件/log行)</text></g>
+  <path class="sd-edge" d="M 220,75 L 260,75"/>
+  <g><rect class="sd-node" x="260" y="52" width="180" height="46" rx="6"/><text class="sd-text" x="350" y="70">Agent(bg=true)</text><text class="sd-text muted" x="350" y="85">reason=${reason}</text></g>
+  <path class="sd-edge" d="M 350,98 L 350,120"/>
+  <g><rect class="sd-node" x="260" y="120" width="180" height="46" rx="6"/><text class="sd-text" x="350" y="138">agent: 写 reviewer reply</text><text class="sd-text muted" x="350" y="153">轴: ${axisText}</text></g>
+  <path class="sd-edge" d="M 350,166 L 350,188"/>
+  <g><rect class="sd-node" x="260" y="188" width="180" height="36" rx="6"/><text class="sd-text" x="350" y="206">sleep 30; done 等 SendMessage</text></g>
+  <path class="sd-edge" d="M 260,206 Q 200,206 200,140"/>
+  <text class="sd-edge-label" x="180" y="180">round N+1</text>
+  <g><rect class="sd-node decision" x="20" y="120" width="180" height="46" rx="6"/><text class="sd-text" x="110" y="138">main: 收敛?</text><text class="sd-text muted" x="110" y="153">SendMessage 继续 or CONSENSUS</text></g>
+  <path class="sd-edge" d="M 110,166 L 110,210"/>
+  <text class="sd-edge-label" x="80" y="190">是</text>
+  <g><rect class="sd-node end-ok" x="20" y="210" width="180" height="30" rx="6"/><text class="sd-text" x="110" y="230">[CONSENSUS_REACHED]</text></g>
+  <path class="sd-edge" d="M 110,240 L 110,260"/>
+  <g><rect class="sd-node end-ok" x="20" y="260" width="180" height="24" rx="6"/><text class="sd-text" x="110" y="276">transition.sh REFLECT_DONE</text></g>
+  <path class="sd-edge" d="M 200,143 Q 230,143 230,260 L 260,260"/>
+  <text class="sd-edge-label" x="250" y="200">N≥5</text>
+  <g><rect class="sd-node end-bad" x="260" y="244" width="180" height="36" rx="6"/><text class="sd-text" x="350" y="262">fallback N=10 / 上报</text><text class="sd-text muted" x="350" y="276">写 rule_violations.md</text></g>
 </svg>`;
-
-const REFLECT_ON_ANOMALY = `
-<svg viewBox="0 0 460 280">
-  <g><rect class="sd-node end-bad" x="20" y="10" width="180" height="34" rx="6"/><text class="sd-text" x="110" y="32">EXECUTE_LOOP 报异常</text></g>
-  <path class="sd-edge" d="M 110,44 L 110,70"/>
-  <g><rect class="sd-node" x="20" y="70" width="180" height="50" rx="6"/><text class="sd-text" x="110" y="88">写 reflection_on-anomaly.md</text><text class="sd-text muted" x="110" y="104">附 3 个反驳 [OBSERVE]</text></g>
-  <path class="sd-edge" d="M 200,95 L 260,95"/>
-  <g><rect class="sd-node" x="260" y="70" width="180" height="50" rx="6"/><text class="sd-text" x="350" y="88">问 agent:</text><text class="sd-text muted" x="350" y="104">"假设 vs 证据? 替代根因?"</text></g>
-  <path class="sd-edge" d="M 350,120 L 350,150"/>
-  <g><rect class="sd-node decision" x="260" y="150" width="180" height="50" rx="6"/><text class="sd-text" x="350" y="168">agent: 根因是?</text><text class="sd-text muted" x="350" y="184">A / B / C 候选</text></g>
-  <path class="sd-edge" d="M 350,200 L 350,230"/>
-  <g><rect class="sd-node end-ok" x="260" y="230" width="180" height="34" rx="6"/><text class="sd-text" x="350" y="252">main 选 fix 路径 → REFLECT_DONE</text></g>
-  <path class="sd-edge" d="M 260,175 L 200,175"/>
-  <g><rect class="sd-node" x="20" y="150" width="180" height="50" rx="6"/><text class="sd-text" x="110" y="168">main 读 agent 分析</text><text class="sd-text muted" x="110" y="184">挑或者反驳</text></g>
-  <path class="sd-edge" d="M 110,200 L 110,230"/>
-  <g><rect class="sd-node end-bad" x="20" y="230" width="180" height="34" rx="6"/><text class="sd-text" x="110" y="252">仍未定 → 上报用户</text></g>
-</svg>`;
-
-const REFLECT_POST_TASK = `
-<svg viewBox="0 0 460 280">
-  <g><rect class="sd-node end-ok" x="20" y="10" width="180" height="34" rx="6"/><text class="sd-text" x="110" y="32">EXECUTE_LOOP 报 done</text></g>
-  <path class="sd-edge" d="M 110,44 L 110,70"/>
-  <g><rect class="sd-node" x="20" y="70" width="180" height="50" rx="6"/><text class="sd-text" x="110" y="88">写 reflection_post-task.md</text><text class="sd-text muted" x="110" y="104">列 deliverable + 成功条件</text></g>
-  <path class="sd-edge" d="M 200,95 L 260,95"/>
-  <g><rect class="sd-node" x="260" y="70" width="180" height="50" rx="6"/><text class="sd-text" x="350" y="88">问 agent:</text><text class="sd-text muted" x="350" y="104">"deliverable 对得上 goal 吗?"</text></g>
-  <path class="sd-edge" d="M 350,120 L 350,150"/>
-  <g><rect class="sd-node decision" x="260" y="150" width="180" height="50" rx="6"/><text class="sd-text" x="350" y="168">agent: 缺什么?</text><text class="sd-text muted" x="350" y="184">ledger 没收尾 / 漏 file</text></g>
-  <path class="sd-edge" d="M 260,175 L 200,175"/>
-  <g><rect class="sd-node" x="20" y="150" width="180" height="50" rx="6"/><text class="sd-text" x="110" y="168">main 补全 ledger</text><text class="sd-text muted" x="110" y="184">attempts / fixes / no-new</text></g>
-  <path class="sd-edge" d="M 110,200 L 110,230"/>
-  <g><rect class="sd-node end-ok" x="20" y="230" width="180" height="34" rx="6"/><text class="sd-text" x="110" y="252">REFLECT_DONE → 等 stop</text></g>
-</svg>`;
+}
+const REFLECT_PRE_TASK   = reflectDiagram("pre-task",   "plan 完整性 / observables / 成功条件",       "PREPARE_DONE → REFLECT (pre-task)",   "start");
+const REFLECT_ON_ANOMALY = reflectDiagram("on-anomaly", "假设 vs 证据 / 替代根因 / 治标 vs 治本",      "EXECUTE_EXIT --reason=bug → REFLECT", "end-bad");
+const REFLECT_POST_TASK  = reflectDiagram("post-task",  "deliverable vs goal.md / ledger 收尾",       "EXECUTE_EXIT --reason=done → REFLECT", "end-ok");
 
 const EXEC_CONTINUE = `
 <svg viewBox="0 0 460 280">
@@ -469,30 +450,31 @@ const DETAILS = {
       "pre-task": {
         diagram: REFLECT_PRE_TASK,
         notes: `
+          <p><b>一套协议、三个 reason 参数</b> — 三个场景共用同一个 <code>reflect_protocol.md</code> 流程（写 round 文件 → 派 agent → SendMessage 多轮 → CONSENSUS_REACHED 或 N=5 fallback 10）。差别只在 agent 验证什么轴。</p>
           <ul>
-            <li>触发：PREPARE 完成后第一次进入</li>
-            <li>验证轴：plan 完整性 / observables / 成功条件是否清晰</li>
-            <li>main 通过 <code>SendMessage</code> 主导问询；agent <code>sleep 30; done</code> 等</li>
-            <li>N=5 试，不行 fallback 10，仍不行 <code>[REFLECT_FAILURE]</code> 上报</li>
+            <li><b>触发</b>：PREPARE 完成后第一次进入</li>
+            <li><b>reason</b>：<code>pre-task</code></li>
+            <li><b>验证轴</b>：plan 完整性 / observables 漏没漏 / 成功条件清不清晰</li>
           </ul>`,
       },
       "on-anomaly": {
         diagram: REFLECT_ON_ANOMALY,
         notes: `
+          <p><b>一套协议、三个 reason 参数</b> — 协议骨架跟 pre-task 完全一样，只是 agent 关注的轴不同。</p>
           <ul>
-            <li>触发：EXECUTE_LOOP 连续 3 个 [OBSERVE] 反驳 [PLAN]，<code>EXECUTE_EXIT --reason=bug</code></li>
-            <li>验证轴：假设 vs 证据 / 替代根因 / fix 是不是治标</li>
-            <li>main 附 3 个反驳证据；agent 输出候选根因 A/B/C</li>
-            <li>共识后回 EXECUTE_LOOP；仍未定 → 上报</li>
+            <li><b>触发</b>：EXECUTE_LOOP 连续 3 个 [OBSERVE] 反驳 [PLAN]，<code>EXECUTE_EXIT --reason=bug</code></li>
+            <li><b>reason</b>：<code>on-anomaly</code></li>
+            <li><b>验证轴</b>：假设 vs 证据 / 替代根因 A/B/C / fix 是不是治标</li>
           </ul>`,
       },
       "post-task": {
         diagram: REFLECT_POST_TASK,
         notes: `
+          <p><b>一套协议、三个 reason 参数</b> — 同样的 rebuttal 循环，agent 这次盯着 deliverable 是否真的达标。</p>
           <ul>
-            <li>触发：EXECUTE_LOOP 自判 done，<code>EXECUTE_EXIT --reason=done</code></li>
-            <li>验证轴：deliverable 对得上 goal.md？ledger 收尾？没有漏的文件？</li>
-            <li>共识达成 → 写 ledger 收尾 → REFLECT_DONE → 等 stop</li>
+            <li><b>触发</b>：EXECUTE_LOOP 自判 done，<code>EXECUTE_EXIT --reason=done</code></li>
+            <li><b>reason</b>：<code>post-task</code></li>
+            <li><b>验证轴</b>：deliverable 对得上 <code>goal.md</code>？ledger 收尾了？没漏文件？</li>
           </ul>`,
       },
     },
