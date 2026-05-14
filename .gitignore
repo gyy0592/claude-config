@@ -13,6 +13,9 @@ skills/*-workspace/
 # Codex credentials (never commit real keys)
 codex_info.yaml
 
+# Per-session military camp runtime state (never commit)
+militar_camp/
+
 # Local test outputs / scratch (paper-reader runs, drafts, logs)
 artifacts/
 logs/
@@ -22,3 +25,11 @@ paper_reader_outputs_zh/
 paper-reader-workspace/
 test_papers/
 humanize_analysis.md
+
+# Codex/Humanize cache for ask-codex skill
+.humanize/
+.claude_status/
+
+# v4 barry-workflow per-session runtime state
+.barry_workflow/
+.barry_workflow_temp/

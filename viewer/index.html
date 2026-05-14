@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Barry's Workflow — Session Viewer</title>
+<link rel="stylesheet" href="viewer.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Barry's Workflow <span class="dim">/ session viewer</span></div>
+    <div class="session-picker">
+      <label>session:</label>
+      <select id="session-select"></select>
+      <span id="sid-label" class="sid-label"></span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-title">Agent tree</div>
+      <ul id="agent-tree" class="agent-tree"></ul>
+      <div class="sidebar-footer">
+        <div class="legend"><span class="dot main"></span> main</div>
+        <div class="legend"><span class="dot sub"></span> subagent</div>
+      </div>
+    </aside>
+
+    <section class="middle">
+      <div class="pane pane-state" id="pane-state">
+        <div class="pane-header">
+          <div class="tabs" id="state-tabs">
+            <button class="tab active" data-tab="state">state.md</button>
+            <button class="tab" data-tab="action">action.md (tail)</button>
+            <button class="tab" data-tab="reflections">reflections</button>
+          </div>
+          <div class="pane-meta" id="state-meta"></div>
+        </div>
+        <div class="pane-body" id="state-body">
+          <div class="placeholder">Select an agent.</div>
+        </div>
+      </div>
+
+      <div class="pane pane-transcript" id="pane-transcript">
+        <div class="pane-header">
+          <div class="pane-title">Transcript</div>
+          <div class="pane-meta">
+            <label class="ck"><input type="checkbox" id="filter-tools"> tools only</label>
+            <label class="ck"><input type="checkbox" id="hide-reminders" checked> hide system-reminder</label>
+            <input id="search-input" class="search" placeholder="search…" />
+          </div>
+        </div>
+        <div class="pane-body" id="transcript-body">
+          <div class="placeholder">Loading transcript…</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="lib/marked.min.js"></script>
+  <script src="viewer.js"></script>
+</body>
+</html>

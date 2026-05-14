@@ -1,0 +1,26 @@
+# workflow_config.yaml — central tunables for the barry-workflow state machine.
+# Edit values here, rerun set_claude.sh, no hook/.md edits needed.
+# As of v2.1 P13 this file is a SOURCE-OF-TRUTH REFERENCE; hooks and state docs
+# do not yet read it at runtime — they cite it via inline comments so future
+# changes know the one place to edit. Wiring the shells to source this YAML
+# is a follow-up task.
+
+reflect:
+  rounds_default: 5         # states/reflect.md "N (round budget)"
+  rounds_fallback: 10       # states/reflect.md "N=5 hits → re-spawn at N=10"
+  max_round_minutes: 15     # cap a single rebuttal round; exceeded → log + escalate
+
+execute_loop:
+  failure_budget: 3         # states/execute.md + hooks/execute_loop_audit.sh anomaly threshold
+                            # see also failure_stop.md (autonomous-3-failure stop)
+
+pretool_nudge:
+  read_threshold: 3         # hooks/pretooluse_short_nudge.sh — Read/Grep/Glob count → nudge dispatch
+  max_chars: 100            # hooks/pretooluse_short_nudge.sh — nudge() truncates message to this length
+
+prompt_reinforce:
+  required_elements:        # hooks/prepare_helper.sh + states/prepare.md "4-element check"
+    - observable
+    - cadence
+    - reflection
+    - completion
