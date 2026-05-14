@@ -10,7 +10,15 @@ Forbidden: Edit / Write / NotebookEdit / Bash mutators (rm|mv|sed -i|>>|>) — d
 
 INFERENCE_GATE: an [INFERENCE] write triggers a mini 1-round rebuttal inside this state (see reflect.md §INFERENCE_GATE).
 
-Advance: `bash ~/.claude/hooks/transition.sh REFLECT_DONE --reason=<...>` → EXECUTE_LOOP.
+Before advancing — finish ALL of these:
+  - Rebuttal subagent spawned; reflection_<round>.md exists with `## reviewer reply`
+  - SendMessage round(s) until `[CONSENSUS_REACHED]` written OR round budget exhausted (N=5 default, then fallback N=10)
+  - Subagent agent shut down (TaskStop)
+  - Consensus action list captured in action.md
+
+Forget any of the above? → `cat ~/.claude/rules/states/reflect.md` + `cat ~/.claude/rules/subagent_rules.md`.
+
+Advance only when checklist done: `bash ~/.claude/hooks/transition.sh REFLECT_DONE --reason=<...>` → EXECUTE_LOOP.
 
 Always-on:
   - facts_first.md.

@@ -67,3 +67,12 @@ new_src = src[:m.start(1)] + new_yaml + src[m.end(1):]
 pathlib.Path(path).write_text(new_src)
 print(f"{event} → {new_status}")
 PY
+
+# v2.1 P26: after switching state, echo the new state's full router so AI
+# sees its constraints immediately instead of waiting for next UserPromptSubmit.
+NEW_ROUTER="$HOME/.claude/rules/router_${NEW}.md"
+if [ -f "$NEW_ROUTER" ]; then
+    echo ""
+    cat "$NEW_ROUTER"
+fi
+

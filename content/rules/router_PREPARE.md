@@ -12,7 +12,15 @@ Helpers:
 Allowed: Read / Glob / Grep / Bash(prepare_helper.sh|transition.sh|ls|cat) / planning notes in action.md.
 Forbidden: Edit / Write of project files / launching jobs / spawning execution agents.
 
-Advance: `bash ~/.claude/hooks/transition.sh PREPARE_DONE --reason=<...>` → REFLECT.
+Before advancing — finish ALL of these:
+  - cache_hit_map filled (every artifact UNKNOWN → YES/NO)
+  - 4-element check done (observable / cadence / reflection / completion); [PROMPT_REINFORCED] written if any missing
+  - Plan written to action.md (intended deliverable + success criteria)
+  - Patches scanned: any `~/.claude/rules/patches/*.md` whose `applies_to` matches this task → Read
+
+Forget any of the above? → `cat ~/.claude/rules/states/prepare.md` + `cat ~/.claude/rules/prompt_enhancement.md`.
+
+Advance only when checklist done: `bash ~/.claude/hooks/transition.sh PREPARE_DONE --reason=<...>` → REFLECT.
 
 Always-on:
   - facts_first.md (INFERENCE_GATE).

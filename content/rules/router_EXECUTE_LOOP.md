@@ -13,7 +13,15 @@ Forbidden: silent edits without [PLAN]; non-bg dispatch (Agent must be run_in_ba
 
 Failure budget: 3 anomalies → call `transition.sh EXECUTE_EXIT --reason=bug` → REFLECT (unless $PWD/CLAUDE.md AUTH override).
 
-Advance: `bash ~/.claude/hooks/transition.sh EXECUTE_EXIT --reason=<completion|bug|anomaly>` → REFLECT.
+Before advancing — finish ALL of these:
+  - Deliverable produced (file modified, test passed, output captured)
+  - PLAN/OBSERVE counts match (run `execute_loop_audit.sh` to verify)
+  - No outstanding [TODO] markers in action.md
+  - For long jobs: Monitor() cadence respected; no silent runaway
+
+Forget any of the above? → `cat ~/.claude/rules/states/execute.md` + `cat ~/.claude/rules/failure_stop.md`.
+
+Advance only when checklist done: `bash ~/.claude/hooks/transition.sh EXECUTE_EXIT --reason=<completion|bug|anomaly>` → REFLECT.
 
 Always-on:
   - facts_first.md (INFERENCE_GATE).

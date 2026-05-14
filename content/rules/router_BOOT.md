@@ -8,7 +8,14 @@ Must-read on entry (Read if not in cache):
 Allowed: Read / Glob / Grep / Bash(transition.sh|ls|cat|pwd) / SendMessage to user.
 Forbidden: Edit / Write / NotebookEdit / Bash mutators (rm|mv|sed -i|>) / launching jobs.
 
-Advance: `bash ~/.claude/hooks/transition.sh BOOT_DONE --reason=<...>` → PREPARE.
+Before advancing — finish ALL of these:
+  - Read goal.md (if any) / recent bitter_lessons / last action.md tail
+  - Confirm session context (inherited_from chain, prior attempts)
+  - Decide approximate task complexity (sets which patches to apply later)
+
+Forget any of the above? → `cat ~/.claude/rules/states/boot.md`.
+
+Advance only when checklist done: `bash ~/.claude/hooks/transition.sh BOOT_DONE --reason=<...>` → PREPARE.
 
 Always-on (every state):
   - facts_first.md — gate every [INFERENCE]; INFERENCE_GATE rebuttal required.
