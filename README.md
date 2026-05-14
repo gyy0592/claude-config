@@ -6,7 +6,8 @@
 
 > **What it is**: a finite state machine that constrains what Claude (the AI) is allowed to do at any moment, plus a structured patch system that lets the machine evolve as you (or it) discover where the defaults fall short. **Not** a prompt collection. **Not** a wrapper. A behaviour controller.
 
-> **Read this first for a complete walk-through**: [`docs/implementation.html`](docs/implementation.html) — zero-prereq tour of every piece, why each exists, and an honest verdict on whether it works.
+> **For others / first-time readers**: [`docs/big_picture.html`](docs/big_picture.html) — motivation, entropy collapse, the two solution principles. No implementation jargon.
+> **For engineers**: [`docs/implementation.html`](docs/implementation.html) — zero-prereq tour of every file, why each exists, honest verdict on whether it works.
 
 ## Why
 

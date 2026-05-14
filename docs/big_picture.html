@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Barry's Workflow — 把 AI 从条件反射变成会思考的状态机</title>
+<style>
+  :root {
+    --bg: #fafbfc;
+    --panel: #ffffff;
+    --panel-2: #f0f4f8;
+    --border: #d8dee6;
+    --fg: #0d1117;
+    --muted: #57606a;
+    --accent: #0969da;
+    --accent-soft: #dcf0ff;
+    --orange: #bc4c00;
+    --orange-soft: #fff1e5;
+    --green: #1a7f37;
+    --green-soft: #dafbe1;
+    --red: #cf222e;
+    --red-soft: #ffe9e8;
+    --purple: #8250df;
+    --purple-soft: #f3ecff;
+    --yellow-soft: #fff8c5;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", Helvetica, sans-serif;
+    line-height: 1.7;
+    font-size: 15.5px;
+  }
+  .wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 0 28px;
+  }
+
+  /* Hero */
+  .hero {
+    padding: 90px 0 60px;
+    text-align: center;
+    background:
+      radial-gradient(circle at 30% 20%, rgba(9,105,218,0.08), transparent 50%),
+      radial-gradient(circle at 70% 80%, rgba(188,76,0,0.08), transparent 50%);
+  }
+  .hero h1 {
+    margin: 0 0 12px;
+    font-size: 42px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+  }
+  .hero .pitch {
+    font-size: 19px;
+    color: var(--muted);
+    max-width: 680px;
+    margin: 0 auto 24px;
+  }
+  .chips {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 20px;
+  }
+  .chip {
+    padding: 6px 14px;
+    border-radius: 16px;
+    font-size: 13px;
+    font-family: ui-monospace, monospace;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .chip.blue { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+  .chip.orange { background: var(--orange-soft); color: var(--orange); border-color: var(--orange); }
+  .chip.purple { background: var(--purple-soft); color: var(--purple); border-color: var(--purple); }
+
+  /* Section */
+  section {
+    padding: 56px 0;
+    border-top: 1px solid var(--border);
+  }
+  section h2 {
+    margin: 0 0 8px;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+  section .lead {
+    color: var(--muted);
+    font-size: 16px;
+    margin: 0 0 32px;
+  }
+  section p { margin: 12px 0; }
+  section ul, section ol { padding-left: 22px; }
+  section li { margin-bottom: 6px; }
+  section code {
+    font-family: ui-monospace, "SF Mono", monospace;
+    background: var(--purple-soft);
+    color: var(--purple);
+    padding: 1.5px 6px;
+    border-radius: 3px;
+    font-size: 13.5px;
+  }
+  section .num {
+    color: var(--orange);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  /* Scenario cards */
+  .scenarios {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 28px 0 16px;
+  }
+  .scen {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 18px 16px;
+    border-left: 4px solid var(--red);
+  }
+  .scen .user-said {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .scen .quote {
+    font-weight: 600;
+    color: var(--fg);
+    margin-bottom: 12px;
+    font-size: 15px;
+  }
+  .scen .ai-did {
+    font-size: 12px;
+    color: var(--red);
+    margin-bottom: 2px;
+    font-weight: 600;
+  }
+  .scen .response {
+    font-size: 13.5px;
+    color: var(--fg);
+    margin-bottom: 12px;
+  }
+  .scen .missed {
+    font-size: 12.5px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .scen .missed b { color: var(--red); }
+
+  /* Entropy collapse visual */
+  .entropy {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 26px;
+    margin: 28px 0;
+    text-align: center;
+  }
+  .entropy svg { display: block; margin: 12px auto; width: 100%; max-width: 700px; height: 200px; }
+  .entropy .caption {
+    font-size: 13px;
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 8px;
+  }
+
+  /* Two-column solution */
+  .pillars {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 28px 0;
+  }
+  .pillar {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 24px 22px;
+  }
+  .pillar.machine { border-top: 5px solid var(--accent); }
+  .pillar.evolve { border-top: 5px solid var(--green); }
+  .pillar h3 {
+    margin: 0 0 10px;
+    font-size: 19px;
+    font-weight: 700;
+  }
+  .pillar .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-family: ui-monospace, monospace;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .pillar p { font-size: 14px; margin: 8px 0; color: var(--fg); }
+  .pillar ul { margin: 8px 0; padding-left: 18px; font-size: 14px; }
+  .pillar li { margin-bottom: 4px; }
+  .pillar.machine h3 { color: var(--accent); }
+  .pillar.evolve h3 { color: var(--green); }
+
+  /* FSM diagram */
+  .fsm-diagram {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin: 28px 0;
+  }
+  .fsm-diagram svg { width: 100%; height: 240px; display: block; }
+
+  /* Patches block */
+  .patches {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 26px;
+    margin: 24px 0;
+  }
+  .patch-row {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 16px;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--border);
+    align-items: baseline;
+  }
+  .patch-row:last-child { border-bottom: none; }
+  .patch-row .name {
+    font-family: ui-monospace, monospace;
+    font-size: 13px;
+    color: var(--orange);
+    font-weight: 600;
+  }
+  .patch-row .body { font-size: 13.5px; }
+
+  /* Rebuttal highlight */
+  .rebuttal {
+    background: var(--orange-soft);
+    border-left: 4px solid var(--orange);
+    border-radius: 6px;
+    padding: 18px 22px;
+    margin: 24px 0;
+  }
+  .rebuttal h3 {
+    margin: 0 0 8px;
+    font-size: 17px;
+    color: var(--orange);
+  }
+  .rebuttal p { font-size: 14px; margin: 8px 0; }
+
+  /* Links */
+  .links {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin: 24px 0 8px;
+  }
+  .link {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+    text-decoration: none;
+    color: var(--fg);
+    transition: all 0.15s;
+  }
+  .link:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .link .title {
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .link .desc { font-size: 12.5px; color: var(--muted); }
+
+  footer {
+    padding: 40px 0 60px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    border-top: 1px solid var(--border);
+  }
+
+  @media (max-width: 720px) {
+    .scenarios, .pillars, .links { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 30px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="wrap">
+    <h1>Barry's Workflow</h1>
+    <p class="pitch">把 AI coding agent 从「条件反射机器」变成「会自我反思的状态机」。<br>对抗训练集偏见、阻止"觉得自己做对了"的错觉、用文档自我进化。</p>
+    <div class="chips">
+      <span class="chip blue">state machine</span>
+      <span class="chip orange">clean-context rebuttal</span>
+      <span class="chip purple">self-evolving docs</span>
+      <span class="chip">anti entropy collapse</span>
+    </div>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+    <div class="num">动机 / Motivation</div>
+    <h2>问题不在算力，在 AI 不会进入"思考"状态</h2>
+    <p class="lead">现代 LLM 处理 coding 任务时有个很顽固的失败模式：<b>把"接受任务"直接跳到"我做完了"</b>，中间所有验证步骤一概省略。这不是某个模型的 bug，也不是 prompt 不够好的问题，而是<b>训练数据决定的行为偏置</b>。</p>
+
+    <div class="scenarios">
+      <div class="scen">
+        <div class="user-said">USER:</div>
+        <div class="quote">"代码跑得慢，加速一下"</div>
+        <div class="ai-did">VANILLA AI:</div>
+        <div class="response">直接改 batch_size 一把梭。</div>
+        <div class="missed">
+          <b>跳过了</b>：测 baseline、profile 看瓶颈、看 GPU util、考虑 IO/CPU 瓶颈、一次只改一个变量。
+        </div>
+      </div>
+
+      <div class="scen">
+        <div class="user-said">USER:</div>
+        <div class="quote">"脚本报 KeyError，修一下"</div>
+        <div class="ai-did">VANILLA AI:</div>
+        <div class="response">用 try/except 包住继续。</div>
+        <div class="missed">
+          <b>跳过了</b>：查 key 为什么不存在、看上游是不是漏写、找 root cause 而不是 symptom、加测试防回归。
+        </div>
+      </div>
+
+      <div class="scen">
+        <div class="user-said">USER:</div>
+        <div class="quote">"做一个 HTML 可视化"</div>
+        <div class="ai-did">VANILLA AI:</div>
+        <div class="response">写完代码 commit、汇报"完成"。</div>
+        <div class="missed">
+          <b>跳过了</b>：用浏览器打开、点击交互、看 console error。<b>本工作流开发期间真的发生过</b>，引号 bug 导致 JS 整段挂掉，AI 自己没发现。
+        </div>
+      </div>
+    </div>
+
+    <p>为什么这样？因为 GitHub commits / StackOverflow / blog 教程的文本格式都是 <code>问题 → 修复</code> 的单跳对，中间步骤<b>训练集里压根不出现</b>：</p>
+    <ul>
+      <li>没人会在 commit 里写"我先 read 了 200 行代码才改这 1 行"</li>
+      <li>SO 答主不会贴"我先复现了 5 次才下结论"</li>
+      <li>"加了测试验证没回归" — 这种功课没法吸引点赞所以没人写</li>
+    </ul>
+    <p>AI 学到的就是 <b><code>问题 → 答案</code></b> 这个映射，<b>没学到中间过程</b>。要让 AI 真正解决复杂问题，必须从外部强制把中间步骤补回来。</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="num">现象 / Phenomenon</div>
+    <h2>Entropy Collapse — 开 10 个 AI 全走同一条歪路</h2>
+    <p class="lead">这是 LLM 工作流最反直觉但最关键的事实：<b>独立的 N 份 AI 副本面对同一个问题，错的方式高度相似</b>。因为他们共享同一个训练分布。"多开几个 AI 互相 review"这种朴素思路不管用 — 大家会一起犯一样的错。</p>
+
+    <div class="entropy">
+      <svg viewBox="0 0 700 200">
+        <!-- Cliff -->
+        <rect x="450" y="60" width="250" height="140" fill="#d8dee6" stroke="#57606a" stroke-width="1.2"/>
+        <text x="575" y="180" text-anchor="middle" font-size="13" fill="#57606a" font-family="ui-monospace, monospace">同一个错误</text>
+
+        <!-- 10 AI figures walking off -->
+        <g>
+          <circle cx="60" cy="100" r="8" fill="#0969da"/><path d="M 60,108 L 60,135 M 50,120 L 70,120 M 55,150 L 65,150" stroke="#0969da" stroke-width="2" fill="none"/>
+          <path d="M 70,120 L 100,118" stroke="#0969da" stroke-width="2.5" marker-end="url(#arr1)"/>
+        </g>
+        <g>
+          <circle cx="120" cy="105" r="8" fill="#0969da"/><path d="M 120,113 L 120,140 M 110,124 L 130,124 M 115,154 L 125,154" stroke="#0969da" stroke-width="2" fill="none"/>
+          <path d="M 130,124 L 160,124" stroke="#0969da" stroke-width="2.5" marker-end="url(#arr1)"/>
+        </g>
+        <g>
+          <circle cx="180" cy="100" r="8" fill="#0969da"/><path d="M 180,108 L 180,135 M 170,120 L 190,120 M 175,150 L 185,150" stroke="#0969da" stroke-width="2" fill="none"/>
+          <path d="M 190,120 L 220,118" stroke="#0969da" stroke-width="2.5" marker-end="url(#arr1)"/>
+        </g>
+        <g>
+          <circle cx="240" cy="105" r="8" fill="#0969da"/><path d="M 240,113 L 240,140 M 230,124 L 250,124 M 235,154 L 245,154" stroke="#0969da" stroke-width="2" fill="none"/>
+          <path d="M 250,124 L 280,124" stroke="#0969da" stroke-width="2.5" marker-end="url(#arr1)"/>
+        </g>
+        <g>
+          <circle cx="300" cy="100" r="8" fill="#0969da"/><path d="M 300,108 L 300,135 M 290,120 L 310,120 M 295,150 L 305,150" stroke="#0969da" stroke-width="2" fill="none"/>
+          <path d="M 310,120 L 340,118" stroke="#0969da" stroke-width="2.5" marker-end="url(#arr1)"/>
+        </g>
+        <g>
+          <circle cx="360" cy="105" r="8" fill="#0969da"/><path d="M 360,113 L 360,140 M 350,124 L 370,124 M 355,154 L 365,154" stroke="#0969da" stroke-width="2" fill="none"/>
+          <path d="M 370,124 L 400,124" stroke="#0969da" stroke-width="2.5" marker-end="url(#arr1)"/>
+        </g>
+        <g>
+          <circle cx="420" cy="100" r="8" fill="#0969da"/><path d="M 420,108 L 420,135 M 410,120 L 430,120 M 415,150 L 425,150" stroke="#0969da" stroke-width="2" fill="none"/>
+          <path d="M 430,120 L 450,118" stroke="#0969da" stroke-width="2.5" marker-end="url(#arr1)"/>
+        </g>
+
+        <defs>
+          <marker id="arr1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0969da"/></marker>
+        </defs>
+
+        <text x="10" y="30" font-size="13" fill="#57606a" font-family="ui-monospace, monospace">N 个独立 AI 副本</text>
+        <text x="450" y="40" font-size="13" fill="#cf222e" font-weight="600">所有人在同一个地方栽</text>
+      </svg>
+      <div class="caption">训练集偏置 → 失败模式共享 → 朴素多副本 review 没用</div>
+    </div>
+
+    <p>这是<b>本工作流的第二个核心 motivation</b>。要打破 entropy collapse，必须让<b>不同的 AI 实例处于不同的"信息状态"</b>：</p>
+    <ul>
+      <li>主 AI 已经走了一段路、有 commitment、倾向证明自己对</li>
+      <li>派出一个<b>干净上下文</b>的 AI 来 review — 它没"我已经做完了"的偏见</li>
+      <li>两边互相反驳，主 AI 被迫面对自己没注意的盲点</li>
+    </ul>
+    <p>本工作流里这个机制叫做<b>"clean-context rebuttal"</b>。后面会讲。</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="num">解决方向 / Solution</div>
+    <h2>两个核心原则</h2>
+    <p class="lead">本工作流不是另一个 prompt 模板集。它是一个<b>外部行为约束器</b>，把 AI 从"条件反射"模式强制切到"状态机"模式。</p>
+
+    <div class="pillars">
+      <div class="pillar machine">
+        <div class="tag">核心 1</div>
+        <h3>状态机视角</h3>
+        <p>把 AI 看成一台 finite state machine。它默认的状态转移是 <code>接受任务 → 我做完了</code> 一跳到底。</p>
+        <p>我们的工作是<b>把这条单跳边切成必须显式走过的多个 state</b>，每个 state 强制 AI 做特定的事：</p>
+        <ul>
+          <li><b>BOOT</b> — 读已有材料、知道项目历史</li>
+          <li><b>PREPARE</b> — 列已知信息、明确成功判据</li>
+          <li><b>REFLECT</b> — 派 clean-context AI 反驳一次</li>
+          <li><b>EXECUTE</b> — 每步写意图 + 验证证据</li>
+          <li><b>REFLECT post</b> — 验 deliverable、加测试</li>
+        </ul>
+        <p>state 之间的转换由系统强制，AI 不许跳。</p>
+      </div>
+
+      <div class="pillar evolve">
+        <div class="tag">核心 2</div>
+        <h3>文档自我进化</h3>
+        <p>对抗 entropy collapse：让<b>累积的文档</b>把 AI 推离训练集默认轨迹。每个项目持续记录：</p>
+        <ul>
+          <li><code>bitter_lessons.md</code> — 这个项目踩过的坑（bs=32 在 H100 必 OOM）</li>
+          <li><code>successful_fixes.md</code> — 这个项目成功修法</li>
+          <li><code>rule_violations.md</code> — AI 在这项目里犯过的行为错误</li>
+          <li><code>goal.md</code> — user 写的项目目标</li>
+        </ul>
+        <p>跨项目还有<b>全局文档</b>记录"该 user 喜欢最小修改 / 喜欢中文回复 / rebuttal 12 分钟对小任务不值"等行为智慧。</p>
+        <p>AI 在每个 state 开始时 Read 相关文档，<b>累积的项目知识压过模型默认偏置</b>。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="num">关键机制 / Mechanism</div>
+    <h2>Clean-Context Rebuttal — 反"觉得自己做对了"</h2>
+    <p class="lead">这是状态机里最重要的一个 state（REFLECT）。专门解决 entropy collapse 和确认偏差。</p>
+
+    <div class="rebuttal">
+      <h3>怎么工作</h3>
+      <p>1️⃣ 主 AI 把自己当前的 plan / 已经做了什么 / 想得出的结论，写到一个 markdown 文件。</p>
+      <p>2️⃣ 启动一个<b>干净上下文</b>的副本 AI — 没看过对话历史、没"我快做完了"的 commitment。</p>
+      <p>3️⃣ 副本读 markdown，独立验证：plan 有没有漏点？观察证据够不够？还有没有替代根因？</p>
+      <p>4️⃣ 主 AI 看 review，可以反驳一次。两边来回讨论直到达成共识或者轮数上限。</p>
+      <p>5️⃣ 共识 = 主 AI 真的考虑过反对意见，不是"我觉得对就对"。</p>
+    </div>
+
+    <p>这个机制的核心价值：<b>主 AI 跟副本处在不同信息状态</b>（一个有 commitment，一个没有），所以他们不会同时漏掉同一个东西。</p>
+
+    <p>本工作流开发期间实测：单次 rebuttal ≈ 12 分钟 / 60k token。<b>对设计决策、复杂 plan、找 bug 划得来；对小修改不值</b>。所以状态机针对不同场景<b>选择性触发</b>。</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="num">架构 / Architecture</div>
+    <h2>通用状态机 + 场景补丁</h2>
+    <p class="lead">现实里"做任务"分很多种 — 长监控、修代码 bug、性能调优、写新功能、调研。同一套状态机参数不可能对所有场景最优。所以分两层。</p>
+
+    <div class="fsm-diagram">
+      <svg viewBox="0 0 700 240" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <marker id="diagram-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#57606a"/></marker>
+        </defs>
+        <!-- nodes -->
+        <g><rect x="20" y="80" width="100" height="60" rx="8" fill="#dcf0ff" stroke="#0969da" stroke-width="1.5"/><text x="70" y="105" text-anchor="middle" font-size="13" font-weight="600" fill="#0969da">BOOT</text><text x="70" y="123" text-anchor="middle" font-size="10" fill="#57606a">读历史材料</text></g>
+        <path d="M 120,110 L 150,110" stroke="#57606a" stroke-width="1.5" fill="none" marker-end="url(#diagram-arr)"/>
+        <g><rect x="150" y="80" width="100" height="60" rx="8" fill="#dcf0ff" stroke="#0969da" stroke-width="1.5"/><text x="200" y="105" text-anchor="middle" font-size="13" font-weight="600" fill="#0969da">PREPARE</text><text x="200" y="123" text-anchor="middle" font-size="10" fill="#57606a">列已知 + 判据</text></g>
+        <path d="M 250,110 L 280,110" stroke="#57606a" stroke-width="1.5" fill="none" marker-end="url(#diagram-arr)"/>
+        <g><rect x="280" y="80" width="100" height="60" rx="8" fill="#fff1e5" stroke="#bc4c00" stroke-width="1.5"/><text x="330" y="105" text-anchor="middle" font-size="13" font-weight="600" fill="#bc4c00">REFLECT</text><text x="330" y="123" text-anchor="middle" font-size="10" fill="#57606a">rebuttal</text></g>
+        <path d="M 380,110 L 410,110" stroke="#57606a" stroke-width="1.5" fill="none" marker-end="url(#diagram-arr)"/>
+        <g><rect x="410" y="80" width="120" height="60" rx="8" fill="#dcf0ff" stroke="#0969da" stroke-width="1.5"/><text x="470" y="105" text-anchor="middle" font-size="13" font-weight="600" fill="#0969da">EXECUTE</text><text x="470" y="123" text-anchor="middle" font-size="10" fill="#57606a">PLAN→工具→OBSERVE</text></g>
+        <path d="M 530,110 L 560,110" stroke="#57606a" stroke-width="1.5" fill="none" marker-end="url(#diagram-arr)"/>
+        <g><rect x="560" y="80" width="100" height="60" rx="8" fill="#dafbe1" stroke="#1a7f37" stroke-width="1.5"/><text x="610" y="105" text-anchor="middle" font-size="13" font-weight="600" fill="#1a7f37">END</text><text x="610" y="123" text-anchor="middle" font-size="10" fill="#57606a">/goal clear</text></g>
+        <!-- anomaly loop -->
+        <path d="M 470,140 Q 470,200 330,200 Q 330,140 330,140" stroke="#cf222e" stroke-width="1.5" stroke-dasharray="4 3" fill="none" marker-end="url(#diagram-arr)"/>
+        <text x="400" y="217" text-anchor="middle" font-size="11" fill="#cf222e">异常 → 回 REFLECT</text>
+        <!-- patches strip -->
+        <rect x="20" y="20" width="640" height="40" rx="6" fill="#fff8c5" stroke="#bf8700" stroke-width="1"/>
+        <text x="35" y="42" font-size="12" fill="#bf8700" font-weight="600">补丁层（按场景叠加）：</text>
+        <text x="180" y="42" font-size="11" fill="#57606a" font-family="ui-monospace, monospace">long_monitor</text>
+        <text x="290" y="42" font-size="11" fill="#57606a" font-family="ui-monospace, monospace">bug_debug</text>
+        <text x="390" y="42" font-size="11" fill="#57606a" font-family="ui-monospace, monospace">perf_debug</text>
+        <text x="490" y="42" font-size="11" fill="#57606a" font-family="ui-monospace, monospace">exploration</text>
+        <text x="595" y="42" font-size="11" fill="#57606a" font-family="ui-monospace, monospace">simple-fast</text>
+      </svg>
+    </div>
+
+    <h3 style="margin-top: 28px; font-size: 18px;">补丁示例</h3>
+    <div class="patches">
+      <div class="patch-row">
+        <div class="name">long_monitor.md</div>
+        <div class="body">长跑监控任务。覆盖默认 cadence — 用 <code>T_queue / 5</code> 估队列 poll、<code>T_run / 20</code> 估初始密集监控、连续 2 次干净后切 <code>T_run / 5</code> 疏松。</div>
+      </div>
+      <div class="patch-row">
+        <div class="name">bug_debug.md</div>
+        <div class="body">已知错误。强制先复现再改、3 次失败强制进 REFLECT on-anomaly 2 轮 rebuttal。</div>
+      </div>
+      <div class="patch-row">
+        <div class="name">perf_debug.md</div>
+        <div class="body">性能优化。必先测 baseline 数字、一次只改一个变量、看稳态利用率而非 warmup。</div>
+      </div>
+      <div class="patch-row">
+        <div class="name">exploration.md</div>
+        <div class="body">没明确方案的调研。pre-task REFLECT 强制 2 轮 rebuttal（关键词必须被质疑过）。</div>
+      </div>
+      <div class="patch-row">
+        <div class="name">simple-fast.md</div>
+        <div class="body">改 typo / 加 print 这种小任务。<b>跳过</b>大头 REFLECT，但保留 post-task 验证。</div>
+      </div>
+    </div>
+
+    <p>补丁有<b>两个来源</b>：</p>
+    <ul>
+      <li><b>人工</b> — user 看到 AI 在某场景下做砸，写一个补丁修</li>
+      <li><b>AI 自动</b> — 工作中累积 bitter_lessons / 失败案例 → 系统起草补丁草稿 → user 审核升 active</li>
+    </ul>
+    <p>这构成<b>自我进化闭环</b>：跑得越久补丁越多，AI 在这套环境里的表现越来越脱离 vanilla 训练集行为。</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="num">总结 / Recap</div>
+    <h2>三句话</h2>
+    <ol style="font-size: 16px; line-height: 1.9;">
+      <li><b>问题</b>：AI 不会进入"思考"状态，跳过中间验证，多副本 entropy collapse 互相 review 没用。</li>
+      <li><b>方法</b>：状态机强制 AI 走必须的中间步；clean-context rebuttal 打破确认偏差；文档自我进化对抗训练集偏置。</li>
+      <li><b>价值</b>：让 AI 在某个项目上越用越准，不再每次都犯同样的低级错。</li>
+    </ol>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>深入了解</h2>
+    <div class="links">
+      <a class="link" href="fsm_visualization.html">
+        <div class="title">→ 状态机视图</div>
+        <div class="desc">点击每个 state 看子流程图和真实失败模式。</div>
+      </a>
+      <a class="link" href="scenarios.html">
+        <div class="title">→ 场景 spec</div>
+        <div class="desc">5 个理想场景的每 state 期望行为 + 反例。</div>
+      </a>
+      <a class="link" href="implementation.html">
+        <div class="title">→ 实现细节</div>
+        <div class="desc">每个 rule 文件 / hook 脚本的 What / Why / 是否实测有效。</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    Barry's Workflow v2 · 2026-05-14 · <a href="../README.md" style="color: var(--accent);">README</a> · <a href="big_picture.md" style="color: var(--accent);">原工程版 big_picture.md</a>
+  </div>
+</footer>
+
+</body>
+</html>
