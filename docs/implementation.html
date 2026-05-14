@@ -852,7 +852,7 @@ esac</code></pre>
     <h3>P11 — 规则文件大重构（最高优先级）</h3>
     <p>当前 12 个 rule 文件 50% 是 v1 遗产 / 内容跨多 state / 含场景专属补丁。重构目标：</p>
     <ul>
-      <li><b>删</b>：<code>p1_identity.md</code>（合进 router/facts_first 顶）/ <code>p6_workflow.md</code>（4-step 跟 state 重复；REFLECT-A 6-row 是 v1 包袱）/ <code>index.md</code>（router 本身就是查找表）</li>
+      <li><b>删</b>：<code>p1_identity.md</code>（内容只剩"别 cosplay"，cosplay 已清完，规则无意义）/ <code>p6_workflow.md</code>（4-step 跟 state 重复；REFLECT-A 6-row 是 v1 包袱）/ <code>index.md</code>（router 本身就是查找表）</li>
       <li><b>拆</b>：<code>p3_dispatch.md</code> 删 Monitor cadence 段（挪 patches/long_monitor.md）；<code>fsm.md</code> 切成 <code>states/{boot,prepare,reflect,execute,end}.md</code></li>
       <li><b>抢救</b>：<code>p6_workflow.md</code> 的 M6 3-failure stop 独立成 <code>failure_stop.md</code>（之前我叫 m6_failure_stop 是 v1 编号惯性，改名）</li>
       <li><b>合并</b>：<code>reflect_protocol.md</code> + <code>reflect_subagent_prompt.md</code> → <code>states/reflect.md</code></li>
