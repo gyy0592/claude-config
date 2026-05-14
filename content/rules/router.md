@@ -3,6 +3,7 @@
 | Trigger | File |
 |---|---|
 | writing [INFERENCE] or [ASSUMPTION] | facts_first.md |
+| user prompt missing observable/cadence/reflection/completion | prompt_enhancement.md |
 | Read >1 file / WebSearch / code change | dispatch.md |
 | edit / write / long Bash | recording.md |
 | FSM state transition (overview) | fsm.md |

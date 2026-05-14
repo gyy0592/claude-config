@@ -2,6 +2,7 @@
 
 Must-read on entry:
   ~/.claude/rules/states/prepare.md
+  ~/.claude/rules/prompt_enhancement.md (4-element check + default suggestions)
   ~/.claude/rules/workflow_config.yaml (prompt_reinforce.required_elements)
   $PWD/.barry_workflow/<sid>/state.md (cache_hit_map row UNKNOWN → Read source artifact)
 
