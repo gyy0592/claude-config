@@ -201,7 +201,7 @@ fi
 
 mkdir -p "$HOOKS_DST"
 
-for f in inject_decrees.sh inject_decrees_to_subagent.sh stop_self_audit.sh reset_session_status.sh inject_router.sh session_boot.sh transition.sh prepare_helper.sh execute_loop_audit.sh; do
+for f in inject_decrees.sh inject_decrees_to_subagent.sh stop_self_audit.sh reset_session_status.sh inject_router.sh session_boot.sh transition.sh prepare_helper.sh execute_loop_audit.sh pretooluse_short_nudge.sh; do
     src="${HOOKS_SRC}/${f}"
     dst="${HOOKS_DST}/${f}"
     if [ ! -f "$src" ]; then
@@ -347,6 +347,10 @@ ensure_hook("UserPromptSubmit", None, f"bash {ROUTER_SCRIPT}")
 # v4 P3: BOOT hook — creates per-session state + action files under $PWD/.barry_workflow/
 BOOT_SCRIPT = os.path.expanduser("~/.claude/hooks/session_boot.sh")
 ensure_hook("UserPromptSubmit", None, f"bash {BOOT_SCRIPT}")
+
+# v4 P7: PreToolUse short nudge (≤100-char allow-with-reason)
+NUDGE_SCRIPT = os.path.expanduser("~/.claude/hooks/pretooluse_short_nudge.sh")
+ensure_hook("PreToolUse", None, f"bash {NUDGE_SCRIPT}")
 
 # ── v2 preserved: PostToolUse=Bash background logger (debug use, unrelated to memory) ──
 BG_HOOK_CMD = (
