@@ -50,15 +50,13 @@ else
 fi
 
 echo ""
-echo "## prompt-reinforcement check (4 elements)"
-echo ""
-cat <<'EOF'
-For the current user instruction, verify ALL four are present. If any is missing,
-write [PROMPT_REINFORCED] in action_<sid>.md noting the gap, then ask the user
-OR proceed with an assumed default + explicit caveat.
-
-  [ ] observable     — what signal proves success? (file count / pid alive / output text)
-  [ ] cadence        — how often to check? (every N min / on completion / event-driven)
-  [ ] reflection     — when to spawn REFLECT subagent? (pre-task / on-anomaly / post-task)
-  [ ] completion     — when to stop? (deliverable / time-bound / user-confirmed)
-EOF
+# v2.1 P23: emit the prompt-reinforcement checklist from a maintainable .md
+# file rather than hard-coded heredoc here.
+MSG_DIR="$HOME/.claude/rules/messages"
+CHECKLIST="$MSG_DIR/prepare_checklist.md"
+if [ -f "$CHECKLIST" ]; then
+    cat "$CHECKLIST"
+else
+    echo "## prompt-reinforcement check (4 elements)"
+    echo "(prepare_checklist.md missing under $MSG_DIR — rerun set_claude.sh)"
+fi

@@ -201,6 +201,16 @@ if [ -d "$V4_RULES_SRC" ]; then
             echo "[deploy] ✓ ${dst} (v4 policy / states)"
         done
     fi
+    # v2.1 P23: deploy externalized hook messages under messages/
+    if [ -d "${V4_RULES_SRC}/messages" ]; then
+        mkdir -p "${RULES_DST}/messages"
+        for src in "${V4_RULES_SRC}/messages"/*.md; do
+            f="$(basename "$src")"
+            dst="${RULES_DST}/messages/${f}"
+            cp "$src" "$dst"
+            echo "[deploy] ✓ ${dst} (v4 policy / messages)"
+        done
+    fi
     # v2.1 P14: deploy scenario patches under patches/
     if [ -d "${V4_RULES_SRC}/patches" ]; then
         mkdir -p "${RULES_DST}/patches"
