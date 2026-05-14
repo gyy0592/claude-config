@@ -5,17 +5,22 @@
 <title>barry-workflow v4 — FSM 状态机</title>
 <style>
   :root {
-    --bg: #0d1117;
-    --panel: #161b22;
-    --panel-2: #1f2630;
-    --border: #30363d;
-    --fg: #e6edf3;
-    --muted: #8b949e;
-    --accent: #58a6ff;
-    --accent-2: #f0883e;
-    --green: #3fb950;
-    --red: #f85149;
-    --purple: #bc8cff;
+    --bg: #f7f9fc;
+    --panel: #ffffff;
+    --panel-2: #eef2f7;
+    --border: #d0d7de;
+    --fg: #1f2328;
+    --muted: #57606a;
+    --accent: #0969da;
+    --accent-soft: #ddf4ff;
+    --orange: #bc4c00;
+    --orange-soft: #fff1e5;
+    --green: #1a7f37;
+    --green-soft: #dafbe1;
+    --red: #cf222e;
+    --red-soft: #ffebe9;
+    --purple: #8250df;
+    --purple-soft: #fbefff;
   }
   * { box-sizing: border-box; }
   html, body {
@@ -26,26 +31,23 @@
     height: 100%;
   }
   header {
-    padding: 18px 26px 10px;
+    padding: 16px 26px 12px;
+    background: var(--panel);
     border-bottom: 1px solid var(--border);
   }
-  header h1 {
-    margin: 0; font-size: 18px; letter-spacing: 0.5px;
-  }
-  header .sub {
-    color: var(--muted); font-size: 13px; margin-top: 4px;
-  }
+  header h1 { margin: 0; font-size: 18px; }
+  header .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
   main {
     display: grid;
-    grid-template-columns: 1fr 380px;
-    gap: 0;
-    height: calc(100vh - 76px);
+    grid-template-columns: 1fr 540px;
+    height: calc(100vh - 78px);
   }
   #fsm {
     position: relative;
     background:
-      radial-gradient(circle at 30% 20%, rgba(88,166,255,0.06), transparent 50%),
-      radial-gradient(circle at 70% 80%, rgba(240,136,62,0.06), transparent 50%),
+      radial-gradient(circle at 20% 20%, rgba(9,105,218,0.05), transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(188,76,0,0.05), transparent 50%),
       var(--bg);
     overflow: hidden;
   }
@@ -55,130 +57,144 @@
     fill: var(--panel);
     stroke: var(--border);
     stroke-width: 1.5;
-    transition: all 0.15s ease;
+    transition: all 0.18s ease;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.04));
   }
   .node-g:hover .node-rect {
     stroke: var(--accent);
-    fill: var(--panel-2);
-    filter: drop-shadow(0 0 12px rgba(88,166,255,0.35));
+    fill: var(--accent-soft);
   }
   .node-g.active .node-rect {
-    stroke: var(--accent-2);
+    stroke: var(--orange);
     stroke-width: 2.5;
-    fill: var(--panel-2);
+    fill: var(--orange-soft);
   }
   .node-title {
-    font-size: 17px;
-    font-weight: 600;
-    fill: var(--fg);
-    text-anchor: middle;
-    pointer-events: none;
+    font-size: 17px; font-weight: 600;
+    fill: var(--fg); text-anchor: middle; pointer-events: none;
   }
   .node-sub {
-    font-size: 11px;
-    fill: var(--muted);
-    text-anchor: middle;
-    pointer-events: none;
+    font-size: 11px; fill: var(--muted);
+    text-anchor: middle; pointer-events: none;
   }
   .node-badge {
-    font-size: 10px;
-    fill: var(--accent);
-    text-anchor: middle;
-    pointer-events: none;
+    font-size: 10px; fill: var(--accent);
+    text-anchor: middle; pointer-events: none;
     font-family: ui-monospace, "SF Mono", monospace;
   }
   .edge {
-    stroke: var(--border);
-    stroke-width: 1.8;
+    stroke: #6e7781;
+    stroke-width: 1.6;
     fill: none;
     marker-end: url(#arrow);
-  }
-  .edge-label {
-    font-size: 11px;
-    fill: var(--muted);
-    text-anchor: middle;
-    font-family: ui-monospace, "SF Mono", monospace;
   }
   .edge.anomaly {
     stroke: var(--red);
     stroke-dasharray: 5 4;
+    marker-end: url(#arrow-red);
   }
   .edge.completion {
     stroke: var(--green);
     stroke-dasharray: 5 4;
+    marker-end: url(#arrow-green);
   }
+  .edge-label {
+    font-size: 11px; fill: var(--muted); text-anchor: middle;
+    font-family: ui-monospace, "SF Mono", monospace;
+  }
+
   aside {
     background: var(--panel);
     border-left: 1px solid var(--border);
-    padding: 22px 24px;
+    padding: 20px 22px;
     overflow-y: auto;
   }
-  aside h2 {
-    margin: 0 0 6px;
-    font-size: 16px;
-    color: var(--accent-2);
+  aside .empty {
+    color: var(--muted); font-style: italic;
+    margin-top: 36%; text-align: center; font-size: 13px;
   }
-  aside .tag {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 11px;
-    font-family: ui-monospace, monospace;
+  aside h2 { margin: 0 0 4px; font-size: 16px; color: var(--orange); }
+  aside .scenario-tabs {
+    display: flex; gap: 6px; margin: 12px 0 8px;
+    flex-wrap: wrap;
+  }
+  aside .scenario-tabs button {
     background: var(--panel-2);
     color: var(--muted);
     border: 1px solid var(--border);
-    margin-right: 6px;
+    border-radius: 14px;
+    padding: 4px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.12s ease;
   }
-  aside h3 {
-    margin: 18px 0 6px;
-    font-size: 13px;
+  aside .scenario-tabs button:hover {
+    background: var(--accent-soft);
     color: var(--accent);
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 4px;
+    border-color: var(--accent);
   }
-  aside ul {
-    margin: 0; padding-left: 18px;
-    font-size: 13px; line-height: 1.55;
+  aside .scenario-tabs button.on {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
   }
-  aside li { margin-bottom: 4px; }
-  aside code {
-    font-family: ui-monospace, "SF Mono", monospace;
+  aside .scenario-title {
+    font-size: 12px; color: var(--muted); margin: 6px 0 8px;
+    font-family: ui-monospace, monospace;
+  }
+  aside .subdiagram {
     background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    margin: 8px 0 14px;
+  }
+  aside .subdiagram svg { width: 100%; height: 280px; }
+  aside .notes {
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--fg);
+  }
+  aside .notes ul { margin: 0 0 8px; padding-left: 18px; }
+  aside .notes li { margin-bottom: 3px; }
+  aside .notes code {
+    font-family: ui-monospace, "SF Mono", monospace;
+    background: var(--purple-soft);
+    color: var(--purple);
     padding: 1px 5px;
     border-radius: 3px;
-    font-size: 12px;
-    color: var(--purple);
+    font-size: 11.5px;
   }
-  aside .empty {
-    color: var(--muted);
-    font-style: italic;
-    margin-top: 32px;
-    text-align: center;
-    font-size: 13px;
-  }
+  aside .notes b { color: var(--orange); }
+  /* sub-diagram styling */
+  .sd-node { fill: var(--panel); stroke: var(--border); stroke-width: 1.2; }
+  .sd-node.start { fill: var(--accent-soft); stroke: var(--accent); }
+  .sd-node.decision { fill: #fff8c5; stroke: #bf8700; }
+  .sd-node.end-ok { fill: var(--green-soft); stroke: var(--green); }
+  .sd-node.end-bad { fill: var(--red-soft); stroke: var(--red); }
+  .sd-text { font-size: 11px; fill: var(--fg); text-anchor: middle; pointer-events: none; }
+  .sd-text.muted { fill: var(--muted); font-size: 10px; }
+  .sd-edge { stroke: #8c959f; stroke-width: 1.2; fill: none; marker-end: url(#sd-arrow); }
+  .sd-edge-label { font-size: 10px; fill: var(--muted); text-anchor: middle; font-family: ui-monospace, monospace; }
+
   .legend {
-    position: absolute;
-    bottom: 14px; left: 14px;
-    background: rgba(22,27,34,0.85);
+    position: absolute; bottom: 12px; left: 14px;
+    background: rgba(255,255,255,0.92);
     border: 1px solid var(--border);
     border-radius: 6px;
     padding: 8px 12px;
-    font-size: 11px;
-    color: var(--muted);
+    font-size: 11px; color: var(--muted);
     font-family: ui-monospace, monospace;
   }
-  .legend .line {
-    display: flex; align-items: center; gap: 8px; margin: 2px 0;
-  }
-  .legend .swatch {
-    width: 24px; height: 2px;
-  }
+  .legend .line { display: flex; align-items: center; gap: 8px; margin: 2px 0; }
+  .legend .swatch { width: 24px; height: 2px; }
 </style>
 </head>
 <body>
 <header>
   <h1>barry-workflow v4 — FSM 状态机</h1>
-  <div class="sub">点击任意状态查看细节 · 11 commits · v2 分支 · P8 demo 待用户监督</div>
+  <div class="sub">点击状态查看内部子流程 · 多分支可切换 · 11 commits · P8 demo 待用户监督</div>
 </header>
 
 <main>
@@ -186,17 +202,19 @@
     <svg class="canvas" viewBox="0 0 900 620" preserveAspectRatio="xMidYMid meet">
       <defs>
         <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-          <path d="M0,0 L10,5 L0,10 z" fill="#8b949e"/>
+          <path d="M0,0 L10,5 L0,10 z" fill="#6e7781"/>
         </marker>
         <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-          <path d="M0,0 L10,5 L0,10 z" fill="#f85149"/>
+          <path d="M0,0 L10,5 L0,10 z" fill="#cf222e"/>
         </marker>
         <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-          <path d="M0,0 L10,5 L0,10 z" fill="#3fb950"/>
+          <path d="M0,0 L10,5 L0,10 z" fill="#1a7f37"/>
+        </marker>
+        <marker id="sd-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#8c959f"/>
         </marker>
       </defs>
 
-      <!-- edges first so nodes overlay them -->
       <path class="edge" d="M 200,170 L 350,170"/>
       <text class="edge-label" x="275" y="160">BOOT_DONE</text>
 
@@ -206,13 +224,12 @@
       <path class="edge" d="M 720,220 L 720,360"/>
       <text class="edge-label" x="760" y="295">REFLECT_DONE</text>
 
-      <path class="edge anomaly" d="M 600,400 Q 460,310 580,225" marker-end="url(#arrow-red)"/>
-      <text class="edge-label" x="490" y="320" fill="#f85149">EXECUTE_EXIT (bug/anomaly)</text>
+      <path class="edge anomaly" d="M 600,400 Q 460,310 580,225"/>
+      <text class="edge-label" x="490" y="320" fill="#cf222e">EXECUTE_EXIT (bug)</text>
 
-      <path class="edge completion" d="M 600,420 Q 350,500 425,225" marker-end="url(#arrow-green)"/>
-      <text class="edge-label" x="380" y="500" fill="#3fb950">EXECUTE_EXIT (done)</text>
+      <path class="edge completion" d="M 600,420 Q 350,500 425,225"/>
+      <text class="edge-label" x="380" y="500" fill="#1a7f37">EXECUTE_EXIT (done)</text>
 
-      <!-- nodes -->
       <g class="node-g" data-state="BOOT" transform="translate(50,120)">
         <rect class="node-rect" width="150" height="100" rx="10"/>
         <text class="node-title" x="75" y="42">BOOT</text>
@@ -223,7 +240,7 @@
       <g class="node-g" data-state="PREPARE" transform="translate(350,120)">
         <rect class="node-rect" width="150" height="100" rx="10"/>
         <text class="node-title" x="75" y="42">PREPARE</text>
-        <text class="node-sub"   x="75" y="62">缓存自报 + 4要素</text>
+        <text class="node-sub"   x="75" y="62">缓存自报 + 4 要素</text>
         <text class="node-badge" x="75" y="82">prepare_helper.sh</text>
       </g>
 
@@ -247,151 +264,326 @@
         <text class="node-sub"   x="75" y="62">/goal 自动 clear</text>
         <text class="node-badge" x="75" y="82">stop 允许</text>
       </g>
-
-      <!-- BOOT/END edge (skipped session shortcut) -->
-      <path class="edge" d="M 125,220 L 125,360" stroke-dasharray="3 3"/>
-      <text class="edge-label" x="160" y="295">(空 session)</text>
-
-      <!-- REFLECT → END after all done -->
-      <path class="edge" d="M 650,170 Q 350,80 175,170" stroke-dasharray="2 4" marker-end="url(#arrow-green)" stroke="#3fb950"/>
     </svg>
 
     <div class="legend">
-      <div class="line"><span class="swatch" style="background:#8b949e"></span> 正常转换</div>
-      <div class="line"><span class="swatch" style="background:#f85149; height:0; border-top: 2px dashed #f85149;"></span> 异常 / bug 退出</div>
-      <div class="line"><span class="swatch" style="background:#3fb950; height:0; border-top: 2px dashed #3fb950;"></span> 任务完成退出</div>
+      <div class="line"><span class="swatch" style="background:#6e7781"></span> 正常转换</div>
+      <div class="line"><span class="swatch" style="border-top: 2px dashed #cf222e; height:0;"></span> 异常退出</div>
+      <div class="line"><span class="swatch" style="border-top: 2px dashed #1a7f37; height:0;"></span> 完成退出</div>
     </div>
   </div>
 
   <aside id="detail">
-    <div class="empty">← 点击左边任意一个状态查看细节</div>
+    <div class="empty">← 点击左边任意一个状态查看子流程图</div>
   </aside>
 </main>
 
 <script>
+// Each sub-diagram returns an inline SVG (300×280 viewbox). Scenarios are
+// keyed strings; default scenario is the first key in `scenarios`.
+
+const BOOT_DIAGRAM = `
+<svg viewBox="0 0 460 280">
+  <defs><marker id="sd-arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8c959f"/></marker></defs>
+  <g><rect class="sd-node start" x="20" y="20" width="140" height="44" rx="8"/><text class="sd-text" x="90" y="40">用户首次发消息</text><text class="sd-text muted" x="90" y="55">UserPromptSubmit 触发</text></g>
+  <path class="sd-edge" marker-end="url(#sd-arrow2)" d="M 160,42 L 200,42"/>
+  <g><rect class="sd-node decision" x="200" y="20" width="180" height="44" rx="8"/><text class="sd-text" x="290" y="38">$PWD 有 .git / CLAUDE.md / workspace ?</text><text class="sd-text muted" x="290" y="55">session_boot.sh 启发式</text></g>
+  <path class="sd-edge" marker-end="url(#sd-arrow2)" d="M 290,64 L 290,110"/>
+  <text class="sd-edge-label" x="305" y="85">是</text>
+  <path class="sd-edge" marker-end="url(#sd-arrow2)" d="M 380,42 Q 420,42 420,140 Q 420,240 70,240 L 50,240"/>
+  <text class="sd-edge-label" x="420" y="155">否 → 跳过</text>
+  <g><rect class="sd-node" x="200" y="110" width="180" height="44" rx="8"/><text class="sd-text" x="290" y="128">mkdir .barry_workflow/</text><text class="sd-text muted" x="290" y="145">从 template 生成 state + action</text></g>
+  <path class="sd-edge" marker-end="url(#sd-arrow2)" d="M 290,154 L 290,180"/>
+  <g><rect class="sd-node" x="200" y="180" width="180" height="44" rx="8"/><text class="sd-text" x="290" y="198">main 写 [BOOT_DONE @ ts]</text><text class="sd-text muted" x="290" y="213">到 action_&lt;sid&gt;.md</text></g>
+  <path class="sd-edge" marker-end="url(#sd-arrow2)" d="M 290,224 L 290,250"/>
+  <g><rect class="sd-node end-ok" x="200" y="250" width="180" height="24" rx="6"/><text class="sd-text" x="290" y="266">transition.sh BOOT_DONE → PREPARE</text></g>
+  <g><rect class="sd-node end-bad" x="20" y="226" width="80" height="24" rx="6"/><text class="sd-text" x="60" y="242">no-op</text></g>
+</svg>`;
+
+const PREPARE_DIAGRAM = `
+<svg viewBox="0 0 460 280">
+  <defs><marker id="sd-arrow3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8c959f"/></marker></defs>
+  <g><rect class="sd-node start" x="160" y="10" width="140" height="34" rx="6"/><text class="sd-text" x="230" y="32">prepare_helper.sh</text></g>
+  <path class="sd-edge" marker-end="url(#sd-arrow3)" d="M 200,44 L 110,80"/>
+  <path class="sd-edge" marker-end="url(#sd-arrow3)" d="M 260,44 L 350,80"/>
+  <!-- Track A: cache -->
+  <g><rect class="sd-node" x="20" y="80" width="190" height="40" rx="6"/><text class="sd-text" x="115" y="98">A: 列 artifacts + sha1</text><text class="sd-text muted" x="115" y="112">cache_hit_map stub (UNKNOWN)</text></g>
+  <path class="sd-edge" marker-end="url(#sd-arrow3)" d="M 115,120 L 115,150"/>
+  <g><rect class="sd-node decision" x="20" y="150" width="190" height="40" rx="6"/><text class="sd-text" x="115" y="168">main 自报: 在 KV cache 吗?</text><text class="sd-text muted" x="115" y="182">YES / NO / 误判→violation</text></g>
+  <path class="sd-edge" marker-end="url(#sd-arrow3)" d="M 60,190 L 60,220"/>
+  <path class="sd-edge" marker-end="url(#sd-arrow3)" d="M 170,190 L 170,220"/>
+  <g><rect class="sd-node end-ok" x="20" y="220" width="80" height="30" rx="6"/><text class="sd-text" x="60" y="240">YES: 跳过</text></g>
+  <g><rect class="sd-node end-bad" x="130" y="220" width="80" height="30" rx="6"/><text class="sd-text" x="170" y="240">NO: Read</text></g>
+  <!-- Track B: prompt 4-element -->
+  <g><rect class="sd-node" x="260" y="80" width="180" height="40" rx="6"/><text class="sd-text" x="350" y="98">B: 4 要素检查</text><text class="sd-text muted" x="350" y="112">observable/cadence/reflect/done</text></g>
+  <path class="sd-edge" marker-end="url(#sd-arrow3)" d="M 350,120 L 350,150"/>
+  <g><rect class="sd-node decision" x="260" y="150" width="180" height="40" rx="6"/><text class="sd-text" x="350" y="168">齐全?</text></g>
+  <path class="sd-edge" marker-end="url(#sd-arrow3)" d="M 305,190 L 305,220"/>
+  <path class="sd-edge" marker-end="url(#sd-arrow3)" d="M 395,190 L 395,220"/>
+  <g><rect class="sd-node end-ok" x="260" y="220" width="90" height="30" rx="6"/><text class="sd-text" x="305" y="240">是: 继续</text></g>
+  <g><rect class="sd-node end-bad" x="355" y="220" width="85" height="30" rx="6"/><text class="sd-text" x="397" y="236">否: [PROMPT_</text><text class="sd-text" x="397" y="247">REINFORCED]</text></g>
+</svg>`;
+
+const REFLECT_PRE_TASK = `
+<svg viewBox="0 0 460 280">
+  <g><rect class="sd-node start" x="20" y="10" width="160" height="34" rx="6"/><text class="sd-text" x="100" y="32">写 reflection_r1-pre-task.md</text></g>
+  <path class="sd-edge" d="M 100,44 L 100,70"/>
+  <g><rect class="sd-node" x="20" y="70" width="160" height="50" rx="6"/><text class="sd-text" x="100" y="88">main 写 3-7 个问题</text><text class="sd-text muted" x="100" y="104">"plan 完整吗? observables 漏没?"</text></g>
+  <path class="sd-edge" d="M 180,95 L 240,95"/>
+  <g><rect class="sd-node" x="240" y="70" width="200" height="50" rx="6"/><text class="sd-text" x="340" y="88">Agent(run_in_background=true)</text><text class="sd-text muted" x="340" y="104">reason=pre-task, prompt=...</text></g>
+  <path class="sd-edge" d="M 340,120 L 340,150"/>
+  <g><rect class="sd-node" x="240" y="150" width="200" height="50" rx="6"/><text class="sd-text" x="340" y="168">agent 写 reviewer reply</text><text class="sd-text muted" x="340" y="184">sleep 30 等 SendMessage</text></g>
+  <path class="sd-edge" d="M 240,175 L 180,175"/>
+  <g><rect class="sd-node decision" x="20" y="150" width="160" height="50" rx="6"/><text class="sd-text" x="100" y="168">main: 共识?</text><text class="sd-text muted" x="100" y="184">SendMessage round N</text></g>
+  <path class="sd-edge" d="M 100,200 L 100,230"/>
+  <g><rect class="sd-node end-ok" x="20" y="230" width="160" height="34" rx="6"/><text class="sd-text" x="100" y="252">[CONSENSUS_REACHED]</text></g>
+  <path class="sd-edge" d="M 340,200 L 340,230"/>
+  <g><rect class="sd-node decision" x="240" y="230" width="200" height="34" rx="6"/><text class="sd-text" x="340" y="252">N≥5? → fallback 10 / 上报</text></g>
+</svg>`;
+
+const REFLECT_ON_ANOMALY = `
+<svg viewBox="0 0 460 280">
+  <g><rect class="sd-node end-bad" x="20" y="10" width="180" height="34" rx="6"/><text class="sd-text" x="110" y="32">EXECUTE_LOOP 报异常</text></g>
+  <path class="sd-edge" d="M 110,44 L 110,70"/>
+  <g><rect class="sd-node" x="20" y="70" width="180" height="50" rx="6"/><text class="sd-text" x="110" y="88">写 reflection_on-anomaly.md</text><text class="sd-text muted" x="110" y="104">附 3 个反驳 [OBSERVE]</text></g>
+  <path class="sd-edge" d="M 200,95 L 260,95"/>
+  <g><rect class="sd-node" x="260" y="70" width="180" height="50" rx="6"/><text class="sd-text" x="350" y="88">问 agent:</text><text class="sd-text muted" x="350" y="104">"假设 vs 证据? 替代根因?"</text></g>
+  <path class="sd-edge" d="M 350,120 L 350,150"/>
+  <g><rect class="sd-node decision" x="260" y="150" width="180" height="50" rx="6"/><text class="sd-text" x="350" y="168">agent: 根因是?</text><text class="sd-text muted" x="350" y="184">A / B / C 候选</text></g>
+  <path class="sd-edge" d="M 350,200 L 350,230"/>
+  <g><rect class="sd-node end-ok" x="260" y="230" width="180" height="34" rx="6"/><text class="sd-text" x="350" y="252">main 选 fix 路径 → REFLECT_DONE</text></g>
+  <path class="sd-edge" d="M 260,175 L 200,175"/>
+  <g><rect class="sd-node" x="20" y="150" width="180" height="50" rx="6"/><text class="sd-text" x="110" y="168">main 读 agent 分析</text><text class="sd-text muted" x="110" y="184">挑或者反驳</text></g>
+  <path class="sd-edge" d="M 110,200 L 110,230"/>
+  <g><rect class="sd-node end-bad" x="20" y="230" width="180" height="34" rx="6"/><text class="sd-text" x="110" y="252">仍未定 → 上报用户</text></g>
+</svg>`;
+
+const REFLECT_POST_TASK = `
+<svg viewBox="0 0 460 280">
+  <g><rect class="sd-node end-ok" x="20" y="10" width="180" height="34" rx="6"/><text class="sd-text" x="110" y="32">EXECUTE_LOOP 报 done</text></g>
+  <path class="sd-edge" d="M 110,44 L 110,70"/>
+  <g><rect class="sd-node" x="20" y="70" width="180" height="50" rx="6"/><text class="sd-text" x="110" y="88">写 reflection_post-task.md</text><text class="sd-text muted" x="110" y="104">列 deliverable + 成功条件</text></g>
+  <path class="sd-edge" d="M 200,95 L 260,95"/>
+  <g><rect class="sd-node" x="260" y="70" width="180" height="50" rx="6"/><text class="sd-text" x="350" y="88">问 agent:</text><text class="sd-text muted" x="350" y="104">"deliverable 对得上 goal 吗?"</text></g>
+  <path class="sd-edge" d="M 350,120 L 350,150"/>
+  <g><rect class="sd-node decision" x="260" y="150" width="180" height="50" rx="6"/><text class="sd-text" x="350" y="168">agent: 缺什么?</text><text class="sd-text muted" x="350" y="184">ledger 没收尾 / 漏 file</text></g>
+  <path class="sd-edge" d="M 260,175 L 200,175"/>
+  <g><rect class="sd-node" x="20" y="150" width="180" height="50" rx="6"/><text class="sd-text" x="110" y="168">main 补全 ledger</text><text class="sd-text muted" x="110" y="184">attempts / fixes / no-new</text></g>
+  <path class="sd-edge" d="M 110,200 L 110,230"/>
+  <g><rect class="sd-node end-ok" x="20" y="230" width="180" height="34" rx="6"/><text class="sd-text" x="110" y="252">REFLECT_DONE → 等 stop</text></g>
+</svg>`;
+
+const EXEC_CONTINUE = `
+<svg viewBox="0 0 460 280">
+  <g><rect class="sd-node start" x="160" y="10" width="140" height="34" rx="6"/><text class="sd-text" x="230" y="32">迭代 N 开始</text></g>
+  <path class="sd-edge" d="M 230,44 L 230,70"/>
+  <g><rect class="sd-node" x="160" y="70" width="140" height="34" rx="6"/><text class="sd-text" x="230" y="92">写 [PLAN] 一行</text></g>
+  <path class="sd-edge" d="M 230,104 L 230,130"/>
+  <g><rect class="sd-node" x="160" y="130" width="140" height="34" rx="6"/><text class="sd-text" x="230" y="152">调工具 (Read/Edit/Bash)</text></g>
+  <path class="sd-edge" d="M 230,164 L 230,190"/>
+  <g><rect class="sd-node" x="160" y="190" width="140" height="34" rx="6"/><text class="sd-text" x="230" y="212">写 [OBSERVE]</text></g>
+  <path class="sd-edge" d="M 230,224 L 230,250"/>
+  <g><rect class="sd-node end-ok" x="160" y="250" width="140" height="24" rx="6"/><text class="sd-text" x="230" y="267">符合 PLAN → 下一迭代</text></g>
+  <path class="sd-edge" d="M 300,262 Q 420,262 420,27 Q 420,10 320,27"/>
+  <text class="sd-edge-label" x="430" y="150">回环</text>
+</svg>`;
+
+const EXEC_ANOMALY = `
+<svg viewBox="0 0 460 280">
+  <g><rect class="sd-node" x="160" y="10" width="140" height="34" rx="6"/><text class="sd-text" x="230" y="32">迭代 N [OBSERVE]</text></g>
+  <path class="sd-edge" d="M 230,44 L 230,70"/>
+  <g><rect class="sd-node decision" x="160" y="70" width="140" height="40" rx="6"/><text class="sd-text" x="230" y="88">反驳 PLAN?</text><text class="sd-text muted" x="230" y="103">fail / anomaly / refuted</text></g>
+  <path class="sd-edge" d="M 230,110 L 230,135"/>
+  <g><rect class="sd-node" x="160" y="135" width="140" height="34" rx="6"/><text class="sd-text" x="230" y="157">anomaly 计数 +1</text></g>
+  <path class="sd-edge" d="M 230,169 L 230,195"/>
+  <g><rect class="sd-node decision" x="120" y="195" width="220" height="40" rx="6"/><text class="sd-text" x="230" y="213">连续 3 个 anomaly?</text><text class="sd-text muted" x="230" y="228">p6_workflow.md M6 失败预算</text></g>
+  <path class="sd-edge" d="M 170,235 L 90,255"/>
+  <path class="sd-edge" d="M 290,235 L 370,255"/>
+  <g><rect class="sd-node end-ok" x="20" y="245" width="140" height="30" rx="6"/><text class="sd-text" x="90" y="263">否: 继续迭代</text></g>
+  <g><rect class="sd-node end-bad" x="300" y="245" width="140" height="30" rx="6"/><text class="sd-text" x="370" y="263">是: EXIT bug → REFLECT</text></g>
+</svg>`;
+
+const EXEC_DONE = `
+<svg viewBox="0 0 460 280">
+  <g><rect class="sd-node" x="160" y="10" width="140" height="34" rx="6"/><text class="sd-text" x="230" y="32">迭代 N [OBSERVE]</text></g>
+  <path class="sd-edge" d="M 230,44 L 230,70"/>
+  <g><rect class="sd-node decision" x="120" y="70" width="220" height="40" rx="6"/><text class="sd-text" x="230" y="88">deliverable 齐全?</text><text class="sd-text muted" x="230" y="103">AI 自判 (对照 goal.md)</text></g>
+  <path class="sd-edge" d="M 170,110 L 90,140"/>
+  <path class="sd-edge" d="M 290,110 L 370,140"/>
+  <g><rect class="sd-node" x="20" y="140" width="140" height="34" rx="6"/><text class="sd-text" x="90" y="162">否: 继续迭代</text></g>
+  <g><rect class="sd-node end-ok" x="300" y="140" width="140" height="34" rx="6"/><text class="sd-text" x="370" y="162">是: EXIT done</text></g>
+  <path class="sd-edge" d="M 370,174 L 370,210"/>
+  <g><rect class="sd-node end-ok" x="280" y="210" width="180" height="50" rx="6"/><text class="sd-text" x="370" y="228">REFLECT (post-task)</text><text class="sd-text muted" x="370" y="244">验 deliverable + 收尾 ledger</text></g>
+</svg>`;
+
+const END_DIAGRAM = `
+<svg viewBox="0 0 460 280">
+  <g><rect class="sd-node start" x="20" y="20" width="180" height="40" rx="6"/><text class="sd-text" x="110" y="38">REFLECT post-task 共识</text><text class="sd-text muted" x="110" y="53">deliverable 对齐 goal.md</text></g>
+  <path class="sd-edge" d="M 200,40 L 260,40"/>
+  <g><rect class="sd-node" x="260" y="20" width="180" height="40" rx="6"/><text class="sd-text" x="350" y="38">/goal 评估器</text><text class="sd-text muted" x="350" y="53">读 transcript vs goal</text></g>
+  <path class="sd-edge" d="M 350,60 L 350,100"/>
+  <g><rect class="sd-node decision" x="260" y="100" width="180" height="40" rx="6"/><text class="sd-text" x="350" y="118">条件满足?</text></g>
+  <path class="sd-edge" d="M 350,140 L 350,170"/>
+  <g><rect class="sd-node end-ok" x="260" y="170" width="180" height="34" rx="6"/><text class="sd-text" x="350" y="192">/goal 自动 clear</text></g>
+  <path class="sd-edge" d="M 350,204 L 350,235"/>
+  <g><rect class="sd-node end-ok" x="260" y="235" width="180" height="34" rx="6"/><text class="sd-text" x="350" y="257">Stop hook 不再 block</text></g>
+  <path class="sd-edge" d="M 260,120 Q 110,120 110,170"/>
+  <g><rect class="sd-node end-bad" x="20" y="170" width="180" height="40" rx="6"/><text class="sd-text" x="110" y="188">否: Stop hook feedback</text><text class="sd-text muted" x="110" y="203">告诉 main 还差什么</text></g>
+  <path class="sd-edge" d="M 110,210 Q 110,250 230,250 Q 250,250 250,30 L 220,30"/>
+  <text class="sd-edge-label" x="35" y="245">回 EXECUTE</text>
+</svg>`;
+
 const DETAILS = {
   BOOT: {
     title: "BOOT — session 启动",
-    tags: ["hook: session_boot.sh", "auto"],
-    when: [
-      "用户首次发消息（UserPromptSubmit 触发）",
-      "$PWD 是 git 仓库 / 有 CLAUDE.md / 有 workspace/",
-    ],
-    do: [
-      "<code>session_boot.sh</code> 从模板生成 <code>.barry_workflow/state_&lt;sid&gt;.md</code>",
-      "同时生成 <code>.barry_workflow/action_&lt;sid&gt;.md</code>",
-      "<code>current_status: BOOT</code> 写入 YAML 块",
-      "main 写 <code>[BOOT_DONE @ ts]</code> 到 action 文件",
-    ],
-    exit: [
-      "<code>bash transition.sh BOOT_DONE</code> → 进入 PREPARE",
-      "（空 session：直接 END）",
-    ],
-    files: [
-      "<code>hooks/session_boot.sh</code>",
-      "<code>content/templates/state_template.md</code>",
-      "<code>content/templates/action_template.md</code>",
-    ],
+    scenarios: {
+      "默认": {
+        diagram: BOOT_DIAGRAM,
+        notes: `
+          <ul>
+            <li><b>触发</b>：用户首次发消息（UserPromptSubmit hook）</li>
+            <li><b>启发式</b>：<code>$PWD</code> 有 <code>.git</code> 或 <code>CLAUDE.md</code> 或 <code>workspace/</code> 才创建</li>
+            <li><b>幂等</b>：state / action 文件已存在就跳过</li>
+            <li><b>结束</b>：<code>transition.sh BOOT_DONE</code> → PREPARE</li>
+          </ul>`,
+      },
+    },
   },
   PREPARE: {
-    title: "PREPARE — 缓存自报 + 提示词增强",
-    tags: ["helper: prepare_helper.sh", "manual"],
-    when: ["BOOT 完成后立即进入"],
-    do: [
-      "main 调 <code>prepare_helper.sh</code> 输出 cache_hit_map stub",
-      "把 stub 粘到 state YAML 区块；UNKNOWN → YES / NO（按 KV cache 自报）",
-      "NO 项必须 Read；YES 项跳过（信 AI）",
-      "误判 cache → AI 行为错误 → 写 <code>rule_violations.md</code>（不是 bitter_lessons）",
-      "4 要素检查：observable / cadence / reflection / completion 是否齐",
-      "缺要素 → 写 <code>[PROMPT_REINFORCED]</code> 标注缺口",
-    ],
-    exit: ["<code>bash transition.sh PREPARE_DONE</code> → 进入 REFLECT"],
-    files: [
-      "<code>hooks/prepare_helper.sh</code>",
-      "<code>content/rules/p4_recording.md</code>（违规边界）",
-    ],
+    title: "PREPARE — 缓存自报 + 4 要素",
+    scenarios: {
+      "两条并行": {
+        diagram: PREPARE_DIAGRAM,
+        notes: `
+          <ul>
+            <li><b>A 轨：cache_hit_map</b> — helper 列出所有 artifact + sha1，main 自报 YES/NO；误判 → <code>rule_violations.md</code>（不是 bitter_lessons！）</li>
+            <li><b>B 轨：4 要素</b> — observable / cadence / reflection / completion，缺则 <code>[PROMPT_REINFORCED]</code></li>
+            <li>两轨完成后 <code>transition.sh PREPARE_DONE</code> → REFLECT</li>
+          </ul>`,
+      },
+    },
   },
   REFLECT: {
-    title: "REFLECT — subagent rebuttal 反思",
-    tags: ["agent: SendMessage", "N=5 fallback 10"],
-    when: [
-      "PREPARE 完成（pre-task）",
-      "EXECUTE_LOOP 退出（on-anomaly 或 post-task）",
-    ],
-    do: [
-      "main 用模板生成 <code>.barry_workflow/reflection_&lt;round_id&gt;.md</code>",
-      "<code>Agent(run_in_background=true, ...)</code> 派 subagent（reason=pre-task / on-anomaly / post-task）",
-      "subagent 读 reflection 文件 → 写 <code>## reviewer reply</code> → <code>sleep 30; done</code> 循环",
-      "main 用 <code>SendMessage</code> 发 round 2 / 3 / ...，subagent 醒来追加 <code>### round N</code>",
-      "main 看到收敛 → <code>SendMessage [CONSENSUS_REACHED]</code> + 行动清单",
-      "N=5 跑不出共识 → 写 <code>rule_violations.md</code> → 重派 N=10",
-      "再跑不出 → <code>[REFLECT_FAILURE]</code> → 上报",
-    ],
-    exit: ["<code>bash transition.sh REFLECT_DONE</code> → 进入 EXECUTE_LOOP"],
-    files: [
-      "<code>content/rules/reflect_protocol.md</code>",
-      "<code>content/rules/reflect_subagent_prompt.md</code>",
-      "<code>content/templates/reflection_template.md</code>",
-    ],
+    title: "REFLECT — subagent rebuttal",
+    scenarios: {
+      "pre-task": {
+        diagram: REFLECT_PRE_TASK,
+        notes: `
+          <ul>
+            <li>触发：PREPARE 完成后第一次进入</li>
+            <li>验证轴：plan 完整性 / observables / 成功条件是否清晰</li>
+            <li>main 通过 <code>SendMessage</code> 主导问询；agent <code>sleep 30; done</code> 等</li>
+            <li>N=5 试，不行 fallback 10，仍不行 <code>[REFLECT_FAILURE]</code> 上报</li>
+          </ul>`,
+      },
+      "on-anomaly": {
+        diagram: REFLECT_ON_ANOMALY,
+        notes: `
+          <ul>
+            <li>触发：EXECUTE_LOOP 连续 3 个 [OBSERVE] 反驳 [PLAN]，<code>EXECUTE_EXIT --reason=bug</code></li>
+            <li>验证轴：假设 vs 证据 / 替代根因 / fix 是不是治标</li>
+            <li>main 附 3 个反驳证据；agent 输出候选根因 A/B/C</li>
+            <li>共识后回 EXECUTE_LOOP；仍未定 → 上报</li>
+          </ul>`,
+      },
+      "post-task": {
+        diagram: REFLECT_POST_TASK,
+        notes: `
+          <ul>
+            <li>触发：EXECUTE_LOOP 自判 done，<code>EXECUTE_EXIT --reason=done</code></li>
+            <li>验证轴：deliverable 对得上 goal.md？ledger 收尾？没有漏的文件？</li>
+            <li>共识达成 → 写 ledger 收尾 → REFLECT_DONE → 等 stop</li>
+          </ul>`,
+      },
+    },
   },
   EXECUTE_LOOP: {
-    title: "EXECUTE_LOOP — 内循环执行",
-    tags: ["audit: execute_loop_audit.sh", "AI 自判退出"],
-    when: ["REFLECT 完成（pre-task 共识达成）"],
-    do: [
-      "每个迭代 = 一次工具调用",
-      "<b>1.</b> <code>[PLAN]</code>：一行写 what + why + 期望 observable（在 tool call 之前）",
-      "<b>2.</b> 调工具（Read / Edit / Write / Bash / Agent）",
-      "<b>3.</b> <code>[OBSERVE]</code>：一行引用具体输出来证 / 反 [PLAN]",
-      "<b>4.</b> 判：continue / anomaly / done",
-      "Monitor cadence：bg 任务 < 5min 完成通知；5-60min Monitor() 每 10-15 分钟；>60min 加 <code>[SILENCE_START]</code>",
-      "失败预算：连续 3 个 [OBSERVE] 反驳 [PLAN] → EXECUTE_EXIT bug",
-    ],
-    exit: [
-      "<code>transition.sh EXECUTE_EXIT --reason=done</code>（任务完成）→ REFLECT post-task",
-      "<code>transition.sh EXECUTE_EXIT --reason=bug</code>（异常）→ REFLECT on-anomaly",
-      "<code>transition.sh EXECUTE_EXIT --reason=stuck</code>（卡死）→ REFLECT + 上报",
-    ],
-    files: [
-      "<code>content/rules/fsm.md</code> EXECUTE_LOOP 章节",
-      "<code>hooks/execute_loop_audit.sh</code>",
-      "<code>content/rules/p6_workflow.md</code> M6 失败规则",
-    ],
+    title: "EXECUTE_LOOP — 内循环",
+    scenarios: {
+      "继续迭代": {
+        diagram: EXEC_CONTINUE,
+        notes: `
+          <ul>
+            <li>每个迭代 = 一次工具调用</li>
+            <li><code>[PLAN]</code> → tool → <code>[OBSERVE]</code> → 符合 → 下一迭代</li>
+            <li>Monitor cadence：bg <5min 通知；5-60min Monitor() 10-15 分钟；>60min 加 <code>[SILENCE_START]</code></li>
+          </ul>`,
+      },
+      "异常 → bug": {
+        diagram: EXEC_ANOMALY,
+        notes: `
+          <ul>
+            <li>[OBSERVE] 反驳 [PLAN] → anomaly 计数 +1</li>
+            <li>连续 3 个 anomaly → 失败预算用完 → <code>EXIT --reason=bug</code></li>
+            <li>覆盖：<code>$PWD/CLAUDE.md</code> AUTH 关键字（如"allow you to do anything"）</li>
+            <li>退出后进 REFLECT (on-anomaly)</li>
+          </ul>`,
+      },
+      "完成 → done": {
+        diagram: EXEC_DONE,
+        notes: `
+          <ul>
+            <li>AI 自判 deliverable 齐全（对照 goal.md）</li>
+            <li><code>EXIT --reason=done</code> → REFLECT (post-task)</li>
+            <li>注意：是 AI 自己判，不是外部 hook 判</li>
+          </ul>`,
+      },
+    },
   },
   END: {
     title: "END — session 结束",
-    tags: ["/goal", "stop 允许"],
-    when: [
-      "REFLECT post-task 共识：deliverable 齐",
-      "<code>/goal</code> 条件评估器判定满足"
-    ],
-    do: [
-      "/goal 自动 clear，Stop hook 不再 block",
-      "main 给用户最终汇报",
-      "ledger 收尾：append 或写 <code>[no new ledger entries]</code>",
-    ],
-    exit: ["session 终止"],
-    files: [
-      "<code>RESEARCH_NOTES_GOAL_HOOK.md</code>（P9 调研）",
-      "<code>content/rules/p4_recording.md</code> 收尾段",
-    ],
+    scenarios: {
+      "默认": {
+        diagram: END_DIAGRAM,
+        notes: `
+          <ul>
+            <li><code>/goal</code> 的 LLM 评估器读 transcript vs goal 条件</li>
+            <li>满足 → 自动 clear，Stop hook 不再 block</li>
+            <li>不满足 → 注入 "Stop hook feedback"，告诉 main 还差什么 → 回 EXECUTE_LOOP</li>
+            <li>P9 调研结论：完全取代 stop_self_audit.sh（213 行 bash 全废）</li>
+          </ul>`,
+      },
+    },
   },
 };
 
 const aside = document.getElementById("detail");
+let cur = null;
+
 function render(state) {
+  cur = state;
   const d = DETAILS[state];
-  if (!d) return;
   document.querySelectorAll(".node-g").forEach(n => n.classList.toggle("active", n.dataset.state === state));
+  const scenarios = Object.keys(d.scenarios);
+  const tabs = scenarios.map((s, i) =>
+    `<button class="${i===0?'on':''}" data-s="${s}">${s}</button>`
+  ).join("");
   aside.innerHTML = `
     <h2>${d.title}</h2>
-    <div>${d.tags.map(t => `<span class="tag">${t}</span>`).join("")}</div>
-    <h3>触发</h3><ul>${d.when.map(x => `<li>${x}</li>`).join("")}</ul>
-    <h3>做什么</h3><ul>${d.do.map(x => `<li>${x}</li>`).join("")}</ul>
-    <h3>退出</h3><ul>${d.exit.map(x => `<li>${x}</li>`).join("")}</ul>
-    <h3>相关文件</h3><ul>${d.files.map(x => `<li>${x}</li>`).join("")}</ul>
+    ${scenarios.length > 1 ? `<div class="scenario-tabs">${tabs}</div>` : ''}
+    <div class="scenario-title" id="sc-title"></div>
+    <div class="subdiagram" id="sd"></div>
+    <div class="notes" id="notes"></div>
   `;
+  if (scenarios.length > 1) {
+    aside.querySelectorAll(".scenario-tabs button").forEach(b => {
+      b.addEventListener("click", () => {
+        aside.querySelectorAll(".scenario-tabs button").forEach(x => x.classList.remove("on"));
+        b.classList.add("on");
+        showScenario(state, b.dataset.s);
+      });
+    });
+  }
+  showScenario(state, scenarios[0]);
 }
+
+function showScenario(state, name) {
+  const sc = DETAILS[state].scenarios[name];
+  aside.querySelector("#sc-title").textContent = "场景: " + name;
+  aside.querySelector("#sd").innerHTML = sc.diagram;
+  aside.querySelector("#notes").innerHTML = sc.notes;
+}
+
 document.querySelectorAll(".node-g").forEach(n => {
   n.addEventListener("click", () => render(n.dataset.state));
 });
