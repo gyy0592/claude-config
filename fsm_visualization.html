@@ -397,6 +397,27 @@ const EXEC_DONE = `
   <g><rect class="sd-node end-ok" x="280" y="210" width="180" height="50" rx="6"/><text class="sd-text" x="370" y="228">REFLECT (post-task)</text><text class="sd-text muted" x="370" y="244">验 deliverable + 收尾 ledger</text></g>
 </svg>`;
 
+const EXEC_LONG_WAIT = `
+<svg viewBox="0 0 460 290">
+  <g><rect class="sd-node start" x="20" y="8" width="160" height="34" rx="6"/><text class="sd-text" x="100" y="30">submit sbatch / 长跑 bg job</text></g>
+  <path class="sd-edge" d="M 100,42 L 100,62"/>
+  <g><rect class="sd-node" x="20" y="62" width="160" height="34" rx="6"/><text class="sd-text" x="100" y="84">iter: squeue / tail log</text></g>
+  <path class="sd-edge" d="M 100,96 L 100,116"/>
+  <g><rect class="sd-node decision" x="20" y="116" width="160" height="42" rx="6"/><text class="sd-text" x="100" y="134">PD / R / 完成 ?</text><text class="sd-text muted" x="100" y="148">每 10-15min poll 一次</text></g>
+  <path class="sd-edge" d="M 180,137 L 240,137"/>
+  <text class="sd-edge-label" x="210" y="128">PD/R 仍跑</text>
+  <g><rect class="sd-node end-bad" x="240" y="116" width="200" height="42" rx="6"/><text class="sd-text" x="340" y="132">⚠ 真问题: AI 无 sleep</text><text class="sd-text muted" x="340" y="148">同一 turn 内 Monitor 死循环</text></g>
+  <path class="sd-edge" d="M 340,158 L 340,180"/>
+  <g><rect class="sd-node" x="240" y="180" width="200" height="50" rx="6"/><text class="sd-text" x="340" y="198">解法: CronCreate 跨 session</text><text class="sd-text muted" x="340" y="214">每 15min 新 prompt 检查 → 完成唤醒</text></g>
+  <path class="sd-edge" d="M 100,158 L 100,200"/>
+  <text class="sd-edge-label" x="80" y="180">完成</text>
+  <g><rect class="sd-node end-ok" x="20" y="200" width="160" height="34" rx="6"/><text class="sd-text" x="100" y="222">收 artifact → EXIT done</text></g>
+  <path class="sd-edge" d="M 100,234 L 100,254"/>
+  <g><rect class="sd-node end-bad" x="20" y="254" width="160" height="30" rx="6"/><text class="sd-text" x="100" y="272">⚠ /goal 会一直 block</text></g>
+  <path class="sd-edge" d="M 240,205 Q 200,205 200,75 L 180,75"/>
+  <text class="sd-edge-label" x="220" y="100">同 session</text>
+</svg>`;
+
 const END_DIAGRAM = `
 <svg viewBox="0 0 460 280">
   <g><rect class="sd-node start" x="20" y="20" width="180" height="40" rx="6"/><text class="sd-text" x="110" y="38">REFLECT post-task 共识</text><text class="sd-text muted" x="110" y="53">deliverable 对齐 goal.md</text></g>
@@ -421,11 +442,14 @@ const DETAILS = {
       "默认": {
         diagram: BOOT_DIAGRAM,
         notes: `
+          <p><b>设计意图</b>：UserPromptSubmit hook 自动建好 state/action，main 写 [BOOT_DONE] 进 PREPARE。</p>
+          <p><b>实际会发生</b>：</p>
           <ul>
-            <li><b>触发</b>：用户首次发消息（UserPromptSubmit hook）</li>
-            <li><b>启发式</b>：<code>$PWD</code> 有 <code>.git</code> 或 <code>CLAUDE.md</code> 或 <code>workspace/</code> 才创建</li>
-            <li><b>幂等</b>：state / action 文件已存在就跳过</li>
-            <li><b>结束</b>：<code>transition.sh BOOT_DONE</code> → PREPARE</li>
+            <li>✅ <code>session_boot.sh</code> 静默跑，main 不一定察觉它已经建好文件</li>
+            <li>⚠ 每次重启 session 都是新 sid → <code>.barry_workflow/</code> 会堆 N 个 state/action 历史文件，需要手动清理</li>
+            <li>⚠ <b>跨 session 不续接</b>：旧 session 的进度（比如上次 EXECUTE_LOOP 到迭代 17）新 session 不会自动 inherit，main 得自己 <code>ls -t .barry_workflow/state_*.md | head -2</code> 接旧的</li>
+            <li>⚠ 启发式可能漏：在 <code>/tmp/foo</code> 这种没 .git / CLAUDE.md 的目录 → 静默 no-op，main 完全不知道</li>
+            <li>⚠ main 很可能<b>忘了调 transition.sh BOOT_DONE</b> — current_status 一直停在 BOOT，下游 hook 不知道</li>
           </ul>`,
       },
     },
@@ -436,10 +460,14 @@ const DETAILS = {
       "两条并行": {
         diagram: PREPARE_DIAGRAM,
         notes: `
+          <p><b>设计意图</b>：列 artifact + sha1 sig 让 main 自报哪些在 KV cache 里，不在就 Read；同时检查用户 prompt 有没有 4 要素。</p>
+          <p><b>实际会发生</b>：</p>
           <ul>
-            <li><b>A 轨：cache_hit_map</b> — helper 列出所有 artifact + sha1，main 自报 YES/NO；误判 → <code>rule_violations.md</code>（不是 bitter_lessons！）</li>
-            <li><b>B 轨：4 要素</b> — observable / cadence / reflection / completion，缺则 <code>[PROMPT_REINFORCED]</code></li>
-            <li>两轨完成后 <code>transition.sh PREPARE_DONE</code> → REFLECT</li>
+            <li>⚠ <b>cache_hit_map 会爆炸</b>：每跑一次都列上次的 action_*.md + state_*.md，N 个 session 后 stub 有 40+ 行，main 懒得逐行填 → 全留 UNKNOWN → 失去意义</li>
+            <li>⚠ <b>4 要素几乎永远不齐</b>：用户实际 prompt 经常是 "fix this bug" / "看一下" 这种，4 要素都缺；<code>[PROMPT_REINFORCED]</code> 每轮触发 → main 疲劳 → 直接忽略</li>
+            <li>⚠ <b>helper 是手动调的</b>：main 必须主动跑 <code>bash prepare_helper.sh</code>，prompt 里没强制 → 大概率被跳过</li>
+            <li>✅ KV cache 自报机制本身合理（信 AI）— 但前提是 main 真去做这一步</li>
+            <li>真实场景下，PREPARE 可能变成"略过 helper、心里默想一下 4 要素、直接进 REFLECT"</li>
           </ul>`,
       },
     },
@@ -450,31 +478,38 @@ const DETAILS = {
       "pre-task": {
         diagram: REFLECT_PRE_TASK,
         notes: `
-          <p><b>一套协议、三个 reason 参数</b> — 三个场景共用同一个 <code>reflect_protocol.md</code> 流程（写 round 文件 → 派 agent → SendMessage 多轮 → CONSENSUS_REACHED 或 N=5 fallback 10）。差别只在 agent 验证什么轴。</p>
+          <p><b>一套协议、三个 reason 参数</b> — 共用 <code>reflect_protocol.md</code> 流程，差别只在验证轴。</p>
+          <p><b>实际会发生（pre-task）</b>：</p>
           <ul>
-            <li><b>触发</b>：PREPARE 完成后第一次进入</li>
-            <li><b>reason</b>：<code>pre-task</code></li>
-            <li><b>验证轴</b>：plan 完整性 / observables 漏没漏 / 成功条件清不清晰</li>
+            <li>⚠ <b>cost 太高 → 大概率被跳</b>：本 session 实测一轮 rebuttal ≈ 10 min + 58k tokens。小任务（改 1-2 个文件）根本不值这个成本，main 会直接跳 REFLECT</li>
+            <li>⚠ 跳过的话<b>没人拦</b> — transition.sh 是 main 自己调，main 不调也没 hook 强制</li>
+            <li>✅ 大任务（架构变更、多文件改动）值得跑，本 session P1 的 router 草稿确实是 rebuttal 跑出 5 个有用 diff</li>
+            <li>验证轴：plan 完整性 / observables 漏没漏 / 成功条件清不清晰</li>
+            <li>实际可能：main 只在"感觉 plan 模糊"时主动派 agent，平时跳</li>
           </ul>`,
       },
       "on-anomaly": {
         diagram: REFLECT_ON_ANOMALY,
         notes: `
-          <p><b>一套协议、三个 reason 参数</b> — 协议骨架跟 pre-task 完全一样，只是 agent 关注的轴不同。</p>
+          <p><b>一套协议、三个 reason 参数</b> — 协议骨架跟 pre-task 完全一样。</p>
+          <p><b>实际会发生（on-anomaly）</b>：</p>
           <ul>
-            <li><b>触发</b>：EXECUTE_LOOP 连续 3 个 [OBSERVE] 反驳 [PLAN]，<code>EXECUTE_EXIT --reason=bug</code></li>
-            <li><b>reason</b>：<code>on-anomaly</code></li>
-            <li><b>验证轴</b>：假设 vs 证据 / 替代根因 A/B/C / fix 是不是治标</li>
+            <li>✅ <b>三个里最可能真跑</b> — 因为这是"真出问题了"的时刻，10 min cost 划算</li>
+            <li>⚠ <b>触发条件依赖 anomaly 计数</b>：需要 main 真的连续 3 个 [OBSERVE] 都写"反驳 [PLAN]"，<b>execute_loop_audit.sh 是 grep "refuted|anomaly|fail" 关键字</b> — main 写 "step=1200, 没变化" 这种不带关键字的 OBSERVE 计数器永远不会涨</li>
+            <li>⚠ 失败预算只抓"反驳"，不抓"慢" — 长跑任务永远不会触发</li>
+            <li>验证轴：假设 vs 证据 / 替代根因 A/B/C / fix 是不是治标</li>
           </ul>`,
       },
       "post-task": {
         diagram: REFLECT_POST_TASK,
         notes: `
-          <p><b>一套协议、三个 reason 参数</b> — 同样的 rebuttal 循环，agent 这次盯着 deliverable 是否真的达标。</p>
+          <p><b>一套协议、三个 reason 参数</b> — 同样的 rebuttal 循环。</p>
+          <p><b>实际会发生（post-task）</b>：</p>
           <ul>
-            <li><b>触发</b>：EXECUTE_LOOP 自判 done，<code>EXECUTE_EXIT --reason=done</code></li>
-            <li><b>reason</b>：<code>post-task</code></li>
-            <li><b>验证轴</b>：deliverable 对得上 <code>goal.md</code>？ledger 收尾了？没漏文件？</li>
+            <li>⚠ <b>AI 有强烈的"宣称 done"偏见</b> — 自判完成时，AI 倾向跳过 post-task 直接 stop。需要外部机制（goal.md / 用户）兜底</li>
+            <li>⚠ goal.md 经常没填或填得很简略，agent 比对时缺参考</li>
+            <li>验证轴：deliverable 对得上 <code>goal.md</code>？ledger 收尾了？没漏文件？</li>
+            <li>实际可能：main 跳过这步 → 直接进 END → /goal 评估器再来兜底</li>
           </ul>`,
       },
     },
@@ -485,30 +520,58 @@ const DETAILS = {
       "继续迭代": {
         diagram: EXEC_CONTINUE,
         notes: `
+          <p><b>设计意图</b>：每次工具调用前写 [PLAN]，调完写 [OBSERVE]，符合就下一迭代。</p>
+          <p><b>实际会发生</b>：</p>
           <ul>
-            <li>每个迭代 = 一次工具调用</li>
-            <li><code>[PLAN]</code> → tool → <code>[OBSERVE]</code> → 符合 → 下一迭代</li>
-            <li>Monitor cadence：bg <5min 通知；5-60min Monitor() 10-15 分钟；>60min 加 <code>[SILENCE_START]</code></li>
+            <li>⚠ <b>token 成本累计</b>：每个工具调用要多写 2 行（PLAN+OBSERVE），跑 30 个迭代 = 60 行额外 text。复杂任务 main 会偷懒 batch："PLAN: 读这 5 个文件" → 1 个 PLAN 对应 5 个 Read</li>
+            <li>⚠ PreToolUse nudge 在 main 忘写 [PLAN] 时会提醒，但<b>nudge 不阻塞</b>（permissionDecision="allow"），main 看一眼忽略就过</li>
+            <li>⚠ "符合 PLAN" 是 AI 自判 — AI 倾向乐观判 "符合"，[OBSERVE] 经常水写一句</li>
+            <li>✅ 如果 main 自律地写就有用，能事后审计每一步逻辑</li>
           </ul>`,
       },
       "异常 → bug": {
         diagram: EXEC_ANOMALY,
         notes: `
+          <p><b>设计意图</b>：连续 3 个反驳 → EXIT bug → REFLECT (on-anomaly)。</p>
+          <p><b>实际会发生</b>：</p>
           <ul>
-            <li>[OBSERVE] 反驳 [PLAN] → anomaly 计数 +1</li>
-            <li>连续 3 个 anomaly → 失败预算用完 → <code>EXIT --reason=bug</code></li>
-            <li>覆盖：<code>$PWD/CLAUDE.md</code> AUTH 关键字（如"allow you to do anything"）</li>
-            <li>退出后进 REFLECT (on-anomaly)</li>
+            <li>⚠ <b>关键 bug</b>：<code>execute_loop_audit.sh</code> 用 grep <code>"refuted|anomaly|fail"</code> 关键字识别 anomaly。但 main 写 [OBSERVE] 时大概率<b>不会用这些精确字</b> — 比如 "step 卡 1200 没变化"、"返回 None"、"exit code 2" 都不匹配 → <b>失败预算永远计数为 0</b></li>
+            <li>⚠ 需要在 [OBSERVE] 文本约定上加强（或换更鲁棒的 anomaly 标注）</li>
+            <li>✅ AUTH override 机制对（user 写 "allow you to do anything" 解除上限）</li>
+            <li>实际可能：main 跑 10 次都失败，audit 仍然报 "0 anomaly"，最后 main 自己看不下去手动 EXIT</li>
           </ul>`,
       },
       "完成 → done": {
         diagram: EXEC_DONE,
         notes: `
+          <p><b>设计意图</b>：AI 自判 deliverable 齐全 → EXIT done → REFLECT (post-task)。</p>
+          <p><b>实际会发生</b>：</p>
           <ul>
-            <li>AI 自判 deliverable 齐全（对照 goal.md）</li>
-            <li><code>EXIT --reason=done</code> → REFLECT (post-task)</li>
-            <li>注意：是 AI 自己判，不是外部 hook 判</li>
+            <li>⚠ <b>AI 强烈倾向宣称 done</b>：测试还没全跑就敢说"修好了"，文档还没补就说"完成了"</li>
+            <li>⚠ post-task REFLECT 本来是兜底，但上面提到 main 很可能跳 → 没人发现漏的</li>
+            <li>⚠ 缺少"对照 goal.md 的强制检查"（设计是 post-task agent 做，但 agent 跳了 = 没人做）</li>
+            <li>✅ /goal 评估器是最后一道防线，但<b>/goal 自己也是 LLM 判</b>，跟 AI 同源偏见</li>
           </ul>`,
+      },
+      "长跑队列任务 (新)": {
+        diagram: EXEC_LONG_WAIT,
+        notes: `
+          <p><b>场景</b>：AI submit sbatch / docker run / 任何会在 queue 里等然后跑数小时的任务。需要持续 polling。</p>
+          <p><b>真问题（4 个未解决的设计漏洞）</b>：</p>
+          <ul>
+            <li>🔴 <b>单 turn 内 AI 没法睡</b> — Claude Code 一个 turn = AI 生成完就结束。没有"sleep 15 min 再继续"机制。Monitor() 是给 active bash 用的，不能解决"queue 还在等"</li>
+            <li>🔴 <b>/goal 无限 block + 吃光 context</b> — 2 小时跑期间 main 每次想 stop 都被 "still pending" 拦回；context 被 polling 噪声填满</li>
+            <li>🔴 <b>失败预算抓不到"慢"</b> — PD 状态符合 PLAN，不算反驳；100 次 same OBSERVE 也不触发 EXIT</li>
+            <li>🔴 <b>[SILENCE_START] 是装饰</b> — 它只是 action.md 一行字，<b>不会真让 session 暂停</b></li>
+          </ul>
+          <p><b>实际能用的解（待实现，不在 v4）</b>：</p>
+          <ul>
+            <li>用 <code>CronCreate</code> 注册跨 session 检查（每 15min 新 prompt → squeue → 完成则唤醒）</li>
+            <li>新增 <code>LONG_WAIT</code> 子状态，进了之后 /goal 临时挂起允许 stop</li>
+            <li>慢超时：连续 N 次 same-OBSERVE 触发 "疲劳上报" → 问用户</li>
+            <li>跨 session inherit：boot hook 检测旧 state 复用 sid 而不是建新的</li>
+          </ul>
+          <p><b>现状结论</b>：v4 在这个场景下会<b>卡死或烧 context</b>，必须手动干预（kill session / 关 /goal）。</p>`,
       },
     },
   },
@@ -518,11 +581,14 @@ const DETAILS = {
       "默认": {
         diagram: END_DIAGRAM,
         notes: `
+          <p><b>设计意图</b>：/goal 评估器判定 goal 完成 → 自动 clear → 允许 stop。</p>
+          <p><b>实际会发生</b>：</p>
           <ul>
-            <li><code>/goal</code> 的 LLM 评估器读 transcript vs goal 条件</li>
-            <li>满足 → 自动 clear，Stop hook 不再 block</li>
-            <li>不满足 → 注入 "Stop hook feedback"，告诉 main 还差什么 → 回 EXECUTE_LOOP</li>
-            <li>P9 调研结论：完全取代 stop_self_audit.sh（213 行 bash 全废）</li>
+            <li>✅ 短任务（plan / 写代码 / 改文件）<b>工作得好</b>：本 session P1-P10 就是 /goal 一路盯着推完的</li>
+            <li>⚠ <b>长任务上 /goal 会成阻碍</b>：见 EXECUTE_LOOP 长跑队列任务 tab</li>
+            <li>⚠ <b>/goal 评估也是 LLM</b>：可能跟 main 同源偏见 — main 说 "我完成了"，/goal 评估也读这句 → 容易放行</li>
+            <li>⚠ 评估器对模糊 goal 容忍度高，对精确 goal（"必须 PR 合并 + 测试通过"）可能反复 block</li>
+            <li>✅ P9 调研结论仍成立：<b>短任务上</b> /goal 完胜 stop_self_audit.sh（213 行 bash 全废）；<b>长任务上</b>两者都有问题，需要 LONG_WAIT 状态兜底</li>
           </ul>`,
       },
     },
