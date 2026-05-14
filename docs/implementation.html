@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<title>Barry's Workflow v2 — 实现 walk-through</title>
+<title>Barry's Workflow v2.1 — 实现 walk-through</title>
 <style>
   :root {
     --bg: #f7f9fc;
@@ -91,6 +91,7 @@
   nav .v-warn { background: var(--yellow-soft); color: #bf8700; }
   nav .v-bad { background: var(--red-soft); color: var(--red); }
   nav .v-todo { background: var(--panel-2); color: var(--muted); }
+  nav .v-new { background: var(--purple-soft); color: var(--purple); }
 
   section.detail {
     overflow-y: auto;
@@ -202,8 +203,8 @@
 </head>
 <body>
 <header>
-  <h1>Barry's Workflow v2 — 实现 walk-through</h1>
-  <div class="sub">零知识门槛 · 每个文件 What/Why/有效性 都说清楚 · 诚实标 ✅/⚠/❌</div>
+  <h1>Barry's Workflow v2.1 — 实现 walk-through</h1>
+  <div class="sub">v2.1 P11–P25 已落地 · 每个文件 What/Why/有效性 都说清楚 · 诚实标 ✅/⚠/❌</div>
 </header>
 
 <main>
@@ -211,39 +212,66 @@
     <div class="grp-title">第一部分 — 整体</div>
     <button data-key="intro" class="on">0. 这是什么</button>
     <button data-key="problem">1. 解决的问题</button>
-    <button data-key="solution">2. 整体架构</button>
-    <button data-key="flow">3. 端到端流程</button>
+    <button data-key="solution">2. 整体架构 (v2.1)</button>
+    <button data-key="flow">3. 端到端流程 (v2.1)</button>
+    <button data-key="v21_delta">v2 → v2.1 变更摘要 <span class="verdict v-new">新</span></button>
 
-    <div class="grp-title">第二部分 — Seed Rules（10 个 policy 文件）</div>
-    <button data-key="p1_identity">p1_identity.md <span class="verdict v-ok">部署</span></button>
-    <button data-key="p2_facts">p2_facts_first.md <span class="verdict v-ok">部署</span></button>
-    <button data-key="p3_dispatch">p3_dispatch.md <span class="verdict v-ok">部署</span></button>
-    <button data-key="p4_recording">p4_recording.md <span class="verdict v-ok">部署</span></button>
-    <button data-key="p6_workflow">p6_workflow.md <span class="verdict v-ok">部署</span></button>
+    <div class="grp-title">第二部分 — Seed Rules（顶层 policy）</div>
+    <button data-key="facts">facts_first.md <span class="verdict v-ok">部署</span></button>
+    <button data-key="dispatch">dispatch.md <span class="verdict v-ok">部署</span></button>
+    <button data-key="recording">recording.md <span class="verdict v-ok">部署</span></button>
     <button data-key="subagent">subagent_rules.md <span class="verdict v-ok">部署</span></button>
-    <button data-key="fsm">fsm.md <span class="verdict v-ok">部署</span></button>
-    <button data-key="reflect_proto">reflect_protocol.md <span class="verdict v-ok">实测</span></button>
-    <button data-key="reflect_prompt">reflect_subagent_prompt.md <span class="verdict v-ok">实测</span></button>
+    <button data-key="failure_stop">failure_stop.md <span class="verdict v-new">新</span></button>
+    <button data-key="prompt_enh">prompt_enhancement.md <span class="verdict v-new">新</span></button>
     <button data-key="codex">codex_adapter.md <span class="verdict v-todo">未跑</span></button>
-    <button data-key="index_md">index.md <span class="verdict v-ok">部署</span></button>
 
-    <div class="grp-title">第三部分 — Hooks（脚本）</div>
+    <div class="grp-title">第三部分 — FSM States</div>
+    <button data-key="fsm">fsm.md (overview) <span class="verdict v-ok">部署</span></button>
+    <button data-key="state_boot">states/boot.md <span class="verdict v-new">新</span></button>
+    <button data-key="state_prepare">states/prepare.md <span class="verdict v-new">新</span></button>
+    <button data-key="state_reflect">states/reflect.md <span class="verdict v-new">新</span></button>
+    <button data-key="state_execute">states/execute.md <span class="verdict v-new">新</span></button>
+    <button data-key="state_end">states/end.md <span class="verdict v-new">新</span></button>
+
+    <div class="grp-title">第四部分 — State-aware Routers</div>
+    <button data-key="router_fallback">router.md (fallback) <span class="verdict v-ok">部署</span></button>
+    <button data-key="router_boot">router_BOOT.md <span class="verdict v-ok">实测</span></button>
+    <button data-key="router_prepare">router_PREPARE.md <span class="verdict v-ok">实测</span></button>
+    <button data-key="router_reflect">router_REFLECT.md <span class="verdict v-ok">实测</span></button>
+    <button data-key="router_exec">router_EXECUTE_LOOP.md <span class="verdict v-ok">实测</span></button>
+    <button data-key="router_end">router_END.md <span class="verdict v-ok">实测</span></button>
+
+    <div class="grp-title">第五部分 — Scenario Patches</div>
+    <button data-key="patches_overview">patches/ 总览 <span class="verdict v-new">新</span></button>
+    <button data-key="patch_long">long_monitor.md <span class="verdict v-warn">静态</span></button>
+    <button data-key="patch_bug">bug_debug.md <span class="verdict v-warn">静态</span></button>
+    <button data-key="patch_perf">perf_debug.md <span class="verdict v-warn">静态</span></button>
+    <button data-key="patch_simple">simple_fast.md <span class="verdict v-warn">静态</span></button>
+    <button data-key="patch_explore">exploration.md <span class="verdict v-warn">静态</span></button>
+
+    <div class="grp-title">第六部分 — Hooks</div>
     <button data-key="inject_router">inject_router.sh <span class="verdict v-ok">实测</span></button>
-    <button data-key="session_boot">session_boot.sh <span class="verdict v-warn">smoke</span></button>
+    <button data-key="session_boot">session_boot.sh <span class="verdict v-ok">实测</span></button>
     <button data-key="transition">transition.sh <span class="verdict v-warn">smoke</span></button>
     <button data-key="prepare_helper">prepare_helper.sh <span class="verdict v-warn">smoke</span></button>
     <button data-key="exec_audit">execute_loop_audit.sh <span class="verdict v-warn">smoke</span></button>
     <button data-key="pre_nudge">pretooluse_short_nudge.sh <span class="verdict v-warn">smoke</span></button>
+    <button data-key="state_enforce">state_enforce.sh <span class="verdict v-new">新</span></button>
+    <button data-key="session_lib">_session_lib.sh <span class="verdict v-new">新</span></button>
 
-    <div class="grp-title">第四部分 — 运行时</div>
+    <div class="grp-title">第七部分 — Config + Messages</div>
+    <button data-key="config_yaml">workflow_config.yaml <span class="verdict v-new">新</span></button>
+    <button data-key="messages">messages/ <span class="verdict v-new">新</span></button>
+
+    <div class="grp-title">第八部分 — 运行时</div>
     <button data-key="per_turn">每轮 vs 每次工具 vs 每个 state</button>
     <button data-key="output_files">产物文件清单</button>
-    <button data-key="qa">FAQ — 7 个常见疑问</button>
+    <button data-key="qa">FAQ</button>
 
-    <div class="grp-title">第五部分 — 评估</div>
+    <div class="grp-title">第九部分 — 评估</div>
     <button data-key="effectiveness">有效性诚实评估</button>
     <button data-key="reflection">我漏了什么 / 没说清</button>
-    <button data-key="next">下一步 v2.1</button>
+    <button data-key="next">下一步 v2.2</button>
   </nav>
 
   <section class="detail" id="detail"></section>
@@ -253,7 +281,8 @@
 const SECTIONS = {
   intro: () => `
     <h2>0. 这是什么</h2>
-    <p><b>Barry's Workflow v2</b> 是一套约束 Claude Code（或其他 LLM coding agent）行为的"状态控制器"。不是 prompt 集合，不是 wrapper，是<b>把 AI 的行为切成阶段、强制必须走过每一步</b>的机制。</p>
+    <p><b>Barry's Workflow v2.1</b> 是一套约束 Claude Code（或其他 LLM coding agent）行为的"状态控制器"。不是 prompt 集合，不是 wrapper，是<b>把 AI 的行为切成阶段、强制必须走过每一步</b>的机制。</p>
+    <p><b>v2.1 刚落地</b>（commits 1616bd0–19374f7, 12 个 P-task）：state-aware router（按当前 state 注入不同 router 文件）、INFERENCE_GATE（写 [INFERENCE] 前先 mini-rebuttal）、patches 系统（场景专属补丁与 general 规则分离）、session 子目录（<code>.barry_workflow/&lt;sid&gt;/...</code> 替代平铺）、PostToolUse 状态强制 hook、规则文件大重构（删 v1 残留 / 拆 fsm.md → 5 个 state 文件 / 抢救 M6）、外置 workflow_config.yaml 常量、跨 session inherit 基础。</p>
     <h3>给谁看？</h3>
     <ul>
       <li>已经用过 Claude Code / Cursor / Codex 跑代码任务的人</li>
@@ -270,7 +299,7 @@ const SECTIONS = {
     <h3>跟原 README 的区别</h3>
     <ul>
       <li>README = 用 + 装</li>
-      <li>big_picture.md = 设计哲学</li>
+      <li>big_picture.md / big_picture.html = 设计哲学</li>
       <li>scenarios.html = 理想行为 spec</li>
       <li>fsm_visualization.html = 状态机视图</li>
       <li><b>本文（implementation.html）= 实际跑的代码每一行为啥存在</b></li>
@@ -283,83 +312,91 @@ const SECTIONS = {
     <h3>具体长这样</h3>
     <table>
       <tr><th>任务</th><th>AI 默认反应</th><th>跳过了什么</th></tr>
-      <tr><td>"代码慢"</td><td>改 batch_size</td><td>没测 baseline、没 profile、没看 GPU util</td></tr>
-      <tr><td>"报 KeyError"</td><td>try/except 包住</td><td>没查为什么 key 不存在</td></tr>
-      <tr><td>"写一个 HTML 可视化"</td><td>commit 报"完成"</td><td>没用浏览器打开、没点击验证、没看 console（本会话刚发生过）</td></tr>
-      <tr><td>"修 OOM"</td><td>降 batch</td><td>没查 activation memory、没考虑 grad checkpoint</td></tr>
+      <tr><td>「代码慢」</td><td>改 batch_size</td><td>没测 baseline、没 profile、没看 GPU util</td></tr>
+      <tr><td>「报 KeyError」</td><td>try/except 包住</td><td>没查为什么 key 不存在</td></tr>
+      <tr><td>「写一个 HTML 可视化」</td><td>commit 报「完成」</td><td>没用浏览器打开、没点击验证、没看 console（本会话刚发生过）</td></tr>
+      <tr><td>「修 OOM」</td><td>降 batch</td><td>没查 activation memory、没考虑 grad checkpoint</td></tr>
     </table>
     <h3>根因（从训练数据来）</h3>
     <p>GitHub commit / StackOverflow / blog 教程的格式都是 <code>问题 → fix</code>，中间步骤（复现 / 读代码 / 测 baseline / 跑通验证）<b>训练集里压根不出现</b>。AI 学到的就是直接跳。</p>
     <div class="callout note">
-      详见 <code>docs/big_picture.md §1.5</code>。本会话第 22 轮我自己就犯了这病 — 写完 HTML 直接 commit，没打开浏览器 → 第二天用户发现点击没反应（JS 字符串引号 bug）。
+      详见 <code>docs/big_picture.md §1.5</code>。
     </div>
     <h3>反制思路</h3>
-    <p>把"跳"切成<b>必须显式走过的多个 state</b>，每个 state 强制有 deliverable，跳了系统能发现并阻止。这就是状态机。</p>
+    <p>把"跳"切成<b>必须显式走过的多个 state</b>，每个 state 强制有 deliverable，跳了系统能发现并阻止。这就是状态机。v2.1 加了 PostToolUse 状态强制（<code>state_enforce.sh</code>）作为"软约束 → 硬约束"的第一步。</p>
   `,
 
   solution: () => `
-    <h2>2. 整体架构</h2>
+    <h2>2. 整体架构 (v2.1)</h2>
     <p>三层。下层支撑上层，上层覆盖下层。</p>
     <div class="ascii">┌─────────────────────────────────────────────────┐
-│  Layer 3:  patches/   ← v2.1 计划，目前未实现     │
-│            人工或 AI 自动写的结构化补丁             │
+│  Layer 3: patches/ (5 个 scenario 补丁 — v2.1 ✅) │
+│           long_monitor / bug_debug / perf_debug  │
+│           simple_fast / exploration              │
 └─────────────────────────────────────────────────┘
                   ▲ overrides
 ┌─────────────────────────────────────────────────┐
-│  Layer 2:  seed rules (~/.claude/rules/*.md)    │
-│            10 个 policy 文件 — 初始最佳猜测         │
+│  Layer 2:  seed rules — 顶层 policy + states/    │
+│            9 顶层 policy + 5 states + 5 routers   │
+│            + 2 messages + 1 workflow_config.yaml │
 └─────────────────────────────────────────────────┘
                   ▲ enforced by hooks
 ┌─────────────────────────────────────────────────┐
 │  Layer 1:  FSM 骨架  ← 不变量                    │
 │            BOOT → PREPARE → REFLECT ↔ EXECUTE   │
 │            → END                                │
+│  (PostToolUse state_enforce.sh 警告越界)         │
 └─────────────────────────────────────────────────┘</div>
-    <h3>FSM 6 状态</h3>
+    <h3>FSM 5 状态</h3>
     <ul>
       <li><b>BOOT</b>：session 启动，建状态文件</li>
-      <li><b>PREPARE</b>：估算资源、列已知信息、明确完成判据</li>
-      <li><b>REFLECT pre-task</b>：派 subagent 验证 plan</li>
+      <li><b>PREPARE</b>：cache_hit_map、4 要素 checklist、估算资源</li>
+      <li><b>REFLECT</b>：subagent rebuttal（pre-task / on-anomaly / post-task）— INFERENCE_GATE 也走 mini-REFLECT</li>
       <li><b>EXECUTE_LOOP</b>：执行 + 每步 [PLAN]/[OBSERVE]</li>
-      <li><b>REFLECT post-task</b>：派 subagent 验证 deliverable</li>
-      <li><b>END</b>：收尾，<code>/goal</code> 自动放行</li>
+      <li><b>END</b>：归档；<code>/goal</code> 评估器读 transcript 自动放行</li>
     </ul>
     <h3>三道防线（对抗跳步病）</h3>
     <ol>
-      <li>状态机本身 — 不许跳过任何 state</li>
-      <li>REFLECT post-task 6 条 checklist（语法 / 真跑过 / console / violation / goal 对照 / root vs symptom）</li>
-      <li>PREPARE 4 要素 prompt enhancement（observable / cadence / reflection / completion）</li>
+      <li>状态机本身 — state-aware router 每 turn 注入当前 state 的允许/禁止操作清单</li>
+      <li>REFLECT post-task 的 subagent rebuttal — 检查 deliverable</li>
+      <li>PREPARE 4 要素 prompt enhancement（observable / cadence / reflection / completion）— 由 <code>prompt_enhancement.md</code> 强制</li>
     </ol>
-    <h3>git 仓库构成</h3>
+    <h3>git 仓库构成 (v2.1)</h3>
     <ul>
-      <li><code>content/rules/*.md</code> — 10 个 policy 文件，源</li>
-      <li><code>hooks/*.sh</code> — 7 个脚本，源</li>
-      <li><code>set_claude.sh</code> — 部署器，复制以上到 <code>~/.claude/rules/</code> + <code>~/.claude/hooks/</code> + 写 <code>~/.claude/settings.json</code></li>
+      <li><code>content/rules/*.md</code> — 9 顶层 policy 文件</li>
+      <li><code>content/rules/states/*.md</code> — 5 state 描述</li>
+      <li><code>content/rules/router_*.md + router.md</code> — 5 state-aware router + 1 fallback</li>
+      <li><code>content/rules/patches/*.md</code> — 5 scenario 补丁</li>
+      <li><code>content/rules/messages/*.md</code> — 2 hook string 外置</li>
+      <li><code>content/rules/workflow_config.yaml</code> — 常量集中</li>
+      <li><code>hooks/*.sh</code> — 9 个脚本（含新增 <code>_session_lib.sh</code>、<code>state_enforce.sh</code>）</li>
+      <li><code>set_claude.sh</code> — 部署器</li>
       <li><code>docs/</code> — 设计文档</li>
     </ul>
   `,
 
   flow: () => `
-    <h2>3. 端到端流程</h2>
+    <h2>3. 端到端流程 (v2.1)</h2>
     <p>一次完整 session 里、用户从输入 prompt 到 AI 输出结果的所有阶段。</p>
-    <div class="ascii">USER: "帮我跑这个训练，监控直到跑完"
+    <div class="ascii">USER: 「帮我跑这个训练，监控直到跑完」
         │
         ▼ UserPromptSubmit 触发
 ┌─────────────────────────────────────────────────┐
-│ Hook 1: inject_router.sh                        │
-│  → 注入 [ROUTER] 块到 prompt 前面（1.1 KB）       │
-│  → 告诉 AI 该读哪个 policy 文件                   │
+│ Hook 1: inject_router.sh  (state-aware v2.1)    │
+│  → 读 .barry_workflow/&lt;sid&gt;/state.md           │
+│  → cat 对应 router_&lt;STATUS&gt;.md 块                │
+│  → 没 state 则 cat router.md (fallback)         │
 │                                                 │
-│ Hook 2: session_boot.sh                         │
+│ Hook 2: session_boot.sh   (subdir v2.1)         │
 │  → 检查 $PWD 像不像项目根                         │
-│  → 没有 state_<sid>.md 就从 template 建          │
-│  → 没有 action_<sid>.md 就建                     │
+│  → 没 &lt;sid&gt;/ 子目录就建 + 复制 template          │
+│  → P17: 检测旧 sid → 写 inherited_from           │
 └─────────────────────────────────────────────────┘
         │
         ▼ AI 开始处理 prompt
 ┌─────────────────────────────────────────────────┐
 │ AI 进入 BOOT 状态                                │
-│  → 看到 router、知道有 .barry_workflow/          │
+│  → 看 router_BOOT 知道只能 Read，不能 Edit       │
 │  → 写 [BOOT_DONE @ ts] 到 action.md             │
 │  → 调 transition.sh BOOT_DONE → state=PREPARE   │
 └─────────────────────────────────────────────────┘
@@ -368,7 +405,8 @@ const SECTIONS = {
 ┌─────────────────────────────────────────────────┐
 │ AI 进入 PREPARE 状态                             │
 │  → 跑 prepare_helper.sh                         │
-│    输出 cache_hit_map stub + 4 要素 checklist    │
+│    输出 cache_hit_map stub + messages/           │
+│    prepare_checklist.md (4 要素)                 │
 │  → 估算 T_queue / T_run                         │
 │  → 调 transition.sh PREPARE_DONE → REFLECT      │
 └─────────────────────────────────────────────────┘
@@ -379,7 +417,7 @@ const SECTIONS = {
 │  → 写 reflection_r1-pre-task.md                 │
 │  → 派 subagent (Agent + run_in_background=true) │
 │  → subagent 写 reviewer reply + sleep 等        │
-│  → main 看 reply + 可选 SendMessage round 2     │
+│  → main SendMessage round 2/3/...               │
 │  → CONSENSUS_REACHED → transition.sh REFLECT_DONE│
 └─────────────────────────────────────────────────┘
         │
@@ -387,19 +425,23 @@ const SECTIONS = {
 ┌─────────────────────────────────────────────────┐
 │ AI 进入 EXECUTE_LOOP                            │
 │  循环：                                          │
-│    [PLAN] @ ts — 干啥 + 期望 observable          │
-│    （PreToolUse: pretooluse_short_nudge.sh 提醒）│
-│    工具调用 (Bash / Edit / ...)                  │
-│    [OBSERVE] @ ts — 引具体输出                   │
+│    [PLAN] @ ts                                  │
+│    PreToolUse: pretooluse_short_nudge.sh        │
+│    工具调用                                       │
+│    PostToolUse: state_enforce.sh                │
+│      → 越界则 stderr 警告 (state X 禁止 Edit)    │
+│    [OBSERVE] @ ts                               │
 │    判: continue / anomaly+1 / done              │
 │  退出: transition.sh EXECUTE_EXIT --reason=done │
+│                                                 │
+│  写 [INFERENCE]？ → INFERENCE_GATE (mini REFLECT)│
 └─────────────────────────────────────────────────┘
         │
         ▼
 ┌─────────────────────────────────────────────────┐
 │ AI 进入 REFLECT post-task                       │
 │  → 派 subagent 验 deliverable                   │
-│  → 6 条 checklist（语法 / 真跑过 / ...）          │
+│  → 6 条 checklist                                │
 │  → 共识后 transition.sh REFLECT_DONE             │
 └─────────────────────────────────────────────────┘
         │
@@ -408,96 +450,112 @@ const SECTIONS = {
 │ END：写 ledger 收尾                              │
 │  /goal 评估器读 transcript → 满足 → 自动 clear   │
 └─────────────────────────────────────────────────┘</div>
+    <div class="callout ok">
+      <b>v2.1 改善</b>：state-aware router + PostToolUse state_enforce.sh 是从「软约束」走向「硬约束」的第一步。AI 进入新 state 看到的 router 文本不同，越界操作会触发 stderr 警告。
+    </div>
     <div class="callout warn">
-      <b>当前现状（必须诚实）</b>：上面这套流程在 v2 里<b>都是约定 + 工具</b>，没有 hook 真的强制 AI 走每一步。靠的是 AI 看到 router 注入后自律。一旦 AI 偷懒（跳 transition.sh、跳 prepare_helper.sh），系统没机制拦。所以"状态控制"目前是<b>软约束</b>，不是硬。
+      <b>仍是软约束的部分</b>：state_enforce.sh 是 stderr 警告，非阻塞（PostToolUse 不能阻 tool 调用）。AI 还是能选择无视。真正的 hard-block 要靠 PreToolUse — 当前 pretooluse_short_nudge.sh 还没读 state.md（v2.2 计划）。
     </div>
   `,
 
+  v21_delta: () => `
+    <h2>v2 → v2.1 变更摘要</h2>
+    <p>12 个 P-task 已落地（commits 1616bd0 至 19374f7）。按主题分组：</p>
+
+    <h3>规则文件重构 (P11 + P18)</h3>
+    <ul>
+      <li><b>删</b>：<code>p1_identity.md</code>（cosplay 已清，规则无意义）/ <code>p6_workflow.md</code>（4-step 跟 state 重复）/ <code>index.md</code>（router 本身就是查找表）+ 10 个 v1 cosplay 模板</li>
+      <li><b>改名去 p 前缀</b>：<code>p2_facts_first → facts_first</code>、<code>p3_dispatch → dispatch</code>、<code>p4_recording → recording</code></li>
+      <li><b>拆</b>：<code>fsm.md</code> → <code>states/{boot,prepare,reflect,execute,end}.md</code> 5 个</li>
+      <li><b>抢救</b>：M6 3-failure stop → 独立 <code>failure_stop.md</code></li>
+      <li><b>合并</b>：<code>reflect_protocol.md + reflect_subagent_prompt.md → states/reflect.md</code></li>
+    </ul>
+
+    <h3>新机制 (P12 / P14 / P15 / P16 / P25)</h3>
+    <ul>
+      <li><b>P12 INFERENCE_GATE</b>：facts_first 加强「非必要不给 [INFERENCE]」+ states/reflect.md 加 mini-1-round rebuttal 子段落</li>
+      <li><b>P14 patches/ 系统</b>：5 个 scenario 补丁 + YAML front-matter (id / applies_to / scope / priority)</li>
+      <li><b>P15 state-aware router</b>：<code>inject_router.sh</code> 读 state.md 选 <code>router_&lt;STATUS&gt;.md</code>；router.md 留作 fallback</li>
+      <li><b>P16 state_enforce.sh</b>：新 PostToolUse hook，state×tool 越界 stderr 警告</li>
+      <li><b>P25 prompt_enhancement.md</b>：4 要素检查独立成 rule 文件</li>
+    </ul>
+
+    <h3>文件组织 + config (P13 / P17 / P22 / P23)</h3>
+    <ul>
+      <li><b>P13 workflow_config.yaml</b>：常量集中（reflect.rounds_default=5 / execute_loop.failure_budget=3 / pretool_nudge.read_threshold=3 / max_chars=100 / prompt_reinforce.required_elements），运行时 hook 暂以注释引用</li>
+      <li><b>P17 跨 session inherit</b>：<code>session_boot.sh</code> 检测旧 sid 子目录 → 复用 cache_hit_map + 写 <code>inherited_from</code></li>
+      <li><b>P22 session subdir</b>：<code>.barry_workflow/&lt;sid&gt;/{state,action,...}.md</code> 替代平铺；新增 <code>_session_lib.sh</code> 共享 helper</li>
+      <li><b>P23 messages 外置</b>：prepare_helper 的 checklist 文本搬到 <code>messages/prepare_checklist.md</code>；state_enforce 模板搬到 <code>messages/state_enforce_template.md</code></li>
+    </ul>
+
+    <h3>对齐 + 守护 (P20 / P21)</h3>
+    <ul>
+      <li><b>P20 scenarios ↔ patches 对齐</b>：补 simple_fast + exploration 两个 patch，把 scenarios.html 5 个场景全覆盖</li>
+      <li><b>P21 lessons 常态化</b>：router always-on 段加「回答 user / 写文件前 grep lessons.md tags」</li>
+    </ul>
+
+    <h3>未做 / 部分做 (剩到 v2.2)</h3>
+    <ul>
+      <li><b>P19 P8 demo</b>：用户特意要求等监督，未跑</li>
+      <li><b>workflow_config.yaml 运行时 source</b>：当前是「引用 by comment」，hook 没真 source YAML</li>
+      <li><b>patches/* 自动加载</b>：补丁是静态文件，没机制按 applies_to 自动 detect 场景 → 注入</li>
+      <li><b>agent_&lt;aid&gt;/ 子目录自动建</b>：subagent_rules.md 规定写自己的 action.md，但 hook 没自动 mkdir</li>
+    </ul>
+  `,
+
   // === policy files ===
-  p1_identity: () => policyCard({
-    title: "p1_identity.md — 身份策略",
-    what: "告诉 AI 它自己是谁（main）、subagent 怎么命名（agent_&lt;aid&gt;）、不许用什么 cosplay 词（Corporal / Commander / Decree）。",
-    why: "v1 时代规则里全是军事 cosplay 词，AI 一边记规则一边 cosplay 角色，认知负担大且容易出戏。中性化后 AI 只需要关注行为本身。",
-    integrate: "AI 在 router 看到「自我称呼」触发后 Read 此文件。",
+  facts: () => policyCard({
+    title: "facts_first.md — 事实优先策略 (v2.1 加强)",
+    what: "强制每个结论打标签：[FACT] 直接观察 / [INFERENCE] 推理（要附理由 + 第二轮反思 / 触发 INFERENCE_GATE）/ [ASSUMPTION] 假设（要先做 50+ 搜索）。subagent 报告不算 fact，main 必须自己 Read 原始证据。<br><br>v2.1 P12 加强：「非必要不给 [INFERENCE]」+ AI 真要写 → 触发 INFERENCE_GATE（详情在 states/reflect.md）。",
+    why: "AI 倾向把 inference 当 fact 报告。三档分级 + GATE 拦截让 user 一眼能看出哪些可信。",
+    integrate: "router 触发器 「writing [INFERENCE] or [ASSUMPTION]」 → Read 此文件 + states/reflect.md INFERENCE_GATE 段。",
     verdict: "ok",
-    verdictText: "✅ 部署成功，本会话 AI 全程用 main / user / subagent，无 cosplay 残留。",
-    snippet: `### 主要内容
-- main = 主线程 AI
-- agent_&lt;aid&gt; = subagent
-- user = 人
-- 禁词清单：Corporal / Commander / Private / Decree / Treason / 军营`,
+    verdictText: "✅ 部署，v2.1 P12 加 GATE，但 GATE 子流程<b>本会话未真触发过</b>（AI 也没真写 INFERENCE）。",
   }),
 
-  p2_facts: () => policyCard({
-    title: "p2_facts_first.md — 事实优先策略",
-    what: "强制每个结论打标签：[FACT] 直接观察 / [INFERENCE] 推理（要附理由 + 第二轮反思）/ [ASSUMPTION] 假设（要先做 50+ 搜索）。subagent 报告不算 fact，main 必须自己 Read 原始证据。",
-    why: "AI 倾向把 inference 当 fact 报告。这条强制三档分级，让 user 一眼能看出哪些可信、哪些是猜的。",
-    integrate: "AI 想写 [INFERENCE] / [ASSUMPTION] 时被 router 提示 Read 此文件。",
-    verdict: "ok",
-    verdictText: "✅ 部署。本会话有用，比如 rebuttal 时 agent 严格用了 [FACT]/[INFERENCE] 标签。但<b>无自动化强制</b>，AI 偷懒不打标系统抓不到。",
-  }),
-
-  p3_dispatch: () => policyCard({
-    title: "p3_dispatch.md — 派遣策略",
-    what: "规则：(a) Read &gt; 1 文件 / WebSearch / 改代码 / 长任务 → 必须派 subagent；(b) 派的话 <code>run_in_background=true</code> 是强制；(c) 长 bg 任务每 10-15 分钟 Monitor() 一次；(d) 跨 session 用 CronCreate。",
+  dispatch: () => policyCard({
+    title: "dispatch.md — 派遣策略",
+    what: "规则：(a) Read &gt; 1 文件 / WebSearch / 改代码 / 长任务 → 必须派 subagent；(b) <code>run_in_background=true</code> 是强制；(c) 长 bg 任务每 10-15 分钟 Monitor() 一次；(d) 跨 session 用 CronCreate。<br>v2.1 P11 删 Monitor cadence 段（挪到 <code>patches/long_monitor.md</code>）。",
     why: "AI 默认在主线程一个一个 Read，污染 context + 慢。派 subagent 能并行 + 子上下文不污染主。",
     integrate: "PreToolUse nudge hook 监控：调 Bash 跑 sbatch 没设 bg=true → 提醒一句。",
     verdict: "ok",
-    verdictText: "✅ 部署 + 实测。本会话 5 次以上派 subagent 都符合规则。nudge hook 没被实际触发过（没人故意忘 bg=true）。",
+    verdictText: "✅ 部署 + 实测。本会话多次派 subagent 都符合规则。",
   }),
 
-  p4_recording: () => policyCard({
-    title: "p4_recording.md — 记录策略",
-    what: "明确<b>四类文件的边界</b>：(1) violation.md = AI 行为错误；(2) lessons.md = 跨项目 AI 行为智慧；(3) bitter_lessons.md = 项目技术踩坑；(4) attempts_ledger / successful_fixes = 项目尝试记录。配 record-first-act-second 原则（先在 action.md 写 [PLAN] 再调工具）。",
-    why: "v1 时代 user 反复纠正 AI 把 \"AI 行为错\" 写到 bitter_lessons（应该是项目踩坑）。这条画死边界。",
+  recording: () => policyCard({
+    title: "recording.md — 记录策略",
+    what: "明确<b>四类文件的边界</b>：(1) violation.md = AI 行为错误；(2) lessons.md = 跨项目 AI 行为智慧；(3) bitter_lessons.md = 项目技术踩坑；(4) attempts_ledger / successful_fixes = 项目尝试记录。配 record-first-act-second 原则。",
+    why: "v1 时代 user 反复纠正 AI 把「AI 行为错」写到 bitter_lessons。这条画死边界。",
     integrate: "AI 想写 violation / bitter_lessons 时被 router 提示。",
     verdict: "ok",
-    verdictText: "✅ 部署。本会话产生的 violation 都按规则写到了 content/templates/global_rules/violation.md（避免 ~/.claude/rules/ 的 approval click）。",
-  }),
-
-  p6_workflow: () => policyCard({
-    title: "p6_workflow.md — 工作流策略",
-    what: "(a) 4-step turn（读 board / reflect / plan-and-execute / 收尾）。(b) REFLECT-A 6-row 表（每个 policy 一行 ✓/✗ + 证据）。(c) Fix loop 3-Q（真跑了？真等了？真符合判据？）。(d) M6 autonomous-3-failure stop。",
-    why: "Turn 开头不做 reflection 是跳步病最直接表现。这条规定了 turn 模板，让 AI 每次回复都强制经过 reflection。",
-    integrate: "Router 每次都注入「start of turn flow」触发点。",
-    verdict: "warn",
-    verdictText: "⚠ 部署但<b>本 AI 没真按 4-step + 6-row 表跑</b>。这是 \"软约束\" 失败案例的最大坑 — 写在文件里没执行。",
+    verdictText: "✅ 部署。本会话产生的 violation / lesson 都按规则写到 repo content/templates/global_rules/。",
   }),
 
   subagent: () => policyCard({
     title: "subagent_rules.md — subagent 行为约束",
     what: "subagent 派出时需要遵守的 7 条（A-G）：verbatim prompt 抄录、async 写 action.md、record before op、facts 三档、独立验证、rebuttal 协议、SILENCE 声明。",
     why: "subagent 跟 main 是异步、并行的，没规则就乱搞。这条相当于 subagent 版的 mini-Rules。",
-    integrate: "（设计上）PreToolUse:Agent hook 把这文件路径注入 subagent prompt。<b>当前未实现自动注入</b>，main 调 Agent 时要手动加。",
+    integrate: "(设计上) PreToolUse:Agent hook 把这文件路径注入 subagent prompt。",
     verdict: "warn",
-    verdictText: "⚠ 部署但不强制。本会话派 subagent 时 main 在 prompt 里自己提了一句「读 subagent_rules.md」，没用 hook 自动。",
+    verdictText: "⚠ 部署但 hook 不自动注入。本会话派 subagent 时 main 在 prompt 里手动加。",
   }),
 
-  fsm: () => policyCard({
-    title: "fsm.md — 状态机定义",
-    what: "6 个 state 的完整定义：进入条件 / 干啥 / 退出条件。EXECUTE_LOOP 子规则（[PLAN]→tool→[OBSERVE]、Monitor cadence、anomaly 关键字白名单、失败预算）。",
-    why: "状态机的<b>权威 spec</b>。所有 hook / 脚本都对照这里实现。",
-    integrate: "Router 「FSM state transition」触发时 Read。",
+  failure_stop: () => policyCard({
+    title: "failure_stop.md — 3-failure stop (v2.1 新)",
+    what: "M6 规则独立：3 次自治尝试失败 → 停下来报告 user，别死磕。<code>$PWD/CLAUDE.md</code> AUTH 关键词（「allow you to do anything」「don't ask just fix」）可 override。",
+    why: "原本埋在 p6_workflow.md 里跟 4-step + 6-row 表混着，v2.1 P11 拆出来独立文件，清晰 + router 可单独指针。",
+    integrate: "router_EXECUTE_LOOP must-read 列表第二行。",
     verdict: "ok",
-    verdictText: "✅ 部署。post-rebuttal 又补了 anomaly 关键字 11 个 + Monitor 解释（其实就是 main 的 in-turn sleep 机制）。",
+    verdictText: "✅ 部署。本会话未真触发 3-failure，但作为 visible rule 已在 router_EXECUTE_LOOP 顶部。",
   }),
 
-  reflect_proto: () => policyCard({
-    title: "reflect_protocol.md — REFLECT 协议",
-    what: "REFLECT 阶段怎么走完整流程：写 reflection_&lt;round&gt;.md → 派 subagent → SendMessage 多轮 → CONSENSUS_REACHED 或 N 轮上限 → REFLECT_DONE。N=5 试，失败 fallback 10，再失败 [REFLECT_FAILURE] 上报。",
-    why: "光说「派 subagent 做反思」不够，必须有协议 — 不然 main 不知道怎么发起、subagent 不知道怎么响应、双方不知道何时停。",
-    integrate: "REFLECT 状态进入时 Read。",
-    verdict: "ok",
-    verdictText: "✅ 部署 + <b>实测 2 次</b>（本会话长队列调研用了 2 轮 rebuttal）。开销实测 12 分钟 / 61.5k token。",
-  }),
-
-  reflect_prompt: () => policyCard({
-    title: "reflect_subagent_prompt.md — REFLECT subagent prompt 模板",
-    what: "派 REFLECT subagent 时用的 prompt 模板。包含 reason / round 文件 / N。subagent 读完 → 写 reply → sleep 等。",
-    why: "标准化 prompt 才能让协议稳定。每次 main 自己想 prompt 容易写漏 sleep 循环、写漏 [CONSENSUS_REACHED] 退出条件。",
-    integrate: "main 派 REFLECT subagent 前 Read。",
-    verdict: "ok",
-    verdictText: "✅ 部署 + 实测（本会话两次 rebuttal 都用了这个模板）。",
+  prompt_enh: () => policyCard({
+    title: "prompt_enhancement.md — 4 要素检查 (v2.1 新)",
+    what: "User prompt 经常缺隐式假设（observable / cadence / reflection / completion 四要素）。本规则要求 PREPARE 阶段显式补齐 — 缺哪个就在 action.md 写 [PROMPT_REINFORCED] 标记 + 询问 user 或带 caveat 设默认值。",
+    why: "不显式补齐 → 带模糊去 EXECUTE → 差异在 deliverable 处暴露 → 返工。AI 跳步病的具体 fix 之一。",
+    integrate: "router_PREPARE must-read 第 2 行；<code>prepare_helper.sh</code> 也输出 <code>messages/prepare_checklist.md</code> 当 stub。",
+    verdict: "warn",
+    verdictText: "⚠ 规则文件已部署；prepare_helper.sh 已外置 checklist；<b>但实际触发依赖 AI 主动进 PREPARE</b>，本会话未真跑过。",
   }),
 
   codex: () => policyCard({
@@ -506,452 +564,591 @@ const SECTIONS = {
     why: "这工作流将来要跨 LLM coding agent 跑，不只 Claude Code。提前列差异避免锁定。",
     integrate: "(尚无 Codex 运行环境，暂未触发 Read)",
     verdict: "todo",
-    verdictText: "❌ <b>从未在 Codex 上跑过</b>。是设计稿。等 P8 demo 跑通后才有动力做 Codex 端实测。",
+    verdictText: "❌ <b>从未在 Codex 上跑过</b>。是设计稿。等 P19 demo 跑通后才有动力做 Codex 端实测。",
   }),
 
-  index_md: () => policyCard({
-    title: "index.md — 索引",
-    what: "router 找不到对应触发器时的 fallback 索引。列所有 policy 文件的 1 行描述。",
-    why: "router 不可能枚举所有触发器。AI 迷路时有个 \"翻字典\" 入口。",
-    integrate: "Router 「不确定」时 Read。",
+  // === FSM states ===
+  fsm: () => `
+    <h2>fsm.md — 状态机 overview (v2.1)</h2>
+    <p>v2.1 P11 把原 fsm.md 拆成 <code>states/{boot,prepare,reflect,execute,end}.md</code> 5 个，<code>fsm.md</code> 只保留 overview + 转换图。</p>
+    <pre><code>BOOT ──BOOT_DONE──&gt; PREPARE ──PREPARE_DONE──&gt; REFLECT
+                                                  │
+                       ┌──REFLECT_DONE────────────┘
+                       ▼
+                  EXECUTE_LOOP
+                       │  (--reason=anomaly → REFLECT)
+                       │  (--reason=done → REFLECT post-task → END)
+                       ▼
+                      END</code></pre>
+    <p>每条边由 <code>transition.sh &lt;EVENT&gt;</code> 触发，写入 state.md YAML。详细看每个 state 的子页。</p>
+  `,
+
+  state_boot: () => `
+    <h2>states/boot.md — BOOT 状态 (v2.1 新)</h2>
+    <div class="what-why-grid">
+      <div class="cell what"><div class="label">Entry</div>session 首次 UserPromptSubmit。session_boot.sh 自动建 <code>.barry_workflow/&lt;sid&gt;/{state,action}.md</code>，current_status=BOOT。</div>
+      <div class="cell why"><div class="label">Exit</div>main 调 <code>transition.sh BOOT_DONE</code> → state=PREPARE。</div>
+    </div>
+    <h3>main 在 BOOT 干啥</h3>
+    <ul>
+      <li>Read $PWD/CLAUDE.md（如果有）— 项目级 override</li>
+      <li>初始化 cache_hit_map（列已读 .md 文件 + sha1 stub）</li>
+      <li>P17 跨 session inherit：若 state.md 有 <code>inherited_from: &lt;old_sid&gt;</code>，可复用旧 cache_hit_map</li>
+      <li>禁止 Edit / Write（state_enforce.sh 会警告）</li>
+    </ul>
+    <p>详见 <code>content/rules/states/boot.md</code>。</p>
+  `,
+
+  state_prepare: () => `
+    <h2>states/prepare.md — PREPARE 状态 (v2.1 新)</h2>
+    <div class="what-why-grid">
+      <div class="cell what"><div class="label">Entry</div>BOOT_DONE 后。</div>
+      <div class="cell why"><div class="label">Exit</div><code>transition.sh PREPARE_DONE</code> → REFLECT。</div>
+    </div>
+    <h3>main 在 PREPARE 干啥</h3>
+    <ul>
+      <li>Read <code>workspace/&lt;task&gt;/goal.md</code>（只读）</li>
+      <li>跑 <code>prepare_helper.sh</code> → 得 cache_hit_map stub + 4 要素 checklist（来自 <code>messages/prepare_checklist.md</code>）</li>
+      <li>4 要素 (observable / cadence / reflection / completion) — 缺哪个写 [PROMPT_REINFORCED] + 询问 user 或带 caveat 设默认</li>
+      <li>估算 T_queue / T_run / 资源 → 写 action.md [PREPARE_NOTES]</li>
+      <li>禁止 Edit / Write / 长 Bash</li>
+    </ul>
+  `,
+
+  state_reflect: () => `
+    <h2>states/reflect.md — REFLECT 状态 (v2.1 新, 合并自 reflect_protocol+prompt)</h2>
+    <p>三个 sub-reason：<b>pre-task</b>（plan 完整性）/ <b>on-anomaly</b>（假设 vs 证据）/ <b>post-task</b>（deliverable 验收）。</p>
+    <h3>序列</h3>
+    <ol>
+      <li>main 在 <code>reflection_&lt;round_id&gt;.md</code> 写 3-7 条具体问题</li>
+      <li>main 派 rebuttal agent（Agent + run_in_background=true），prompt 命名 reflection 文件路径</li>
+      <li>agent 读文件，填 reviewer reply round 1，进 sleep loop 等 SendMessage</li>
+      <li>main 看 reply → SendMessage round 2/3/... → agent 醒来追加 ### round N</li>
+      <li>循环到 (a) <code>[CONSENSUS_REACHED]</code> + action list，或 (b) N 轮上限</li>
+      <li>main 写 consensus 块，<code>transition.sh REFLECT_DONE</code>，TaskStop agent</li>
+    </ol>
+    <h3>N (round budget)</h3>
+    <p>默认 N=5；耗尽 fallback N=10；再耗尽写 [REFLECT_FAILURE] 报 user。常量在 <code>workflow_config.yaml reflect.rounds_default / rounds_fallback</code>。</p>
+    <h3>INFERENCE_GATE — mini 1-round rebuttal (P12 v2.1 新)</h3>
+    <p>AI 想写 [INFERENCE] → 触发 GATE：列已经做过的努力 (Read 哪些 + Search 哪些) → 缺数据派 agent 补 → 真要写则 1 轮 rebuttal → 通过则输出 [INFERENCE] + 永远带证据脚注。<br>实现在 EXECUTE_LOOP 内嵌，不另开 state，保持 4 状态简洁。</p>
+    <h3>禁止操作</h3>
+    <p>REFLECT 期间 main 禁 Edit / Write / 改文件 Bash（state_enforce.sh 警告）。只能 Agent / SendMessage / Read。</p>
+  `,
+
+  state_execute: () => `
+    <h2>states/execute.md — EXECUTE_LOOP 状态 (v2.1 新)</h2>
+    <div class="what-why-grid">
+      <div class="cell what"><div class="label">Entry</div>REFLECT_DONE 后。</div>
+      <div class="cell why"><div class="label">Exit</div><code>transition.sh EXECUTE_EXIT --reason=done|anomaly</code>。</div>
+    </div>
+    <h3>内循环（每次工具调用 = 1 iteration）</h3>
+    <ol>
+      <li><code>[PLAN]</code> — 1 行写到 action_&lt;sid&gt;.md：干啥 + 为啥 + 期望 observable</li>
+      <li>工具调用（Bash / Edit / Read / Agent / ...）</li>
+      <li><code>[OBSERVE]</code> — 1 行：引具体输出（数值 / 错误码 / 文件路径）</li>
+      <li>判：continue / anomaly+1 / done</li>
+    </ol>
+    <h3>失败预算</h3>
+    <p>anomaly 累计 3 → 强制 transition.sh EXECUTE_EXIT --reason=anomaly → REFLECT on-anomaly。常量 <code>workflow_config.yaml execute_loop.failure_budget</code>。<br>结合 <code>failure_stop.md</code> M6：3 次自治尝试都失败 → 上报 user。</p>
+    <h3>anomaly 关键字 (regex)</h3>
+    <p>11 个关键字白名单（OOM / NaN / KeyError / Exception / Traceback / failed / ...）— <code>execute_loop_audit.sh</code> 用同一份 regex。</p>
+  `,
+
+  state_end: () => `
+    <h2>states/end.md — END 状态 (v2.1 新)</h2>
+    <p>Terminal status。进入条件：EXECUTE_LOOP --reason=done 且无后续任务，或 user 显式收尾。</p>
+    <h3>main 在 END 干啥</h3>
+    <ul>
+      <li>追加 attempts_ledger / successful_fixes / bitter_lessons 条目（按 recording.md 分类）</li>
+      <li>写 [END @ ts] 到 action.md</li>
+      <li><code>/goal</code> Claude Code 评估器读 transcript，满足 goal.md 判据 → 自动放行</li>
+      <li>归档：可选 <code>tar czf archive_&lt;sid&gt;.tar.gz .barry_workflow/&lt;sid&gt;/</code></li>
+    </ul>
+  `,
+
+  // === routers ===
+  router_fallback: () => policyCard({
+    title: "router.md — fallback router",
+    what: "无 state 文件时（首 turn 或非项目目录）注入。列所有 policy 的触发器映射表 + 3 条 meta-rule (Dispatch / Reflect / Monitor)。",
+    why: "state-aware router 找不到 state 文件就 cat 这个 — 保证总有 router 输出。",
+    integrate: "<code>inject_router.sh</code> 默认 fallback。",
     verdict: "ok",
-    verdictText: "✅ 部署。本会话 main 没用过（router 触发器够用），但作为 safety net 存在感低 = 设计正确。",
+    verdictText: "✅ 部署。本 session 首 turn 用的是这个；后续 turn 用 state-specific 版本。",
   }),
+
+  router_boot: () => policyCard({
+    title: "router_BOOT.md (v2.1 新)",
+    what: "<code>[ROUTER · state=BOOT]</code> 头部 + must-read（boot.md / $PWD/CLAUDE.md）+ 禁 Edit/Write + transition.sh 命令样板。",
+    why: "AI 明确知道「现在在 BOOT，能做啥不能做啥」。",
+    integrate: "<code>inject_router.sh</code> 根据 state.md 选择。",
+    verdict: "ok",
+    verdictText: "✅ 实测 — 本 session 当前 prompt 顶部就有 <code>[ROUTER · state=BOOT]</code>（user 已确认）。",
+  }),
+
+  router_prepare: () => policyCard({
+    title: "router_PREPARE.md (v2.1 新)",
+    what: "<code>[ROUTER · state=PREPARE]</code> + must-read (prepare.md / prompt_enhancement.md) + 禁执行 + 4 要素提醒。",
+    why: "PREPARE 容易跳过 4 要素直接进 EXECUTE，router 顶住。",
+    integrate: "同上。",
+    verdict: "ok",
+    verdictText: "✅ 部署 + smoke 验证（router_BOOT 出来了，PREPARE 同机制必出来）。",
+  }),
+
+  router_reflect: () => policyCard({
+    title: "router_REFLECT.md (v2.1 新)",
+    what: "<code>[ROUTER · state=REFLECT]</code> + must-read (reflect.md / subagent_rules.md) + 禁 Edit/Write/Bash 改文件 + rebuttal 协议提醒。",
+    why: "REFLECT 期间 main 不该自己改文件，应该让 subagent rebut。",
+    integrate: "同上。",
+    verdict: "ok",
+    verdictText: "✅ 部署。",
+  }),
+
+  router_exec: () => policyCard({
+    title: "router_EXECUTE_LOOP.md (v2.1 新)",
+    what: "<code>[ROUTER · state=EXECUTE_LOOP]</code> + must-read (execute.md / failure_stop.md) + [PLAN]/[OBSERVE] 模板。",
+    why: "EXECUTE 最容易忘 [PLAN]/[OBSERVE] — router 顶部每 turn 提醒。",
+    integrate: "同上。",
+    verdict: "ok",
+    verdictText: "✅ 部署。",
+  }),
+
+  router_end: () => policyCard({
+    title: "router_END.md (v2.1 新)",
+    what: "<code>[ROUTER · state=END]</code> + must-read (end.md / recording.md) + 归档提醒。",
+    why: "END 容易忘补 ledger。",
+    integrate: "同上。",
+    verdict: "ok",
+    verdictText: "✅ 部署。",
+  }),
+
+  // === patches ===
+  patches_overview: () => `
+    <h2>patches/ — 场景专属补丁系统 (v2.1 新, P14+P20)</h2>
+    <p>把场景专属的细节（Monitor 节奏 / anomaly 关键字 / baseline 必测 / ...）从 general 规则里抽出来，独立成 patches/*.md。General 规则保持简洁，AI 根据场景按需加载。</p>
+    <h3>YAML front-matter schema</h3>
+    <pre><code>---
+id: P-001
+created: 2026-05-14T00:00:00Z
+source: human
+scope: global
+priority: 50
+applies_to:
+  state: [EXECUTE_LOOP]
+  scenario: long_monitor
+  triggers: [sbatch, qsub, training_loop, tail_-f, monitor_60s]
+---</code></pre>
+    <h3>5 个补丁（v2.1 落地）</h3>
+    <table>
+      <tr><th>id</th><th>文件</th><th>核心</th></tr>
+      <tr><td>P-001</td><td>long_monitor.md</td><td>Monitor cadence 三档 (5s/60s/60s+)，长任务监控节奏</td></tr>
+      <tr><td>P-002</td><td>bug_debug.md</td><td>anomaly 关键字 11 个 + 失败预算 3</td></tr>
+      <tr><td>P-003</td><td>perf_debug.md</td><td>baseline 必测 + 一次改一个变量 + GPU util 必采</td></tr>
+      <tr><td>P-004</td><td>simple_fast.md</td><td>简单任务跳 REFLECT pre-task</td></tr>
+      <tr><td>P-005</td><td>exploration.md</td><td>探索任务允许多 Read 跳 dispatch，记中间发现</td></tr>
+    </table>
+    <h3>装载机制</h3>
+    <div class="callout warn">
+      <b>当前是静态文件 + router 注释提醒</b>。router.md 末尾说「Scenario-specific deltas live in patches/*.md, check applies_to before applying」。<b>没有自动 detect 场景 → 注入</b> — v2.2 才会加 detector。当前 AI 自己判场景，自己 Read patch。
+    </div>
+  `,
+
+  patch_long: () => patchCard("long_monitor.md", "long_monitor", "Monitor cadence 三档（前 1 min 每 5s / 1-10 min 每 60s / 10 min+ 每 60s+）；触发器 sbatch / qsub / training_loop / tail -f", "EXECUTE_LOOP"),
+  patch_bug: () => patchCard("bug_debug.md", "bug_debug", "anomaly 关键字白名单 (OOM/NaN/KeyError/Traceback/...)；失败预算 3 = anomaly 累计 3 → REFLECT on-anomaly", "EXECUTE_LOOP"),
+  patch_perf: () => patchCard("perf_debug.md", "perf_debug", "baseline 必测 + 一次改一个变量 + GPU util / wall-clock 必采；触发器 profile / nsys / nvidia-smi", "EXECUTE_LOOP"),
+  patch_simple: () => patchCard("simple_fast.md", "simple_fast", "简单任务（1 个 Read + 1 个 Edit）允许跳 REFLECT pre-task；保持 post-task rebuttal", "PREPARE / EXECUTE_LOOP"),
+  patch_explore: () => patchCard("exploration.md", "exploration", "探索任务（不确定要改什么）允许多 Read 跳 dispatch 阈值；记中间发现到 [EXPLORE_NOTES]", "EXECUTE_LOOP"),
 
   // === hooks ===
   inject_router: () => hookCard({
-    title: "inject_router.sh — UserPromptSubmit hook",
-    what: "每次 user 发 prompt 就触发。输出 1.1 KB 的 [ROUTER] 块到 prompt 前面，列触发器→policy 文件映射，加 3 条 meta-rule。",
-    why: "全部 policy 文件加起来 &gt; 9 KB，注入 context 会污染。改成「按需 Read」：router 只列指针，AI 自己判该读哪个。",
-    file: "~/.claude/hooks/inject_router.sh",
-    size: "1166 字节（设计目标 ≤1.5 KB，达成）",
+    title: "inject_router.sh — UserPromptSubmit hook (v2.1 P15 state-aware)",
+    what: "每次 user 发 prompt 触发。读 <code>.barry_workflow/&lt;sid&gt;/state.md</code> 取 current_status，cat <code>~/.claude/rules/router_&lt;STATUS&gt;.md</code> 注入 prompt 前。无 state 文件 → fallback 到 <code>router.md</code>。",
+    why: "v2 的 router 是 static，每个 state 看到同一份。v2.1 改成 state-aware：BOOT 看到的是「禁 Edit」、EXECUTE 看到的是「[PLAN]/[OBSERVE] 模板」。",
+    file: "~/.claude/hooks/inject_router.sh + source _session_lib.sh",
+    size: "33 行（fallback + state-aware 分支）",
     when: "UserPromptSubmit 事件（每个 user 发的 prompt）",
     verdict: "ok",
-    verdictText: "✅ 部署 + <b>每次 turn 都生效</b>。本会话每个 user 消息顶部都能看到 [ROUTER] 块。",
+    verdictText: "✅ <b>实测</b>。本 session 当前 prompt 顶部出现 <code>[ROUTER · state=BOOT]</code>，user 已确认看到。",
   }),
 
   session_boot: () => hookCard({
-    title: "session_boot.sh — 会话启动 hook",
-    what: "UserPromptSubmit 时跑。检查 $PWD 是不是项目根（有 .git / CLAUDE.md / workspace/），是的话建 .barry_workflow/state_&lt;sid&gt;.md + action_&lt;sid&gt;.md（从 templates 复制 + 替换变量）。已存在就跳过。",
-    why: "FSM 需要状态文件存在才能运转。让 hook 自动建，AI 不用每次手动 mkdir + 写 template。",
-    file: "~/.claude/hooks/session_boot.sh",
-    when: "UserPromptSubmit 事件（每个 user 发的 prompt）",
-    verdict: "warn",
-    verdictText: "⚠ 部署，仅 smoke-test 过（写了 state 文件、可以 sed 替换）。<b>本会话主线程从没真用过 state.md</b> — 因为 main 没主动调 transition.sh，state 一直停在 BOOT。",
+    title: "session_boot.sh — 会话启动 hook (v2.1 P22 subdir + P17 inherit)",
+    what: "UserPromptSubmit 时跑。检查 $PWD 是项目根 → 建 <code>.barry_workflow/&lt;sid&gt;/{state,action}.md</code>。已存在跳过。P17：检测旧 sid 子目录 → 写 <code>inherited_from: &lt;old_sid&gt;</code> + 复用 cache_hit_map。",
+    why: "FSM 需要状态文件存在才能运转。让 hook 自动建 + 跨 session 继承上下文。",
+    file: "~/.claude/hooks/session_boot.sh (94 行) + source _session_lib.sh",
+    when: "UserPromptSubmit 事件",
+    verdict: "ok",
+    verdictText: "✅ subdir 路径 + inherit 写入 smoke 过；本 session 用的是新布局（&lt;sid&gt;/state.md 而非平铺 state_&lt;sid&gt;.md）。",
   }),
 
   transition: () => hookCard({
     title: "transition.sh — FSM 状态转移",
-    what: "命令行调用：<code>bash transition.sh BOOT_DONE | PREPARE_DONE | REFLECT_DONE | EXECUTE_EXIT --reason=...</code>。读最新 state_*.md，python 改 YAML（current_status + stage_history + last_transition）。",
-    why: "状态转移要有可追溯记录，不能口头说「我现在 PREPARE 了」。文件+时间戳是唯一可信源。",
-    file: "~/.claude/hooks/transition.sh",
-    when: "main 主动调（不是事件 hook）",
+    what: "<code>bash transition.sh BOOT_DONE | PREPARE_DONE | REFLECT_DONE | EXECUTE_EXIT --reason=...</code>。v2.1 改路径到 <code>&lt;sid&gt;/state.md</code>。python 改 YAML (current_status + stage_history + last_transition)。",
+    why: "状态转移要有可追溯记录。",
+    file: "~/.claude/hooks/transition.sh (69 行)",
+    when: "main 主动调",
     verdict: "warn",
-    verdictText: "⚠ 部署，smoke-test 过（BOOT_DONE → PREPARE_DONE 跑通了 YAML 解析）。<b>但本会话 main 没真在工作里调过它一次</b> — 全靠口头说当前状态。这是最严重的「软约束失败」。",
+    verdictText: "⚠ smoke-test 过（YAML 解析 + 新路径）。<b>本会话 main 没真在工作里调过它</b> — 全靠口头说当前状态。这是最严重的「软约束失败」。",
   }),
 
   prepare_helper: () => hookCard({
-    title: "prepare_helper.sh — PREPARE 辅助",
-    what: "main 在 PREPARE 状态主动跑。输出 (a) cache_hit_map stub（列 workspace/ 下所有 .md + sha1，让 main 填 YES/NO 自报缓存命中）；(b) 4 要素 checklist（observable / cadence / reflection / completion）。",
-    why: "cache 自报省 Read；4 要素 checklist 强制 main 把 user prompt 的隐式假设显式化。",
-    file: "~/.claude/hooks/prepare_helper.sh",
-    when: "main 主动调（不是事件 hook）",
+    title: "prepare_helper.sh — PREPARE 辅助 (v2.1 P23 messages)",
+    what: "main 在 PREPARE 主动跑。输出 (a) cache_hit_map stub（列 workspace/ 下 .md + sha1）；(b) 4 要素 checklist — 文本搬到 <code>messages/prepare_checklist.md</code>，hook cat 它而非 hard-code。",
+    why: "cache 自报省 Read；4 要素强制 main 把隐式假设显式化；外置 checklist 改文本不动 hook。",
+    file: "~/.claude/hooks/prepare_helper.sh (62 行)",
+    when: "main 主动调",
     verdict: "warn",
-    verdictText: "⚠ 部署，smoke-test 过（能输出 stub）。<b>本会话从没真用过</b>。已知问题：cache_hit_map 会随项目历史增多而膨胀；4 要素 prompt 经常 user 不完整 → habituated。",
+    verdictText: "⚠ smoke-test 过（外置 checklist works）。<b>本会话从没真用过</b>。",
   }),
 
   exec_audit: () => hookCard({
     title: "execute_loop_audit.sh — EXECUTE_LOOP 审计",
-    what: "main 主动调。grep action.md 数 [PLAN] / [OBSERVE] 个数 + anomaly 计数（用扩展后的 11 关键字 regex）。报 PLAN/OBSERVE 不配对、失败预算耗尽。",
-    why: "EXECUTE_LOOP 跑久了人 main 会忘记自己写了多少 [PLAN] / [OBSERVE]。脚本数一遍。",
-    file: "~/.claude/hooks/execute_loop_audit.sh",
+    what: "main 主动调。grep action.md 数 [PLAN] / [OBSERVE] + anomaly 计数（11 关键字 regex）。报 PLAN/OBSERVE 不配对、失败预算耗尽。v2.1 改路径到 <code>&lt;sid&gt;/action.md</code>。",
+    why: "EXECUTE_LOOP 跑久了 main 忘记自己写了多少 [PLAN]/[OBSERVE]。脚本数一遍。",
+    file: "~/.claude/hooks/execute_loop_audit.sh (36 行)",
     when: "main 主动调（在 EXIT 前可选）",
     verdict: "warn",
-    verdictText: "⚠ 部署，smoke-test 过 regex。<b>从没真触发过 3-anomaly 失败预算</b>（本会话没出过那么坏的连续失败）。regex 是从 5 个真实 [OBSERVE] 测试用例反推的，理论覆盖好。",
+    verdictText: "⚠ smoke-test 过 regex + 新路径。<b>从没真触发过 3-anomaly 失败预算</b>。",
   }),
 
   pre_nudge: () => hookCard({
     title: "pretooluse_short_nudge.sh — 工具调用前提醒",
-    what: "PreToolUse 事件触发。<b>非阻塞</b>（permissionDecision='allow'），只附 ≤100 字符 reason：Read &gt;3 次 → 派 subagent? / Edit 前没 [PLAN] → 写一行 / Bash 长任务没 bg → 加 bg / Agent 没 bg=true → 必须。",
-    why: "AI 偶尔忘了规则，hook 在 tool 调用前轻提醒，<b>不打断不污染 context</b>。",
-    file: "~/.claude/hooks/pretooluse_short_nudge.sh",
-    when: "PreToolUse 事件（每个工具调用前）",
+    what: "PreToolUse 事件触发。<b>非阻塞</b>（permissionDecision='allow'），附 ≤100 字符 reason：Read &gt;3 次 → 派 subagent? / Edit 前没 [PLAN] / Bash 长任务没 bg / Agent 没 bg=true。v2.1 改路径到 <code>&lt;sid&gt;/nudge_counters.json</code>。",
+    why: "轻提醒，不打断不污染 context。",
+    file: "~/.claude/hooks/pretooluse_short_nudge.sh (91 行)",
+    when: "PreToolUse 事件",
     verdict: "warn",
-    verdictText: "⚠ 部署，smoke-test 过（Agent 没 bg=true 真能弹出 nudge）。<b>本会话从没在真任务里被触发</b>（AI 没忘规则）。这种「被动安全网」的特点就是它工作好 = 没人看到它。",
+    verdictText: "⚠ smoke-test 过。<b>当前未读 state.md — 仍是 tool-only 触发</b>。v2.2 计划加 state×tool 判断。",
   }),
+
+  state_enforce: () => hookCard({
+    title: "state_enforce.sh — PostToolUse 状态强制 (v2.1 P16 新)",
+    what: "PostToolUse hook (matcher=*)。每次工具调用后读 state.md current_status，对比 tool — 越界（如 BOOT 期间 Edit / REFLECT 期间 Bash 改文件）stderr 警告。<b>非阻塞</b>（PostToolUse 不能阻 tool）。警告模板来自 <code>messages/state_enforce_template.md</code>。",
+    why: "首个真有「硬约束味道」的 hook。AI 越界会看到红字提示 — 比纯文档「不要做 X」强。",
+    file: "~/.claude/hooks/state_enforce.sh (79 行) + _session_lib.sh",
+    when: "PostToolUse 事件（每个 tool 调用后）",
+    verdict: "warn",
+    verdictText: "⚠ 路径 + 警告输出 smoke 验证过；<b>没真 session 触发过</b>（AI 没越界）。Post hook 是 advisory 不是 blocking — 真硬约束要 PreToolUse hook 读 state.md 拒绝越界 tool（v2.2）。",
+  }),
+
+  session_lib: () => hookCard({
+    title: "_session_lib.sh — 共享 helper (v2.1 P22 新)",
+    what: "sourced by session_boot / transition / prepare_helper / execute_loop_audit / pretooluse_short_nudge / state_enforce / inject_router。提供 <code>session_dir()</code> / <code>barry_root()</code> / <code>latest_session_dir()</code> / <code>latest_state_file()</code>。",
+    why: "v2.1 改 subdir 布局，多脚本都要算 <code>$CWD/.barry_workflow/&lt;sid&gt;/</code> 路径；提共享 helper 避免六处重复。",
+    file: "~/.claude/hooks/_session_lib.sh (66 行)",
+    when: "被其他 hook source（不直接触发）",
+    verdict: "ok",
+    verdictText: "✅ 部署 — 所有引用脚本都已切换到 helper。",
+  }),
+
+  // === config / messages ===
+  config_yaml: () => `
+    <h2>workflow_config.yaml — 中心化常量 (v2.1 P13 新)</h2>
+    <p>所有阈值集中放一处，改值不改 .md / .sh。</p>
+    <pre><code>reflect:
+  rounds_default: 5         # states/reflect.md
+  rounds_fallback: 10
+  max_round_minutes: 15
+
+execute_loop:
+  failure_budget: 3         # states/execute.md + execute_loop_audit.sh
+
+pretool_nudge:
+  read_threshold: 3         # pretooluse_short_nudge.sh
+  max_chars: 100
+
+prompt_reinforce:
+  required_elements:        # prepare_helper.sh + states/prepare.md
+    - observable
+    - cadence
+    - reflection
+    - completion</code></pre>
+    <div class="callout warn">
+      <b>当前是 reference / source of truth，hook 运行时不真 source YAML</b>。脚本里阈值仍 hard-code，配 inline 注释指向 YAML。改值的话：改 YAML + 改 hook hard-code 两处。完整 runtime 化是 v2.2 任务。
+    </div>
+  `,
+
+  messages: () => `
+    <h2>messages/ — hook string 外置 (v2.1 P23 新)</h2>
+    <p>把 hook 脚本里的大段文本搬出来，改文案不动 .sh。</p>
+    <table>
+      <tr><th>文件</th><th>被谁用</th><th>内容</th></tr>
+      <tr><td><code>messages/prepare_checklist.md</code></td><td>prepare_helper.sh</td><td>4 要素 checklist 文本</td></tr>
+      <tr><td><code>messages/state_enforce_template.md</code></td><td>state_enforce.sh</td><td>state × tool 越界警告模板 catalog；hook 按 STATUS / DETAIL sed-substitute</td></tr>
+    </table>
+    <p>设计上未来加 i18n 也容易（多语言文件 + 环境变量切换）。</p>
+  `,
 
   // === runtime ===
   per_turn: () => `
-    <h2>每轮 vs 每次工具 vs 每个 state — 啥时候触发啥</h2>
-    <p>Claude Code 有 3 类 hook 事件，触发节奏完全不同：</p>
-
+    <h2>每轮 vs 每次工具 vs 每个 state — 啥时候触发啥 (v2.1)</h2>
     <table>
-      <tr><th>事件</th><th>什么时候触发</th><th>v2 注册的 hook</th><th>每次输出</th></tr>
+      <tr><th>事件</th><th>什么时候触发</th><th>v2.1 注册的 hook</th><th>每次输出</th></tr>
       <tr>
         <td><b>UserPromptSubmit</b></td>
         <td>每个 user 消息</td>
         <td>inject_router.sh + session_boot.sh</td>
-        <td>1.1KB [ROUTER] 块 + （session_boot 静默）</td>
+        <td>1.0-1.5KB <code>[ROUTER · state=X]</code> 块 + （session_boot 静默）</td>
       </tr>
       <tr>
         <td><b>PreToolUse</b></td>
         <td>每个工具调用前</td>
         <td>pretooluse_short_nudge.sh</td>
-        <td>0 字节（无触发条件）或 ≤100 字符 reason</td>
+        <td>0 字节或 ≤100 字符 reason</td>
+      </tr>
+      <tr>
+        <td><b>PostToolUse (matcher=*)</b></td>
+        <td>每个工具调用后</td>
+        <td>state_enforce.sh (v2.1 新)</td>
+        <td>0 字节或 stderr 警告 (state×tool 越界)</td>
       </tr>
       <tr>
         <td><b>PostToolUse:Bash</b></td>
         <td>Bash 调用后</td>
         <td>jq bg-log（仅记日志）</td>
-        <td>无（写 /tmp/claude-bg.log 不进 prompt）</td>
+        <td>无（写 /tmp/claude-bg.log）</td>
       </tr>
     </table>
 
-    <h3>「每轮都注入」的只有这 2 个</h3>
+    <h3>每轮注入的常驻 token</h3>
     <ul>
-      <li><b>inject_router.sh</b> — 每 turn 1.1KB router 块。<b>真常驻 token</b>。</li>
-      <li><b>session_boot.sh</b> — 每 turn 跑，但只在 state 文件不存在时建文件，<b>无 prompt 输出</b>，0 token。</li>
+      <li><b>inject_router.sh</b> — state-aware，每 turn 1.0-1.5KB router 块</li>
+      <li><b>session_boot.sh</b> — 每 turn 跑，幂等无输出</li>
     </ul>
 
-    <h3>「派 agent 了吗」之类的提醒</h3>
-    <p>当前<b>不是每轮注入</b>，而是 PreToolUse 时按 tool 类型条件触发：</p>
-    <ul>
-      <li>Read/Grep/Glob 累计 ≥3 → "派 subagent 探索？"</li>
-      <li>Edit/Write 前 action.md 没 [PLAN] → "写 [PLAN]"</li>
-      <li>Bash 跑 sbatch/train 没 bg=true → "加 run_in_background=true"</li>
-      <li>Agent 没 bg=true → "必须 bg=true"</li>
-    </ul>
-    <p>这种 nudge 只在<b>调对应工具时</b>弹一行，调一次弹一次，不调就不弹 → 不占常驻 token。AI 看到这一行无需回复，permission 自动 allow。</p>
-
-    <h3>状态转换 — 当前实现 + 漏洞</h3>
-    <p>main 主动调 <code>bash ~/.claude/hooks/transition.sh BOOT_DONE | PREPARE_DONE | REFLECT_DONE | EXECUTE_EXIT --reason=...</code>。脚本：</p>
-    <ol>
-      <li>读最新 <code>.barry_workflow/state_*.md</code></li>
-      <li>python 改 YAML 的 current_status + 追加 stage_history + 写 last_transition</li>
-      <li>echo 一行 <code>EVENT → NEW_STATUS</code> 到 stdout</li>
-    </ol>
-    <div class="callout bad">
-      <b>真漏洞</b>：当前进入新 state 后<b>系统不会自动给 AI 输出任何提示</b>。比如 PREPARE → REFLECT，AI 怎么知道自己进了 REFLECT、该干啥？要 AI 自己 Read state.md。
-      <br><br>
-      v2.1 应该加 PostToolUse:Bash hook：监听 transition.sh 的 stdout，进新 state 时注入 mini-prompt（"现在 state=REFLECT，可做 Agent / SendMessage / Read，不可做 Edit / Write / 长 Bash"）。
+    <h3>v2.1 PostToolUse 状态强制</h3>
+    <p>原版 v2 只有 PreToolUse nudge。v2.1 加 PostToolUse <code>state_enforce.sh</code>：每个工具调用后读 state，对比 tool — 越界（BOOT 改文件 / REFLECT 改文件 / ...）输出 stderr 警告。从 <code>messages/state_enforce_template.md</code> 取文案，sed-substitute STATUS / DETAIL。</p>
+    <div class="callout note">
+      <b>但仍非阻塞</b>：PostToolUse 是 advisory，tool 已经执行完了。真硬约束要 PreToolUse 改用 deny — v2.2 任务。
     </div>
 
-    <h3>PreToolUse 按 state 条件触发（v2.1 增强点）</h3>
-    <p>pretooluse_short_nudge.sh 当前只看 tool_name，<b>不读 state.md</b>。设计上可以加：</p>
-    <pre><code>STATE=$(python3 -c "import yaml,re,pathlib;src=pathlib.Path(latest_state).read_text();m=re.search(r'---YAML---\\n(.*?)\\n---YAML---', src, re.S);print(yaml.safe_load(m.group(1))['current_status'])")
-case "$STATE:$TOOL" in
-  PREPARE:Edit|PREPARE:Write)
-    nudge "PREPARE 状态不允许改文件，先 transition.sh PREPARE_DONE"
-    ;;
-  REFLECT:Bash|REFLECT:Edit|REFLECT:Write)
-    nudge "REFLECT 状态只允许 Agent / SendMessage / Read，请先 REFLECT_DONE"
-    ;;
-esac</code></pre>
-    <p>这样 nudge 就能<b>按 state 强制行为约束</b>，是 v2.1 P11 「状态强制」的核心实现路径。</p>
+    <h3>状态转换 — v2.1 现状</h3>
+    <p>main 调 <code>bash transition.sh &lt;EVENT&gt;</code>，python 改 <code>&lt;sid&gt;/state.md</code> YAML。inject_router 下一 turn 看到新 state → 注入对应 router_&lt;X&gt;.md。</p>
+    <div class="callout warn">
+      <b>仍存在的漏洞</b>：transition.sh 后没主动通知 AI 进了新 state — AI 要等下一 turn 看 router 才知道。主动通知机制（PostToolUse:Bash 监听 transition 输出 → 实时注入「现在 state=X」）仍未做。
+    </div>
   `,
 
   output_files: () => `
-    <h2>产物文件清单 — 一次 session 会产生什么</h2>
-    <p>v2 系统在<b>项目根 $PWD</b>下产生 2 类文件树。一类是 per-session 临时状态（gitignored），一类是项目级长期 ledger。</p>
+    <h2>产物文件清单 (v2.1 subdir 布局)</h2>
+    <p>v2.1 P22 改用 per-session 子目录，<code>.barry_workflow/&lt;sid&gt;/</code> 下集中所有 session 产物。</p>
 
-    <h3>per-session 状态（.barry_workflow/，gitignored）</h3>
+    <h3>per-session 状态 (.barry_workflow/&lt;sid&gt;/，gitignored)</h3>
     <table>
       <tr><th>文件</th><th>建于</th><th>写者</th><th>内容</th></tr>
       <tr>
-        <td><code>state_&lt;sid&gt;.md</code></td>
+        <td><code>state.md</code></td>
         <td>BOOT（session_boot.sh）</td>
         <td>main + transition.sh</td>
-        <td>YAML 块: current_status / stage_history / cache_hit_map / reflection_history / last_transition</td>
+        <td>YAML 块: current_status / stage_history / cache_hit_map / reflection_history / last_transition / inherited_from (P17)</td>
       </tr>
       <tr>
-        <td><code>action_&lt;sid&gt;.md</code></td>
-        <td>BOOT（session_boot.sh）</td>
-        <td>main（手写）</td>
-        <td>append-only 行为日志: [BOOT_DONE @ ts] / [PLAN] / [OBSERVE] / [PROMPT_REINFORCED] 等</td>
+        <td><code>action.md</code></td>
+        <td>BOOT</td>
+        <td>main</td>
+        <td>append-only 行为日志: [BOOT_DONE @ ts] / [PLAN] / [OBSERVE] / [PROMPT_REINFORCED] / ...</td>
       </tr>
       <tr>
         <td><code>reflection_&lt;round_id&gt;.md</code></td>
-        <td>REFLECT 阶段（main 写）</td>
+        <td>REFLECT 阶段</td>
         <td>main + subagent</td>
-        <td>3 段: ## main 问 / ## reviewer reply（含 ### round N）/ ## consensus</td>
+        <td>## main's questions / ## reviewer reply (### round N) / ## consensus</td>
       </tr>
       <tr>
         <td><code>nudge_counters.json</code></td>
-        <td>第一次 PreToolUse 时</td>
+        <td>第一次 PreToolUse</td>
         <td>pretooluse_short_nudge.sh</td>
-        <td>{"read": N} 类型的 Read/Grep/Glob 计数器</td>
+        <td>{"read": N} 等计数</td>
       </tr>
       <tr>
-        <td><code>agent_&lt;aid&gt;/state.md</code> ⚠ <b>设计未实现</b></td>
-        <td>subagent 派出（应由 hook 建）</td>
+        <td><code>agent_&lt;aid&gt;/state.md</code> ⚠ 未自动建</td>
+        <td>subagent 派出（应由 hook）</td>
         <td>subagent</td>
-        <td>子 FSM 状态（独立 BOOT/PREPARE 简化版）</td>
+        <td>子 FSM 状态</td>
       </tr>
       <tr>
-        <td><code>agent_&lt;aid&gt;/action.md</code> ⚠ <b>设计未实现</b></td>
+        <td><code>agent_&lt;aid&gt;/action.md</code> ⚠ 未自动建</td>
         <td>同上</td>
         <td>subagent</td>
-        <td>subagent 自己的行为日志</td>
+        <td>subagent 行为日志</td>
       </tr>
     </table>
 
-    <h3>项目级长期 ledger（workspace/&lt;task&gt;/，git tracked）</h3>
-    <p>这一层 user 自己建（或后续 init 脚本建），跨 session 持久化。</p>
+    <h3>跨 session inherit (P17)</h3>
+    <p>新 session 启动时 <code>session_boot.sh</code> 检测 <code>.barry_workflow/</code> 下是否有旧 &lt;sid&gt;/ → 写 <code>inherited_from: &lt;old_sid&gt;</code> 到新 state.md + 复用旧 cache_hit_map。</p>
+
+    <h3>项目级长期 ledger (workspace/&lt;task&gt;/, git tracked)</h3>
     <table>
       <tr><th>文件</th><th>内容</th><th>谁写</th></tr>
-      <tr><td><code>goal.md</code></td><td>user 写的目标文本（main 只读）</td><td>user</td></tr>
-      <tr><td><code>attempts_ledger.md</code></td><td>ATT-N 跨轮意图汇总（试过 batch=32 / fp16=true / ...）</td><td>main</td></tr>
-      <tr><td><code>bitter_lessons.md</code></td><td>项目技术踩坑（bs=24 在 H100 必 OOM / NCCL p2p_disable 跨机会挂）</td><td>main</td></tr>
-      <tr><td><code>successful_fixes.md</code></td><td>FIX-N 最终成功修法</td><td>main</td></tr>
-      <tr><td><code>rule_violations.md</code></td><td>项目内 AI 行为错误（跟全局 violation.md 区分）</td><td>main</td></tr>
+      <tr><td><code>goal.md</code></td><td>user 写目标（main 只读）</td><td>user</td></tr>
+      <tr><td><code>attempts_ledger.md</code></td><td>ATT-N 跨轮意图</td><td>main</td></tr>
+      <tr><td><code>bitter_lessons.md</code></td><td>项目技术踩坑</td><td>main</td></tr>
+      <tr><td><code>successful_fixes.md</code></td><td>FIX-N 成功修法</td><td>main</td></tr>
+      <tr><td><code>rule_violations.md</code></td><td>项目内 AI 行为错</td><td>main</td></tr>
     </table>
 
-    <h3>全局 ledger（~/.claude/rules/，跨项目）</h3>
+    <h3>全局 ledger (~/.claude/rules/，跨项目)</h3>
     <table>
       <tr><th>文件</th><th>内容</th></tr>
-      <tr><td><code>violation.md</code></td><td>W-XXX AI 违规清单 + tags（auto-loaded 每 session）</td></tr>
-      <tr><td><code>lessons.md</code></td><td>L-XXX 跨项目 AI 行为智慧 + tags（auto-loaded）</td></tr>
+      <tr><td><code>violation.md</code></td><td>W-XXX AI 违规 + tags (auto-loaded)</td></tr>
+      <tr><td><code>lessons.md</code></td><td>L-XXX 跨项目 AI 行为智慧 + tags (auto-loaded)</td></tr>
     </table>
-    <p>写时用 repo 路径 <code>content/templates/global_rules/{violation,lessons}.md</code> 避免每次写 ~/.claude/ 都弹 approval。set_claude.sh 跑一遍同步到 ~/.claude/ 部署位。</p>
+    <p>写时用 repo 路径 <code>content/templates/global_rules/{violation,lessons}.md</code> 避免 approval click。set_claude.sh 同步到 ~/.claude/。</p>
 
-    <h3>会话期间长啥样（具体例子）</h3>
-    <p>跑过一个 long-monitor 任务后，<code>.barry_workflow/</code>大概这样：</p>
+    <h3>session 期间长啥样</h3>
     <pre><code>.barry_workflow/
-├── state_abc123.md                    # session abc123 的 FSM 状态
-├── action_abc123.md                   # session abc123 的行为日志
-├── reflection_r1-pre-task-...md       # pre-task rebuttal round 文件
-├── reflection_r2-post-task-...md      # post-task rebuttal round 文件
-├── nudge_counters.json                # {"read": 12}
-└── (将来 v2.1) agent_a3cdbcd8.../     # subagent 子目录
-    ├── state.md
-    └── action.md</code></pre>
-
-    <h3>清理策略（待定，目前没自动）</h3>
-    <ul>
-      <li>session 完成后 .barry_workflow/ 文件没机制清理 — 长项目会堆 N 个 state_*.md</li>
-      <li>建议 v2.1：每 30 天 archive 一次，或者用 <code>git clean -fdx .barry_workflow/</code> 手动清</li>
-    </ul>
+├── abc123/                       # session abc123
+│   ├── state.md
+│   ├── action.md
+│   ├── reflection_r1-pre-task-....md
+│   ├── reflection_r2-post-task-....md
+│   ├── nudge_counters.json
+│   └── agent_&lt;aid&gt;/             # subagent 子目录（设计 ✓ 自动建未做）
+│       ├── state.md
+│       └── action.md
+└── &lt;older_sid&gt;/                  # 旧 session — 新 session inherit 时被 reference
+    └── ...</code></pre>
   `,
 
   qa: () => `
-    <h2>FAQ — 7 个常见疑问</h2>
+    <h2>FAQ</h2>
 
     <h3>Q1: [ROUTER] 块每轮都注入吗？</h3>
-    <p><b>是。</b>UserPromptSubmit 每个 user 消息都触发 inject_router.sh，注入约 1.1KB router 块到 prompt 前面。本会话每个 user 消息你都能看到顶部那段 [ROUTER]。<b>是真常驻 token 消耗</b>，但比 v1 的 9KB inject 小 8 倍。</p>
+    <p><b>是</b>。UserPromptSubmit 每次都触发 inject_router.sh。v2.1 改成 state-aware：当前 state 对应的 <code>router_&lt;STATE&gt;.md</code> 内容（1.0-1.5KB），无 state 时 fallback router.md。</p>
 
     <h3>Q2: 每轮还有什么提醒？</h3>
-    <p><b>只有 2 个 hook 每轮都跑</b>：</p>
     <ul>
-      <li>inject_router.sh — 输出 [ROUTER] 块</li>
-      <li>session_boot.sh — 跑但<b>幂等</b>：state 文件存在就 no-op，无任何 prompt 输出</li>
+      <li>inject_router.sh — state-aware router 块</li>
+      <li>session_boot.sh — 幂等无 prompt 输出</li>
+      <li>PostToolUse state_enforce.sh — 越界才有 stderr 警告，不污染 prompt</li>
     </ul>
-    <p>「派 agent 了吗」这种提醒<b>不是每轮</b>注入，而是 PreToolUse 时按 tool 类型条件触发（调对应工具才弹一行，调一次弹一次）。这种 nudge 是 ≤100 字符 + permissionDecision=allow，AI 无需回复，<b>不占常驻 token</b>。</p>
 
     <h3>Q3: 进入不同 state 怎么实现？AI 怎么知道？</h3>
-    <p><b>实现</b>：main 主动调 <code>bash transition.sh &lt;EVENT&gt;</code>，python 改 state.md YAML 的 current_status。echo 一行到 stdout 当 main 的 Bash 工具回显。</p>
-    <p><b>AI 怎么知道进了新 state？</b>当前<b>没有自动提示机制</b>。AI 要主动 Read state.md，或者看 transition.sh 的 stdout 回显。<b>这是真漏洞</b>，v2.1 需要 PostToolUse:Bash hook 监听 transition.sh 输出，自动注入"现在你进入 X，能做 Y 不能做 Z"提示。</p>
+    <p>main 调 <code>transition.sh &lt;EVENT&gt;</code> 改 <code>&lt;sid&gt;/state.md</code> YAML。<b>下一 turn</b> inject_router 看到新 state → 注入对应 router 块。<b>当前 turn 内</b> AI 不知道刚 transition 了 — 漏洞仍在，v2.2 计划。</p>
 
     <h3>Q4: PreToolUse 能按 state 触发？</h3>
-    <p>设计上能 — hook 脚本可以读 state.md 然后 case-on-state。<b>当前 pretooluse_short_nudge.sh 没读 state.md</b>，只看 tool_name + tool_input。这是 v2.1 P11「状态强制」核心实现路径：state=PREPARE 时禁 Edit/Write、state=REFLECT 时禁 Bash 改文件，全用 nudge 拦下。</p>
+    <p>v2.1 还没做（PreToolUse nudge 仍只看 tool_name）。<b>v2.1 把硬约束第一步放在 PostToolUse</b>（state_enforce.sh 警告越界） — 不阻 tool 但留痕。v2.2 计划 PreToolUse 读 state.md 真拒绝越界 tool。</p>
 
-    <h3>Q5: subagent 有 session id？能写自己的 action.md / state.md 吗？</h3>
-    <p><b>有 agent_id</b>（Claude Code 派 Agent() 时立刻返回，本会话你看到的 a3cdbcd829a650797、a84882fd4e95d33fd 等 17 字符 hex 串就是）。</p>
-    <p><b>设计上完全可以</b>每个 subagent 写到 <code>.barry_workflow/agent_&lt;aid&gt;/{state,action}.md</code>，子 FSM 走 BOOT/PREPARE/EXECUTE 简化版。<b>当前未实现</b>：subagent_rules.md rule B 规定了"写自己的 action.md"，但没 hook 自动建目录、subagent 自己也没机制强制按规则写。这是 v2.1 改善点。</p>
+    <h3>Q5: subagent 有 session id？能写自己的 action.md / state.md？</h3>
+    <p>有 <code>agent_&lt;aid&gt;</code>。规划目录 <code>.barry_workflow/&lt;sid&gt;/agent_&lt;aid&gt;/{state,action}.md</code>。<b>subagent_rules.md 规定 subagent 写自己的 action.md</b>，但<b>hook 还没自动建目录</b> — v2.2 任务。</p>
 
     <h3>Q6: 当前 [ROUTER] 块在哪个文档？</h3>
-    <p><b>是单独的 .md 文件</b>：<code>content/rules/router.md</code>（source-of-truth）→ <code>set_claude.sh</code> 部署到 <code>~/.claude/rules/router.md</code> → <code>hooks/inject_router.sh</code> 每轮 <code>cat</code> 它。</p>
-    <p>改 router 文字的工作流：</p>
-    <ol>
-      <li>编辑 <code>content/rules/router.md</code></li>
-      <li>跑 <code>bash set_claude.sh</code> 一遍</li>
-      <li>下一轮 user 消息就生效（hook 每次都重新 cat 文件）</li>
-    </ol>
-    <p>无需改 shell 脚本。设计早期一度硬编码在 hook 里 here-doc，2026-05-14 改正。</p>
+    <p>v2.1 后是 6 个文件：</p>
+    <ul>
+      <li><code>content/rules/router.md</code> — fallback（无 state 时）</li>
+      <li><code>content/rules/router_BOOT.md</code> / <code>router_PREPARE.md</code> / <code>router_REFLECT.md</code> / <code>router_EXECUTE_LOOP.md</code> / <code>router_END.md</code></li>
+    </ul>
+    <p>改 router 文字工作流：编辑 → <code>bash set_claude.sh</code> → 下一 turn 生效。</p>
 
     <h3>Q7: 一次 session 产生哪些文件？</h3>
-    <p>详见前一个 tab「产物文件清单」。简版：</p>
-    <ul>
-      <li>per-session 临时：state_&lt;sid&gt;.md / action_&lt;sid&gt;.md / reflection_&lt;round&gt;.md / nudge_counters.json</li>
-      <li>项目级长期：workspace/&lt;task&gt;/ 下 5 个 ledger（goal / attempts / bitter / successful / violations）</li>
-      <li>全局 ledger：~/.claude/rules/violation.md + lessons.md（auto-loaded）</li>
-    </ul>
+    <p>v2.1 集中在 <code>.barry_workflow/&lt;sid&gt;/</code> 下：state.md / action.md / reflection_*.md / nudge_counters.json（+ 设计中的 agent_&lt;aid&gt;/）。详见前一 tab。</p>
+
+    <h3>Q8: v2.1 干了啥（vs v2）？</h3>
+    <p>12 个 P-task：规则重构（删 p1/p6/index，拆 fsm.md，抢救 M6）/ INFERENCE_GATE / patches 系统 / state-aware router / PostToolUse 状态强制 / workflow_config.yaml / session 子目录 / 跨 session inherit / messages 外置 / lessons 常态化 / scenarios↔patches 对齐。详见左侧「v2 → v2.1 变更摘要」。</p>
   `,
 
   // === eval ===
   effectiveness: () => `
-    <h2>4. 有效性诚实评估</h2>
-    <p>三档：</p>
+    <h2>有效性诚实评估 (v2.1 post-update)</h2>
+
+    <h3>v2.1 改善了什么</h3>
+    <div class="cell verdict">
+      <ul>
+        <li><b>state-aware router 实测</b> — 本 session 已在 prompt 顶部看到 <code>[ROUTER · state=BOOT]</code></li>
+        <li><b>session subdir 已用</b> — 当前 session 用 <code>.barry_workflow/&lt;sid&gt;/state.md</code>，非平铺</li>
+        <li><b>规则文件减肥</b> — 9 顶层（删了 p1/p6/index）+ 5 states 拆开，单文件可读性显著提升</li>
+        <li><b>M6 抢救成功</b> — failure_stop.md 独立后，router_EXECUTE_LOOP must-read 第二行就指到它</li>
+        <li><b>patches 系统骨架已有</b> — 5 个 scenario 补丁 + YAML schema 一致</li>
+        <li><b>messages 外置</b> — 改文案不动 .sh，prepare_checklist 和 state_enforce_template 已搬</li>
+      </ul>
+    </div>
 
     <h3>✅ 实测验证过</h3>
     <div class="cell verdict">
       <ul>
-        <li><b>inject_router.sh</b> — 每个 turn 都在跑，本会话所有 user 消息顶部都有 [ROUTER] 块</li>
-        <li><b>REFLECT rebuttal 协议</b>（2 轮）— 本会话亲测 12.1 分钟 / 61.5k token，agent 真发现了 main 的错误判断（Q2 误把"Claude runtime /goal"跟"v4 repo 实现"混淆）</li>
-        <li><b>路由 + 按需 Read</b> — main 看到 router 后只读了相关 policy，没污染 context</li>
-        <li><b>de-cosplay 完整</b> — content/ + ~/.claude/rules/ 都没残留军事词</li>
+        <li><b>inject_router.sh state-aware</b> — 本 session router_BOOT 出现</li>
+        <li><b>session_boot.sh subdir</b> — 本 session 用新路径</li>
+        <li><b>REFLECT rebuttal 协议</b>（v2 已 2 轮实测，v2.1 路径改动后未再跑实测）</li>
+        <li><b>路由 + 按需 Read</b> — main 看 router 后只读相关 policy</li>
       </ul>
     </div>
 
     <h3>⚠ Smoke-test 过、真任务里没跑</h3>
     <div class="cell verdict warn">
       <ul>
-        <li><b>session_boot.sh</b> — 能建 state 文件，但本会话 main 没真用 state.md 来决策</li>
-        <li><b>transition.sh</b> — 能改 YAML，但本会话 main 没真在每个 state 转换时调它</li>
-        <li><b>prepare_helper.sh</b> — 能输出 stub，但本会话从没跑过</li>
-        <li><b>execute_loop_audit.sh</b> — regex 测过 5 个用例，但失败预算 3-anomaly 从没真触发过</li>
-        <li><b>pretooluse_short_nudge.sh</b> — 装载成功，但 AI 没忘规则所以没被触发</li>
-        <li><b>subagent_rules.md auto-injection</b> — hook 设计有，<b>实际从没真用 hook 注入过，都是 main prompt 里手动加</b></li>
+        <li><b>transition.sh</b> — YAML 改正确，但本会话 main 没真在工作里调用过</li>
+        <li><b>prepare_helper.sh</b> — 外置 checklist 输出正确，本会话从没跑</li>
+        <li><b>execute_loop_audit.sh</b> — regex + 新路径 OK，3-anomaly 没真触发</li>
+        <li><b>pretooluse_short_nudge.sh</b> — 装载成功，AI 没忘规则没被触发</li>
+        <li><b>state_enforce.sh</b>（v2.1 新）— 警告路径 smoke 过，<b>没真 session 越界触发过</b></li>
+        <li><b>prompt_enhancement.md</b>（v2.1 新规则）— 文件已部署，AI 进 PREPARE 时未真用</li>
+        <li><b>patches/*.md</b>（v2.1 新）— 静态文件存在，<b>没自动 detect 场景 → 注入机制</b>，AI 自己判</li>
+        <li><b>workflow_config.yaml</b>（v2.1 新）— SoT 已立，<b>hook 没真 source YAML</b>，常量仍硬编码 + comment 引用</li>
+        <li><b>P17 跨 session inherit</b> — 写 inherited_from 逻辑 OK，未真用新 session 测试</li>
       </ul>
     </div>
 
     <h3>❌ 完全没做 / 不工作</h3>
     <div class="cell verdict bad">
       <ul>
-        <li><b>patches/ 系统</b>（v2.1 计划）</li>
-        <li><b>跨 session state inherit</b> — 重启就丢上下文</li>
+        <li><b>P19 P8 demo</b>（user 监督下推迟）</li>
         <li><b>Codex 端</b> — codex_adapter.md 纯设计稿</li>
-        <li><b>P8 demo</b>（用户特意要求等监督）</li>
+        <li><b>主动通知 AI 进了新 state</b> — transition 后 AI 要等下一 turn 看 router</li>
+        <li><b>PreToolUse 真拒绝越界 tool</b> — 当前只 PostToolUse 警告</li>
+        <li><b>agent_&lt;aid&gt;/ 子目录自动建</b></li>
+        <li><b>patches 自动加载机制</b></li>
       </ul>
     </div>
 
-    <div class="callout warn">
-      <b>核心问题</b>：状态机目前是<b>软约束</b>，靠 AI 自律走 transition.sh。AI 偷懒系统抓不到。"真正强制"需要 PostToolUse hook 检查 action.md 有没有写 [PLAN] / state 有没有真更新 — 这部分 v2 没做。
+    <div class="callout note">
+      <b>核心问题（v2.1 update）</b>：v2 是「全软约束」，v2.1 走出第一步——PostToolUse 状态警告 + state-aware router。但 <b>真硬约束（PreToolUse deny + 自动场景 detect）仍在 v2.2 计划里</b>。当前若 AI 偷懒可忽略 stderr 警告。
     </div>
   `,
 
   reflection: () => `
-    <h2>5. 我漏了什么 / 没说清</h2>
+    <h2>我漏了什么 / 没说清</h2>
 
-    <h3>5.1 我漏了什么（功能上）</h3>
+    <h3>5.1 v2.1 落地后仍漏的（功能上）</h3>
     <ol>
-      <li><b>状态强制机制</b>：上面已经说了，transition.sh 是命令行工具，没 hook 强制 AI 调它。AI 嘴上说 "我现在 PREPARE 了" 而不调 transition.sh，state.md 一直停在 BOOT，下游 hook 完全不知道。</li>
-      <li><b>session 复用 / inherit</b>：重启 Claude 后新 sid → 新 state 文件 → 旧 state 孤儿。长任务跨 session 必死。</li>
-      <li><b>状态机视图给 user</b>：没法实时看 "现在 AI 在哪个 state"。要让 user 在 IDE 边栏看到才直观。</li>
-      <li><b>scenario 跟 seed 的对齐</b>：scenarios.html 描述了 5 个理想行为，但 seed rules 里没明确说"遇到长监控读 scenario 1 长监控"。AI 自己要建联系。</li>
-      <li><b>失败 case 转 patch 的工作流</b>：big_picture 说"自动写补丁"，但没设计具体怎么从 bitter_lesson 升级到 patches/draft_*.md。</li>
+      <li><b>真硬约束</b>：PostToolUse 警告是 advisory，AI 能选择无视。PreToolUse deny 越界 tool 才是硬。</li>
+      <li><b>transition 后实时通知 AI</b>：当前 main 调 transition.sh 后没机制告诉 AI「现在 state 变了」，AI 要下一 turn 才看到新 router。</li>
+      <li><b>patches 自动 detect</b>：5 个 scenario 补丁是静态文件，没机制根据 user prompt 关键字自动判场景 → 注入对应 patch。AI 自己判 = 软约束。</li>
+      <li><b>workflow_config.yaml 真 runtime</b>：当前 hook 没真 source YAML，常量硬编码 + comment 引用。改值要改两处。</li>
+      <li><b>agent_&lt;aid&gt;/ 自动 mkdir + subagent 写自己 action.md</b>：规则有，hook 没。</li>
+      <li><b>状态机视图给 user</b>：仍没法实时看「现在 AI 在哪个 state」。</li>
+      <li><b>失败 case 转 patch 工作流</b>：big_picture 说「自动写补丁」，仍没设计具体怎么从 bitter_lesson 升级到 patches/draft_*.md。</li>
     </ol>
 
     <h3>5.2 我没说清（沟通上）</h3>
     <ol>
-      <li><b>"v4" vs "v2"</b> 命名一直没说清楚。文件 v4_plan.md 是第 4 稿计划，产出的项目是 Barry's Workflow v2 — 已经在 README + v4_plan.md 头部加注释了，但本文档前几节也得提一句。</li>
-      <li><b>"软约束 vs 硬约束"</b>不够强调。整个 v2 几乎全是软约束，只有 inject_router.sh 是硬装入 prompt。其他都靠 AI 自律。</li>
-      <li><b>跟 Humanize pipeline 关系</b>：README 后半部分提到 Humanize RLCR loop，但 v2 跟 RLCR 是什么关系没说 — 是替换？补充？目前看是<b>正交</b>（v2 管 AI 行为约束，RLCR 管 Claude+Codex 闭环），但没明说。</li>
-      <li><b>跟 /goal 的关系</b>：/goal 是 Claude Code runtime feature，v2 利用它做 stop-gating。但如果 user 没用 /goal，v2 就退化成"全部 advisory" — 这点没强调过。</li>
+      <li><b>v2 / v2.1 / v4 命名混杂</b>：v4_plan.md 是第 4 稿计划，项目是 Barry's Workflow v2 / v2.1。文档里再强调一遍。</li>
+      <li><b>软 vs 硬约束</b>：v2.1 加了 state_enforce 但仍是 advisory，要在每处明示。</li>
+      <li><b>跟 Humanize / RLCR 关系</b>：仍是正交，没明说。</li>
+      <li><b>跟 /goal 关系</b>：/goal 是 Claude Code runtime feature，v2 利用做 stop-gating；user 没用 /goal 就退化成 advisory。</li>
     </ol>
 
     <h3>5.3 自我评估</h3>
     <div class="callout note">
-      诚实说：v2 现在是<b>"有用的设计原型 + 部分实现"</b>，不是"成熟工作流"。最有价值的部分是 <b>state machine 思想 + REFLECT rebuttal 协议 + scenarios.html spec</b>。最弱的部分是<b>强制执行</b> — 整个机制需要 AI 自律，AI 偷懒就退化成普通 prompt 工程。
+      诚实：v2.1 是 v2 + <b>规则结构清理 + 状态感知雏形 + 跨 session 基础</b>。最有价值的部分仍是 state machine 思想 + REFLECT rebuttal 协议。最弱仍是<b>真硬约束</b> — PostToolUse advisory 仍能忽略，要 v2.2 把 PreToolUse 改 deny 才到「真状态控制」。
     </div>
   `,
 
   next: () => `
-    <h2>6. 下一步 v2.1</h2>
-    <p>从最重要、收益最大的开始：</p>
+    <h2>下一步 v2.2</h2>
+    <p>v2.1 把 P11-P25 12 个 task 落地了（详见 v2 → v2.1 变更摘要 tab）。剩下还要做的：</p>
 
-    <h3>P11 — 规则文件大重构（最高优先级）</h3>
-    <p>当前 12 个 rule 文件 50% 是 v1 遗产 / 内容跨多 state / 含场景专属补丁。重构目标：</p>
-    <ul>
-      <li><b>删</b>：<code>p1_identity.md</code>（内容只剩"别 cosplay"，cosplay 已清完，规则无意义）/ <code>p6_workflow.md</code>（4-step 跟 state 重复；REFLECT-A 6-row 是 v1 包袱）/ <code>index.md</code>（router 本身就是查找表）</li>
-      <li><b>拆</b>：<code>p3_dispatch.md</code> 删 Monitor cadence 段（挪 patches/long_monitor.md）；<code>fsm.md</code> 切成 <code>states/{boot,prepare,reflect,execute,end}.md</code></li>
-      <li><b>抢救</b>：<code>p6_workflow.md</code> 的 M6 3-failure stop 独立成 <code>failure_stop.md</code>（之前我叫 m6_failure_stop 是 v1 编号惯性，改名）</li>
-      <li><b>合并</b>：<code>reflect_protocol.md</code> + <code>reflect_subagent_prompt.md</code> → <code>states/reflect.md</code></li>
-    </ul>
-
-    <h3>P12 — INFERENCE_GATE 子状态（新机制）</h3>
-    <p>原 p2_facts_first 加强：<b>非必要不给 [INFERENCE]</b>。AI 真要写 [INFERENCE] → 自动进入 INFERENCE_GATE 状态：</p>
-    <ol>
-      <li>列已经做过的努力（Read 哪些文件 + WebSearch 哪些关键词）</li>
-      <li>缺数据 → 派 agent 补全 → 回来再判</li>
-      <li>真要写 → 强制 1 轮 rebuttal（reviewer 验证证据链）</li>
-      <li>通过 → 输出 [INFERENCE]，永远带证据脚注</li>
-    </ol>
-    <p>相当于 EXECUTE_LOOP 内嵌迷你 REFLECT。或者做成第 7 个 state 平行 REFLECT — 待定。</p>
-
-    <h3>P13 — 硬编码 → workflow_config.yaml</h3>
-    <p>当前散在多个文件的常数集中外置：</p>
-    <pre><code>reflect:
-  rounds_default: 5
-  rounds_fallback: 10
-execute_loop:
-  failure_budget: 3
-pretool_nudge:
-  read_threshold: 3
-  max_chars: 100
-prompt_reinforce:
-  required_elements: [observable, cadence, reflection, completion]</code></pre>
-    <p>state docs + hook 脚本都 source 这个 yaml。改阈值不动 .md / .sh。</p>
-
-    <h3>P14 — patches/ 系统（提前实现 big_picture §3）</h3>
-    <p>新建 <code>~/.claude/rules/patches/</code>，把场景专属补丁挪进去：</p>
-    <ul>
-      <li><code>patches/long_monitor.md</code>（cadence 三档 + Monitor 5-60-60+ 节奏）</li>
-      <li><code>patches/bug_debug.md</code>（anomaly 关键字白名单 + 失败预算 3）</li>
-      <li><code>patches/perf_debug.md</code>（baseline 必测 + 一次改一个变量）</li>
-    </ul>
-    <p>schema 见 big_picture.md §3.3。补丁有 active/draft/deprecated 三态。</p>
-
-    <h3>P15 — state-aware router（每个 state 一个 router_&lt;state&gt;.md）</h3>
-    <p>当前 router 是 static。改成 hook 读 state.md 然后 cat 对应 <code>~/.claude/rules/router_&lt;state&gt;.md</code>：</p>
-    <ul>
-      <li>显式说"你现在在 X state"</li>
-      <li>列本 state 必读的 .md 文件</li>
-      <li>列本 state <b>禁止</b>的操作（REFLECT 状态禁 Edit / Write 等）</li>
-      <li>给 transition 命令样板</li>
-    </ul>
-
-    <h3>P16 — 状态强制 hook</h3>
-    <p>PostToolUse hook 检查 state.md current_status，跟工具不符就警告。配合 P15 router 形成"硬约束"。</p>
-
-    <h3>P17 — 跨 session inherit</h3>
-    <p>session_boot.sh 检测旧 state_*.md 存在 → 复用 sid 或写 inherited_from。</p>
-
-    <h3>P18 — 模板大清理</h3>
-    <p>删 <code>content/templates/</code> 里 9 个 v1 cosplay 残留（corporal_* / soldier_* / warning_board / reward_board / traitor / status / operation_log），保留 6 个有用的（state/action/reflection/bitter_lessons/attempts_ledger/successful_fixes/goal templates）。</p>
-
-    <h3>P19 — P8 demo（user 监督下）</h3>
-    <p>跑通 Qwen-0.5B + 100 GSM8K + activation hook + 利用率验证。这一跑能验证整个 EXECUTE_LOOP + REFLECT post-task 真的能工作。</p>
-
-    <h3>P20 — Scenario ↔ Patch 对齐</h3>
-    <p>把 scenarios.html 5 个场景的 cadence 公式 / REFLECT 轮数翻译成 patches/*.md 的 applies_to 触发器。</p>
-
-    <h3>P21 — global lessons 常态化引用</h3>
-    <p>lessons.md 已经 auto-loaded，但 AI 不一定每次 reply 前看。router always-on 段加一行明示："回答 user 前 grep lessons.md tags 检查个人偏好命中"。</p>
-
-    <h3>P22 — session 子目录</h3>
-    <p>当前 <code>.barry_workflow/</code> 下平铺所有 session 的 state / action / reflection / nudge_counters 文件，长项目会堆几十个文件难找。改成每 session 一个子目录：</p>
-    <pre><code>.barry_workflow/
-├── &lt;sid&gt;/
-│   ├── state.md              # 不再是 state_&lt;sid&gt;.md，因为已经在 sid 文件夹里
-│   ├── action.md
-│   ├── reflection_r1-pre-task-....md
-│   ├── reflection_r2-on-anomaly-....md
-│   ├── nudge_counters.json
-│   └── agent_&lt;aid&gt;/         # subagent 子子目录（P11 已规划）
-│       ├── state.md
-│       └── action.md
-└── &lt;older_sid&gt;/
-    └── ...</code></pre>
-    <p>好处：清晰、能 <code>tar czf archive_&lt;sid&gt;.tar.gz .barry_workflow/&lt;sid&gt;/</code> 整段归档、能 <code>rm -rf .barry_workflow/&lt;sid&gt;/</code> 整段清理。</p>
-    <p>改动点：<code>session_boot.sh</code> + <code>transition.sh</code> + <code>prepare_helper.sh</code> + <code>execute_loop_audit.sh</code> + <code>pretooluse_short_nudge.sh</code> 全部要把 <code>.barry_workflow/state_&lt;sid&gt;.md</code> 改成 <code>.barry_workflow/&lt;sid&gt;/state.md</code>。1 个 helper 函数 + 全文搜索替换。</p>
-
+    <h3>已完成 P-task 不再列；剩余清单</h3>
     <table>
-      <tr><th>P</th><th>工时</th><th>收益</th></tr>
-      <tr><td>P11 规则重构</td><td>4h</td><td>★★★ 清掉 v1 包袱</td></tr>
-      <tr><td>P12 INFERENCE_GATE</td><td>3h</td><td>★★★ 解决 AI 乱猜</td></tr>
-      <tr><td>P13 config.yaml</td><td>2h</td><td>★★ 可调不改码</td></tr>
-      <tr><td>P14 patches/</td><td>5h</td><td>★★★ 自我进化基础</td></tr>
-      <tr><td>P15 state-aware router</td><td>3h</td><td>★★★ AI 知道在哪</td></tr>
-      <tr><td>P16 状态强制</td><td>3h</td><td>★★★ 解决软约束</td></tr>
-      <tr><td>P17 跨 session</td><td>2h</td><td>★★ 长任务必需</td></tr>
-      <tr><td>P18 模板清理</td><td>1h</td><td>★ 去 v1 残留</td></tr>
-      <tr><td>P19 P8 demo</td><td>4h</td><td>★★★ 验证整个系统</td></tr>
-      <tr><td>P20 scenario↔patch</td><td>2h</td><td>★★ seed 跟 spec 对齐</td></tr>
-      <tr><td>P21 lessons 常态化</td><td>1h</td><td>★ 偏好真生效</td></tr>
-      <tr><td>P22 session 子目录</td><td>2h</td><td>★★ 文件组织清晰</td></tr>
+      <tr><th>任务</th><th>工时</th><th>收益</th></tr>
+      <tr><td>P19 P8 demo (Qwen-0.5B + 100 GSM8K + activation hook)</td><td>4h</td><td>★★★ 验证整个 EXECUTE_LOOP + REFLECT post-task</td></tr>
+      <tr><td>workflow_config.yaml runtime sourcing</td><td>2h</td><td>★★ 真做到改 YAML 不改 hook</td></tr>
+      <tr><td>patches 自动 detect + 注入</td><td>4h</td><td>★★★ 场景补丁从「静态文件」变「真生效」</td></tr>
+      <tr><td>agent_&lt;aid&gt;/ 子目录自动建 + subagent 自动写 action.md</td><td>2h</td><td>★★ 解决 subagent 黑盒</td></tr>
+      <tr><td>PreToolUse 读 state.md 真 deny 越界 tool（升级 state_enforce 从 advisory 到 hard）</td><td>3h</td><td>★★★ 真硬约束</td></tr>
+      <tr><td>transition 实时通知 AI（PostToolUse:Bash 监听）</td><td>2h</td><td>★★ AI 当 turn 就知道 state 变了</td></tr>
+      <tr><td>Codex 端实测 codex_adapter.md</td><td>3h</td><td>★ 跨 LLM 验证</td></tr>
+      <tr><td>失败 case → patches/draft_*.md 自动升级工作流</td><td>4h</td><td>★★ 自我进化基础真落地</td></tr>
     </table>
-    <p>合计 ~32 小时（4-5 工作日）。</p>
-    <p>详细计划见 <code>docs/v2.1_plan.md</code>。</p>
+    <p>合计 ~24h。优先级：先 PreToolUse deny + patches auto-detect（解决 v2.1 仍是 advisory 的核心问题），再 demo。</p>
   `,
 };
 
@@ -985,6 +1182,20 @@ function hookCard({title, what, why, file, size, when, verdict, verdictText}) {
     </ul>
     <h3>有效性</h3>
     <div class="cell verdict ${verdict}"><div class="label">verdict</div>${verdictText}</div>
+  `;
+}
+function patchCard(filename, scenario, summary, state) {
+  return `
+    <h2>patches/${filename}</h2>
+    <ul>
+      <li><b>scenario</b>: ${scenario}</li>
+      <li><b>applies_to.state</b>: ${state}</li>
+    </ul>
+    <h3>核心内容</h3>
+    <p>${summary}</p>
+    <h3>装载</h3>
+    <p>当前需 AI 自己判场景并 Read。v2.2 计划：基于 applies_to.triggers (关键字 list) 自动 detect。</p>
+    <div class="cell verdict warn"><div class="label">verdict</div>⚠ 静态文件已部署，<b>无自动加载</b>，靠 AI 自觉。</div>
   `;
 }
 
