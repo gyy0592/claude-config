@@ -1,8 +1,12 @@
  [🇨🇳 中文版](README.zh.md)
 
-# claude-config — a state-controller for Claude Code
+# Barry's Workflow v2 — a state-controller for Claude Code
+
+> Repo name `claude-config` is legacy. The project itself is **Barry's Workflow v2** — `v2` because v1 was the earlier military-cosplay rule set; this rewrite is a clean, state-machine-based redesign.
 
 > **What it is**: a finite state machine that constrains what Claude (the AI) is allowed to do at any moment, plus a structured patch system that lets the machine evolve as you (or it) discover where the defaults fall short. **Not** a prompt collection. **Not** a wrapper. A behaviour controller.
+
+> **Read this first for a complete walk-through**: [`docs/implementation.html`](docs/implementation.html) — zero-prereq tour of every piece, why each exists, and an honest verdict on whether it works.
 
 ## Why
 

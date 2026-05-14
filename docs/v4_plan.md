@@ -1,4 +1,8 @@
-# v4 Plan — 状态机 + Rebuttal 反思 + KV cache + 去 cosplay
+# v4_plan.md — Barry's Workflow v2 的实施计划
+
+> 名字小坑：文件名 `v4_plan` 是因为这是第 4 次写计划草稿（v2 / v3 / v4 三次迭代），实际产出的项目叫 **Barry's Workflow v2**（v1 是早期军事 cosplay 规则）。
+
+# v2 Plan — 状态机 + Rebuttal 反思 + KV cache + 去 cosplay
 
 > 修订 2 (2026-05-13):基于 v4 原稿 inline comments + 新指令"去暴力化 / 去 cosplay"。
 > 包含: 项目改名 + 术语去军事化 + Rebuttal 方向修正(主线程用 SendMessage 主导)+ KV cache 信 AI + Q1-Q8 答案落实 + Codex 兼容分析 + 现有 hook 迁移 + demo 任务定义。
