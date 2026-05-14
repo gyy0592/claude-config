@@ -1,55 +1,29 @@
-<!-- template version = v1.2 (claude-config) -->
-# militar_camp/ — Military Camp Archive Directory
+# content/templates/ — barry-workflow runtime artifact templates
 
-This directory is managed by the global military discipline system deployed by `set_claude.sh` / `set_codex.sh`.
-When any workspace is entered by Claude Code / Codex CLI for the first time, this directory skeleton is automatically generated from `<repo>/content/templates/`.
+Source-of-truth templates copied / referenced by `set_claude.sh` and the BOOT hook (`session_boot.sh`). The deployed runtime artifacts live under `$PWD/.barry_workflow/` and `$PWD/workspace/<task>/`.
 
-## Directory Structure
+## Kept (v2.1)
 
-```
-militar_camp/
-├── README.md               # This file
-├── warning_board.md        # Warning board (shared) — must read before every action
-├── reward_board.md         # Reward board (shared) — must read before every action
-├── traitor.md              # Traitor + positive examples board (shared) — must read before every action
-│
-└── corporal_X/             # One Corporal per session (X = 1, 2, 3, ...)
-    ├── corporal_status.md          # Corporal identity + Commander's orders verbatim + observation checklist
-    ├── corporal_action.md          # Corporal operation action log (appended in real time)
-    ├── corporal_situation.md       # Good/bad list + battle situation
-    │
-    └── numberY/            # The Y-th Private dispatched by this Corporal
-        ├── soldier_status.md       # Private deployment order (including authorization field, Agent prompt verbatim copy)
-        └── soldier_action.md       # Private real-time action log
-```
+| File | Used by | Purpose |
+|------|---------|---------|
+| `state_template.md` | `session_boot.sh` | Seeds `$PWD/.barry_workflow/state_<sid>.md` — hybrid markdown + YAML state block. |
+| `action_template.md` | `session_boot.sh` | Seeds `$PWD/.barry_workflow/action_<sid>.md` — per-turn `[PLAN]/[OBSERVE]` log. |
+| `reflection_template.md` | `states/reflect.md` | main interpolates session id / reason / round id to create `reflection_<round_id>.md`. |
+| `bitter_lessons.md` | project ledger | Project-specific technical pitfalls (config combos that break, library incompatibilities). |
+| `attempts_ledger.md` | project ledger | ATT-N cross-turn intent log. |
+| `successful_fixes.md` | project ledger | FIX-N confirmed wins. |
+| `goal.md` | project | User-controlled, read-only for main. |
+| `global_rules/violation.md` | deployed to `~/.claude/rules/violation.md` | Cross-project AI rule violations (W-XXX). |
+| `global_rules/lessons.md` | deployed to `~/.claude/rules/lessons.md` | Cross-project AI behavior wisdom (L-XXX). |
 
-## Numbering Rules
+## Removed (v2.1 P18)
 
-- **Corporal number**: One new Corporal per session. Session 1 → corporal_1, session 2 → corporal_2, and so on.
-- **Private number**: Sequential numbering under `corporal_X/`: number1, number2, ...
+Dropped v1 cosplay templates: `corporal_situation.md`, `corporal_action.md`, `corporal_status.md`, `soldier_action.md`, `soldier_status.md`, `warning_board.md`, `reward_board.md`, `traitor.md`, `operation_log.md`, `status.md`.
 
-## Usage Rules (absolutely mandatory)
+The state-machine FSM (`fsm.md` + `states/*.md`) and the per-session `.barry_workflow/{state,action,reflection}_<sid>.md` layout replace the v1 `militar_camp/corporal_X/numberY/` skeleton.
 
-See:
-- `<repo>/CLAUDE.md` (this repo's main router — no byte hard limit)
-- `<repo>/content/memory/INDEX.md` (on-demand Read entry; contains lessons / violations / workflows / soldier_protocol index)
+## Write rules
 
-## Mandatory Reading at the Start of Every Reply (not just before departure — every turn must read)
-
-Every Private / Corporal at the start of every reply must Read:
-1. `warning_board.md`
-2. `reward_board.md`
-3. Own Corporal's `corporal_situation.md`
-
-And write the following as the first entry in own action.md at the start of every reply:
-```
-[BOARD_READ] Read warning_board.md + reward_board.md + corporal_situation.md, time: YYYY-MM-DD HH:MM UTC
-```
-
-Not written = 6-month imprisonment + mission credit forfeited.
-
-## Write Rules
-
-- **Append only**, never overwrite.
-- **Write step by step**, forbidden to batch wait until task is complete.
-- Use telegram-style short sentences + [FACT] / [INFERENCE] / [ASSUMPTION] annotations (annotation rules detailed in content/memory/INDEX.md → routed to specific memory file).
+- Append only, never overwrite.
+- Write step by step; do not batch-write at task end.
+- Tag claims `[FACT]/[INFERENCE]/[ASSUMPTION]` per `~/.claude/rules/facts_first.md`.
