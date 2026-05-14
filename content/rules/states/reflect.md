@@ -19,7 +19,7 @@ Entered from PREPARE (pre-task) or EXECUTE_LOOP (on-anomaly | post-task). A REFL
 ## N (round budget)
 
 - Default `N=5`.
-- If a REFLECT cycle hits `N=5` without consensus, log under `rule_violations.md` ("REFLECT N=5 exhausted on <reason>") and re-spawn with `N=10` fallback.
+- If a REFLECT cycle hits `N=5` without consensus, append to `workspace/rule_violations.md` ("REFLECT N=5 exhausted on <reason>", with current `task:`) and re-spawn with `N=10` fallback.
 - If N=10 also fails: stop, write `[REFLECT_FAILURE]` in action_<sid>.md, surface to user.
 
 (Tunables — see `workflow_config.yaml` `reflect.rounds_default` / `rounds_fallback` / `max_round_minutes`.)

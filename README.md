@@ -92,7 +92,7 @@ BOOT ──► PREPARE ──► REFLECT ──► EXECUTE_LOOP ──► END
 
 | 状态 | 允许工具 | 强制产出 | 离开条件 |
 |---|---|---|---|
-| **BOOT** | Read / Glob / Grep / 只读 Bash | 读完 `~/.claude/rules/` 与 `workspace/<task>/` 下全部 ledger | `transition.sh BOOT_DONE` |
+| **BOOT** | Read / Glob / Grep / 只读 Bash | 读完 `~/.claude/rules/`、`workspace/` 下的共享 ledger（`bitter_lessons` / `successful_fixes` / `attempts_ledger` / `rule_violations`，按 `task:` 过滤）、`workspace/<task>/goal.md` | `transition.sh BOOT_DONE` |
 | **PREPARE** | 上述 + 重复 Read（利用 `state.md` 中 `cache_hit_map` 避免重复读） | 写出 `[PLAN]` 待办清单 | `PREPARE_DONE` |
 | **REFLECT** | `Agent(run_in_background=true)` | 派出独立子 agent 做 rebuttal | 子 agent 写下 `[CONSENSUS_REACHED]`；默认上限 3 轮，可在 `~/.claude/rules/workflow_config.yaml` 调整 |
 | **EXECUTE_LOOP** | 全部 | 每个工具调用前一行 `[PLAN]`、之后一行 `[OBSERVE]` | `EXECUTE_EXIT`；同 loop 内 `execute_loop_audit.sh` 扫描 `action.md` 的异常关键词，3 次反驳则强制回退 REFLECT |
@@ -100,7 +100,7 @@ BOOT ──► PREPARE ──► REFLECT ──► EXECUTE_LOOP ──► END
 
 状态切换由模型在满足离开条件后**主动**调用 `bash ~/.claude/hooks/transition.sh <事件名>`。`transition.sh` 本身不是 hook，是模型可调用的脚本；它写入 `state.md`，并在下一轮 `UserPromptSubmit` 时由 `inject_router.sh` 读取新状态、注入对应 router 文本。
 
-**`<task>` 的来源**：用户在 `workspace/<task>/goal.md` 中手动指定；首次 `UserPromptSubmit` 时 `session_boot.sh` 检测 `workspace/` 下最近修改的 task 目录写入 `state.md` 的 `task` 字段。
+**`<task>` 的来源**：用户在 `workspace/<task>/goal.md` 中手动指定（或让 AI 跑 `scripts/new_task.sh <名字>` 自动建）；首次 `UserPromptSubmit` 时 `session_boot.sh` 检测 `workspace/` 下最近修改的 task 子目录写入 `state.md` 的 `task` 字段；后续 ledger 追加条目都带这个 `task:` 字段。
 
 ### REFLECT 的 rebuttal 协议
 
@@ -134,12 +134,13 @@ BOOT ──► PREPARE ──► REFLECT ──► EXECUTE_LOOP ──► END
   transitions.log    每次状态切换的 3 行摘要
   reflection_*.md    REFLECT 阶段的多轮 rebuttal
 
-workspace/<task>/                    跨会话持久，建议 git track
-  goal.md            用户写入，main agent 只读
-  bitter_lessons.md  本项目踩过的技术坑（项目内独立编号 L-N）
-  successful_fixes.md
-  attempts_ledger.md
-  rule_violations.md 本项目 AI 行为错误（项目内独立编号 W-N）
+workspace/                           跨会话持久，建议 git track
+  bitter_lessons.md  仓库共享——技术坑（编号 L-N，每条带 task: + tags:）
+  successful_fixes.md 仓库共享——确认有效的修法（FIX-N + task: + tags:）
+  attempts_ledger.md  仓库共享——尝试日志（ATT-N + task: + tags:）
+  rule_violations.md  仓库共享——AI 行为错误（W-N + task: + tags:）
+  <task>/
+    goal.md          per-task，用户写入，main agent 只读
 
 ~/.claude/rules/                     全局规则（跨项目）
   violation.md       全局 W-XXX（与项目级 rule_violations.md 编号空间相互独立）
@@ -150,9 +151,9 @@ workspace/<task>/                    跨会话持久，建议 git track
   workflow_config.yaml  可调参数（reflect.max_rounds 等）
 ```
 
-`bitter_lessons.md`（项目级技术坑）与 `rule_violations.md`（项目级 AI 行为错误）的区别：前者记「这个 batch size 在该卡 OOM」一类技术事实；后者记「漏写 [PLAN] 直接调工具」一类行为错误。两者均以 `tags:` 行索引，新会话 BOOT 阶段按当前任务 grep 召回。
+`bitter_lessons.md`（仓库共享技术坑）与 `rule_violations.md`（仓库共享 AI 行为错误）的区别：前者记「这个 batch size 在该卡 OOM」一类技术事实；后者记「漏写 [PLAN] 直接调工具」一类行为错误。每条 entry 都带 `task: <name>` + `tags:`，BOOT 时按当前 `task` 名 OR 公共 tags grep 召回相关条目。
 
-项目级编号（`L-N` / `W-N`）与全局编号（`L-XXX` / `W-XXX`）**命名空间相互独立**，不跨文件交叉引用。
+项目级编号（`L-N` / `W-N`）与全局编号（`L-XXX` / `W-XXX`）**命名空间相互独立**，不跨文件交叉引用。同一仓库内的所有 task 共用 L-N / W-N 序号，避免 task_a 和 task_b 出现两个 L-3 含义冲突。
 
 ---
 

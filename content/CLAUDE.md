@@ -13,14 +13,17 @@ No roleplay terminology (no Corporal / Commander / Private / military_camp / Dec
 
 Hook auto-creates `$PWD/.barry_workflow/state_<sid>.md` + `$PWD/.barry_workflow/action_<sid>.md` at first UserPromptSubmit. Do not hand-create either set.
 
-To initialize `workspace/<task>/` (goal.md + 3 ledger templates), run from inside the project directory: `bash __CLAUDE_CONFIG_DIR__/scripts/new_task.sh <task_name>`. Flow: after agreeing on a task scope in conversation, propose `<task_name>` to the user, get one-line confirmation, run the script, then fill `goal.md` from the agreed scope and ask for sign-off.
+To initialize `workspace/<task>/goal.md` (and seed shared ledgers on first run), execute from inside the project directory: `bash __CLAUDE_CONFIG_DIR__/scripts/new_task.sh <task_name>`. Flow: after agreeing on a task scope in conversation, propose `<task_name>` to the user, get one-line confirmation, run the script, then fill `goal.md` from the agreed scope and ask for sign-off.
 
-Common project artifacts under `$PWD/workspace/<task>/`:
-- `attempts_ledger.md` — cross-turn intent log (ATT-N)
-- `bitter_lessons.md` — project-specific technical pitfalls
-- `successful_fixes.md` — confirmed fixes (FIX-N)
-- `rule_violations.md` — AI behavioral mistakes (W-N)
-- `goal.md` — user-controlled, read-only for main
+Project artifacts layout (shared ledgers across all tasks in this repo, per-task goal):
+
+- `$PWD/workspace/attempts_ledger.md` — shared, cross-turn intent log (ATT-N, each entry tagged with `task: <name>`)
+- `$PWD/workspace/bitter_lessons.md` — shared, project-specific technical pitfalls (L-N + `task:` + `tags:`)
+- `$PWD/workspace/successful_fixes.md` — shared, confirmed fixes (FIX-N + `task:` + `tags:`)
+- `$PWD/workspace/rule_violations.md` — shared, AI behavioral mistakes (W-N + `task:` + `tags:`)
+- `$PWD/workspace/<task>/goal.md` — per-task, user-controlled, read-only for main
+
+When reading ledgers in BOOT, grep by current `task:` value (from `state.md`) plus relevant `tags:` to surface cross-task lessons that still apply.
 
 ## 4-status FSM (per session)
 
@@ -58,10 +61,10 @@ Transitions via `transition.sh <event>`; details in `~/.claude/rules/fsm.md`. Sa
 |------|-------|---------|
 | `~/.claude/rules/violation.md` (read) / repo `content/templates/global_rules/violation.md` (write) | global | AI rule violations (W-XXX + tags) |
 | `~/.claude/rules/lessons.md` (read) / repo `content/templates/global_rules/lessons.md` (write) | global | Cross-project AI behavior wisdom (L-XXX + tags) |
-| `workspace/<task>/attempts_ledger.md` | project | ATT-N intent log |
-| `workspace/<task>/bitter_lessons.md` | project | technical pitfalls |
-| `workspace/<task>/successful_fixes.md` | project | FIX-N confirmed wins |
-| `workspace/<task>/rule_violations.md` | project | per-project AI behavioral mistakes |
+| `workspace/attempts_ledger.md` | project (shared) | ATT-N intent log (each entry tagged `task:`) |
+| `workspace/bitter_lessons.md` | project (shared) | technical pitfalls (L-N + `task:` + `tags:`) |
+| `workspace/successful_fixes.md` | project (shared) | FIX-N confirmed wins (`task:` + `tags:`) |
+| `workspace/rule_violations.md` | project (shared) | per-project AI behavioral mistakes (W-N + `task:` + `tags:`) |
 
 Closing every action task: append entry to the relevant ledger OR write `[no new ledger entries]`.
 

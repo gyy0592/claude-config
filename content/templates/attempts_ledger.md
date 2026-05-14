@@ -1,7 +1,7 @@
 <!-- template version = v2.0 (claude-config-v2-hook) -->
 # Attempts Ledger — Per-Attempt Debug / Improvement Log
 
-**Scope**: Project-level (per `militar_camp/`).
+**Scope**: Project-level (shared across all tasks; lives at `$PWD/workspace/attempts_ledger.md`). Each entry MUST carry `task: <name>` + `tags:`.
 **Granularity**: One entry per "I tried this to fix/improve X".
 **Relationship to other files**:
 - An ATT-N entry usually links to several `operation_log.md` OP-N entries (the concrete ops that constitute the attempt)

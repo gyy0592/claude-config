@@ -13,9 +13,9 @@ SendMessage with:
 
 Format: concise, evidence-backed (cite specific files / line numbers / metrics).
 
-### Step 2 — Update project ledgers
+### Step 2 — Update project ledgers (SHARED across tasks)
 
-Append to `$PWD/workspace/<task>/`:
+Append to `$PWD/workspace/` (4 ledgers shared across all tasks in this repo; each new entry MUST carry `task: <name>` from `state.md` plus `tags:`):
 
 | ledger | when to write |
 |---|---|
@@ -47,7 +47,7 @@ Append final marker to action.md:
 
 ## Allowed
 - Read / Bash(`ls`, `cat`, `head`, `tail`, `grep`)
-- Append (not overwrite) to ledger files under `workspace/<task>/`
+- Append (not overwrite) to shared ledgers under `workspace/` (each entry tagged with `task:`)
 - Write to global ledger via repo path `content/templates/global_rules/*.md`
 - SendMessage final summary to user
 

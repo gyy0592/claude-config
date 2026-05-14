@@ -16,8 +16,9 @@ In this order, Read whichever exist:
 
 1. `$PWD/CLAUDE.md` — project-level instructions
 2. `$PWD/workspace/<task>/goal.md` — user-written goal for this task
-3. `$PWD/workspace/<task>/bitter_lessons.md` (tail 50 lines) — past project pitfalls
-4. `$PWD/workspace/<task>/successful_fixes.md` (tail 30 lines) — what worked before
+3. `$PWD/workspace/bitter_lessons.md` (shared across tasks; tail 50 lines, then grep `task: <current>` + relevant `tags:` for cross-task hits)
+4. `$PWD/workspace/successful_fixes.md` (shared; tail 30 lines + same filter as above)
+5. `$PWD/workspace/rule_violations.md` (shared; grep prior AI errors that may recur)
 
 ### Step 3 — Read global wisdom (already auto-loaded but skim)
 

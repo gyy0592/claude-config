@@ -37,7 +37,7 @@ Examples:
 - `[OBSERVE] pytest output — 14 passed, 0 failed, 2.3s`
 - `[OBSERVE] sbatch returned 12345 — squeue shows state=PD position=23`
 
-**Empty / hand-waved `[OBSERVE]`** ("looks good", "should work") = behavioral error → `rule_violations.md`.
+**Empty / hand-waved `[OBSERVE]`** ("looks good", "should work") = behavioral error → append to `workspace/rule_violations.md` with current `task:`.
 
 ### Step 4 — Decide
 

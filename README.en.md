@@ -92,7 +92,7 @@ BOOT ──► PREPARE ──► REFLECT ──► EXECUTE_LOOP ──► END
 
 | State | Allowed tools | Required output | Exit condition |
 |---|---|---|---|
-| **BOOT** | Read / Glob / Grep / read-only Bash | Read all of `~/.claude/rules/` and the ledgers under `workspace/<task>/` | `transition.sh BOOT_DONE` |
+| **BOOT** | Read / Glob / Grep / read-only Bash | Read `~/.claude/rules/`, the shared ledgers under `workspace/` (`bitter_lessons` / `successful_fixes` / `attempts_ledger` / `rule_violations`, filtered by `task:`), and `workspace/<task>/goal.md` | `transition.sh BOOT_DONE` |
 | **PREPARE** | above + repeated Read (using `state.md`'s `cache_hit_map` to skip re-reads) | Write a `[PLAN]` todo list | `PREPARE_DONE` |
 | **REFLECT** | `Agent(run_in_background=true)` | Spawn an independent sub-agent to perform rebuttal | sub-agent writes `[CONSENSUS_REACHED]`; default cap 3 rounds, configurable in `~/.claude/rules/workflow_config.yaml` |
 | **EXECUTE_LOOP** | all | one `[PLAN]` line before each tool call, one `[OBSERVE]` line after | `EXECUTE_EXIT`; within the same loop `execute_loop_audit.sh` scans `action.md` for anomaly keywords — 3 rebuttals force rollback to REFLECT |
@@ -100,7 +100,7 @@ BOOT ──► PREPARE ──► REFLECT ──► EXECUTE_LOOP ──► END
 
 State transitions are **actively** initiated by the model after meeting the exit condition: it calls `bash ~/.claude/hooks/transition.sh <event>`. `transition.sh` is **not** a hook — it's a script the model invokes. It writes `state.md`; on the next `UserPromptSubmit`, `inject_router.sh` reads the new state and injects the corresponding router text.
 
-**Where `<task>` comes from**: the user manually places `workspace/<task>/goal.md`; on first `UserPromptSubmit`, `session_boot.sh` picks the most recently modified task directory and writes its name to the `task` field of `state.md`.
+**Where `<task>` comes from**: the user places `workspace/<task>/goal.md` manually (or has the AI run `scripts/new_task.sh <name>` to scaffold it); on first `UserPromptSubmit`, `session_boot.sh` picks the most recently modified task subdirectory and writes its name to the `task` field of `state.md`. Every subsequent ledger entry carries that `task:` value.
 
 ### REFLECT's rebuttal protocol
 
@@ -134,12 +134,13 @@ Patches do **not** auto-activate, avoiding the runaway path where "the AI drafts
   transitions.log    3-line summary per state transition
   reflection_*.md    multi-round rebuttal records
 
-workspace/<task>/                    persistent across sessions, recommended for git track
-  goal.md            user-written, read-only for main agent
-  bitter_lessons.md  project-level technical pitfalls (independent numbering L-N within project)
-  successful_fixes.md
-  attempts_ledger.md
-  rule_violations.md project-level AI behavioral errors (independent numbering W-N within project)
+workspace/                           persistent across sessions, recommended for git track
+  bitter_lessons.md  repo-shared — technical pitfalls (L-N, each entry has task: + tags:)
+  successful_fixes.md repo-shared — verified fixes (FIX-N + task: + tags:)
+  attempts_ledger.md  repo-shared — attempt log (ATT-N + task: + tags:)
+  rule_violations.md  repo-shared — AI behavioral errors (W-N + task: + tags:)
+  <task>/
+    goal.md          per-task, user-written, read-only for main agent
 
 ~/.claude/rules/                     global rules (cross-project)
   violation.md       global W-XXX (separate namespace from project-level rule_violations.md)
@@ -150,7 +151,7 @@ workspace/<task>/                    persistent across sessions, recommended for
   workflow_config.yaml  tunables (reflect.max_rounds etc.)
 ```
 
-`bitter_lessons.md` (project tech pitfalls) vs `rule_violations.md` (project AI behavioral errors): the former records facts like "batch size X OOMs on this GPU"; the latter records mistakes like "skipped [PLAN] and called the tool directly." Both are indexed by `tags:` lines; new sessions grep by task-relevant tags during BOOT.
+`bitter_lessons.md` (repo-shared tech pitfalls) vs `rule_violations.md` (repo-shared AI behavioral errors): the former records facts like "batch size X OOMs on this GPU"; the latter records mistakes like "skipped [PLAN] and called the tool directly." Every entry carries `task: <name>` + `tags:`; new sessions filter by current `task` name OR shared tags during BOOT.
 
 Project-level numbering (`L-N` / `W-N`) and global numbering (`L-XXX` / `W-XXX`) live in **independent namespaces** — no cross-file references.
 

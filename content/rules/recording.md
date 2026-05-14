@@ -8,11 +8,13 @@ Recording targets:
 |------|-------|----------|
 | `content/templates/global_rules/violation.md` (repo) → deployed to `~/.claude/rules/violation.md` | global | AI behavioral violations (W-XXX + tags). Write to repo path (no approval click). |
 | `content/templates/global_rules/lessons.md` (repo) → deployed to `~/.claude/rules/lessons.md` | global | Cross-project AI behavior wisdom (L-XXX + tags). |
-| `$PWD/workspace/<task>/attempts_ledger.md` | project | ATT-N cross-turn intent log. |
-| `$PWD/workspace/<task>/bitter_lessons.md` | project | Project-technical pitfalls (config combos that break, library incompatibilities, hardware quirks). |
-| `$PWD/workspace/<task>/successful_fixes.md` | project | FIX-N confirmed wins. |
-| `$PWD/workspace/<task>/rule_violations.md` | project | Per-project AI behavioral mistakes (KV-cache misjudgment, skipped record-before-op, etc.). |
-| `$PWD/workspace/<task>/goal.md` | project | User-controlled. main reads only. |
+| `$PWD/workspace/attempts_ledger.md` | project (shared) | ATT-N cross-turn intent log; each entry has `task: <name>` + `tags:`. |
+| `$PWD/workspace/bitter_lessons.md` | project (shared) | Project-technical pitfalls (config combos, lib incompat, hardware quirks); `task:` + `tags:`. |
+| `$PWD/workspace/successful_fixes.md` | project (shared) | FIX-N confirmed wins; `task:` + `tags:`. |
+| `$PWD/workspace/rule_violations.md` | project (shared) | Per-project AI behavioral mistakes (cache misjudgment, skipped record-before-op, etc.); `task:` + `tags:`. |
+| `$PWD/workspace/<task>/goal.md` | per-task | User-controlled. main reads only. |
+
+The 4 ledgers are **shared across all tasks in this repo**. Add `task: <name>` to every new entry so future sessions can filter. `goal.md` is the only per-task file.
 
 bitter_lessons vs rule_violations: **bitter_lessons** = project technical pitfalls (bs=32 OOMs on this card, torch-compile + flame incompat). **rule_violations** = AI behavioral mistakes (skipped dispatch, misjudged KV cache, didn't record before op). Don't confuse them.
 

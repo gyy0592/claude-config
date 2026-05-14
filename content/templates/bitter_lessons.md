@@ -1,7 +1,7 @@
 <!-- template version = v2.0 (claude-config-v2-hook) -->
 # Bitter Lessons — Archive of Failed Efforts
 
-**Scope**: Project-level (per `militar_camp/`).
+**Scope**: Project-level (shared across all tasks; lives at `$PWD/workspace/bitter_lessons.md`). Each entry MUST carry `task: <name>` + `tags:` so future sessions can filter by current task.
 **Purpose**: Verbose archive of efforts that **failed** or proved to be **wrong direction**.
 **Why this matters**: Stops AI from re-trying the same dead-end weeks later. The lesson is bitter because cost was paid (time, tokens, compute, frustration) — the value is preventing payment again.
 

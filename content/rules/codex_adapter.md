@@ -14,7 +14,7 @@ tool-agnostic; only the transport layer differs.
 | `Agent(run_in_background=true, ...)` | subagent spawn (varies by host) | ⚠ wrapper | see `spawn_subagent` below |
 | `SendMessage(to=<agent_id>, message=...)` | **no native equivalent** | ⚠ fallback | see "Markdown poll loop" below |
 | `Monitor(bash_id=...)` | `tail -f` / `BashOutput` | ⚠ wrapper | see `poll_bg_output` below |
-| `TaskCreate` / `TaskList` / `TaskStop` | none | ⚠ file-state | use `workspace/<task>/attempts_ledger.md` |
+| `TaskCreate` / `TaskList` / `TaskStop` | none | ⚠ file-state | use shared `workspace/attempts_ledger.md` (entries tagged `task:`) |
 | `KillBash` | `kill <pid>` | ⚠ pid lookup | parse `claude-bg.log` for pid |
 | `/goal` (slash command) | none | ❌ no native | autonomous-3-failure rule from failure_stop.md is the only stop signal |
 | `~/.claude/rules/*.md` auto-load | `~/.codex/rules/*.md` | ⚠ deploy | extend `set_codex.sh` to mirror `set_claude.sh` rules-deploy block |

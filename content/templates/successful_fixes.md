@@ -1,7 +1,7 @@
 <!-- template version = v2.0 (claude-config-v2-hook) -->
 # Successful Fixes — Archive of What Actually Worked
 
-**Scope**: Project-level (per `militar_camp/`).
+**Scope**: Project-level (shared across all tasks; lives at `$PWD/workspace/successful_fixes.md`). Each entry MUST carry `task: <name>` + `tags:`.
 **Purpose**: Permanent record of the **final winning fix** for each significant bug / improvement, AFTER multiple attempts. Distinguishes one-shot lucky fixes (rare) from hard-won fixes (common).
 **Why this matters**: When a similar bug recurs, the AI can find the proven solution instead of re-exploring hypothesis space.
 

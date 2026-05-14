@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # prepare_helper.sh — main calls this during PREPARE to:
-#   1. List candidate artifacts under $PWD/workspace/<task>/ + .barry_workflow/
+#   1. List candidate artifacts under $PWD/workspace/*.md (shared ledgers) + $PWD/workspace/<task>/goal.md + .barry_workflow/
 #   2. Emit a cache_hit_map YAML stub (one row per artifact, hit: UNKNOWN) for
 #      main to fill in (YES/NO) based on its own KV-cache self-report.
 #   3. Echo a prompt-reinforcement checklist (4 elements: observable, cadence,

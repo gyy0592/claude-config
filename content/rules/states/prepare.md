@@ -22,7 +22,7 @@ For each row in the stub, replace `UNKNOWN` with:
 
 Paste the filled YAML into `state.md` `cache_hit_map:` block.
 
-**Misjudgment** (claiming YES when actually NO) = AI behavioral error → write to `rule_violations.md` if caught later.
+**Misjudgment** (claiming YES when actually NO) = AI behavioral error → append to `workspace/rule_violations.md` (with current `task:`) if caught later.
 
 ### Step 3 — Read every NO row
 

@@ -27,7 +27,7 @@ Force reproduce-before-fix discipline; escalate REFLECT to 2 rounds (not the def
 
 1. **Reproducer first** — before any code edit:
    - Capture minimal repro command + expected vs actual output in action.md under `[REPRO]`.
-   - Save raw failing log to `workspace/<task>/repro_<ts>.log` (or ledger equivalent).
+   - Save raw failing log to `workspace/<task>/repro_<ts>.log` (per-task scratch under the task dir alongside `goal.md`).
 2. **One variable at a time** — between repro runs, change exactly one knob; record under `[VAR=<name> from <old> to <new>]` in action.md.
 3. **3-anomaly escalation** — when execute_loop_audit.sh reports anomaly count ≥ 3:
    - `transition.sh EXECUTE_EXIT --reason=bug-3anomaly`

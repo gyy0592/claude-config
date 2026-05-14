@@ -1,6 +1,6 @@
 # content/templates/ — barry-workflow runtime artifact templates
 
-Source-of-truth templates copied / referenced by `set_claude.sh` and the BOOT hook (`session_boot.sh`). The deployed runtime artifacts live under `$PWD/.barry_workflow/` and `$PWD/workspace/<task>/`.
+Source-of-truth templates copied / referenced by `set_claude.sh`, `new_task.sh`, and the BOOT hook (`session_boot.sh`). At runtime: per-session state lives under `$PWD/.barry_workflow/<sid>/`; shared project ledgers (`bitter_lessons`, `successful_fixes`, `attempts_ledger`, `rule_violations`) live at `$PWD/workspace/`; per-task goals at `$PWD/workspace/<task>/goal.md`.
 
 ## Kept (v2.1)
 
