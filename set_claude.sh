@@ -203,7 +203,7 @@ fi
 
 mkdir -p "$HOOKS_DST"
 
-for f in inject_decrees.sh inject_decrees_to_subagent.sh stop_self_audit.sh reset_session_status.sh inject_router.sh session_boot.sh transition.sh; do
+for f in inject_decrees.sh inject_decrees_to_subagent.sh stop_self_audit.sh reset_session_status.sh inject_router.sh session_boot.sh transition.sh prepare_helper.sh; do
     src="${HOOKS_SRC}/${f}"
     dst="${HOOKS_DST}/${f}"
     if [ ! -f "$src" ]; then
