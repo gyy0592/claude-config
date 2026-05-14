@@ -178,16 +178,14 @@ done
 # ── 5b'. Deploy v4 policy files (content/rules/ → ~/.claude/rules/) ──
 V4_RULES_SRC="${CONTENT_DIR}/rules"
 if [ -d "$V4_RULES_SRC" ]; then
-    for f in p1_identity.md p2_facts_first.md p3_dispatch.md p4_recording.md p6_workflow.md subagent_rules.md fsm.md index.md; do
-        src="${V4_RULES_SRC}/${f}"
+    shopt -s nullglob
+    for src in "${V4_RULES_SRC}"/*.md; do
+        f="$(basename "$src")"
         dst="${RULES_DST}/${f}"
-        if [ ! -f "$src" ]; then
-            echo "[deploy] ⚠ v4 rule source missing: ${src} (skipping)"
-            continue
-        fi
         cp "$src" "$dst"
         echo "[deploy] ✓ ${dst} (v4 policy)"
     done
+    shopt -u nullglob
 else
     echo "[deploy] ⚠ ${V4_RULES_SRC} missing — v4 rules not deployed"
 fi
