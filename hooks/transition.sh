@@ -75,8 +75,11 @@ pathlib.Path(path).write_text(new_src)
 print(f"{event} → {new_status}")
 PY
 
-# v2.1 P30: append transition log entry (non-fatal on failure)
-HELPER_SCRIPT="$(dirname "$0")/../scripts/_transition_log_helper.py"
+# v2.1 P30: append transition log entry (non-fatal on failure).
+# Helper lives in repo's scripts/ and is reached via __CLAUDE_CONFIG_DIR__
+# (sed-substituted by set_claude.sh at deploy time) — the deployed
+# ~/.claude/hooks/ dir has no scripts/ sibling.
+HELPER_SCRIPT="__CLAUDE_CONFIG_DIR__/scripts/_transition_log_helper.py"
 if [ -f "$HELPER_SCRIPT" ]; then
     python3 "$HELPER_SCRIPT" "$SDIR" "$SID" "$OLD_STATUS" "$NEW" "$EVENT" "$REASON" "$TS" \
         || echo "[transition.sh] log helper failed (non-fatal)" >&2
