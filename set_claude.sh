@@ -154,7 +154,7 @@ for f in violation.md lessons.md; do
             echo "          Source: $src"
             echo "          Target: $dst"
             echo "          Differences (first 20 lines):"
-            diff "$src" "$dst" 2>/dev/null | head -20 | sed 's/^/            /'
+            (diff "$src" "$dst" 2>/dev/null || true) | head -20 | sed 's/^/            /'
             echo ""
             # v4 P2: source-of-truth wins by default; user can `cp dst src` to preserve old.
             # Non-interactive (no tty) defaults to overwrite — set_claude.sh is idempotent re-deploy.
