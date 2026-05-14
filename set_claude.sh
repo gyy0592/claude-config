@@ -291,9 +291,10 @@ changed = False
 if cfg.get("showThinkingSummaries") is not True:
     cfg["showThinkingSummaries"] = True
     changed = True
-if cfg.get("effortLevel") != "high":
-    cfg["effortLevel"] = "high"
-    changed = True
+# v4 P1: do not force effortLevel (user-controlled).
+# if cfg.get("effortLevel") != "high":
+#     cfg["effortLevel"] = "high"
+#     changed = True
 
 hooks = cfg.setdefault("hooks", {})
 
@@ -321,21 +322,16 @@ def ensure_hook(event, matcher, command):
     bucket.append(entry)
     changed = True
 
-# UserPromptSubmit: reset_session_status.sh (per-session status.md reset)
-RESET_SCRIPT = os.path.expanduser("~/.claude/hooks/reset_session_status.sh")
-ensure_hook("UserPromptSubmit", None, f"bash {RESET_SCRIPT}")
-
-# UserPromptSubmit: inject_decrees.sh (fires on user msg + cron tick)
-ensure_hook("UserPromptSubmit", None, f"bash {INJECT_SCRIPT}")
-
-# PostToolUse matcher=Agent: re-inject after subagent returns to main thread
-ensure_hook("PostToolUse", "Agent", f"bash {INJECT_SCRIPT}")
-
-# PreToolUse matcher=Agent: inject Iron Rules + Decrees into subagent's prompt
-ensure_hook("PreToolUse", "Agent", f"bash {INJECT_SUBAGENT_SCRIPT}")
-
-# Stop: self-audit checklist (blocks first stop, lets second through via stop_hook_active)
-ensure_hook("Stop", None, f"bash {STOP_AUDIT_SCRIPT}")
+# v4 P1: legacy v2-hook registrations DISABLED.
+# reset_session_status.sh / inject_decrees.sh / inject_decrees_to_subagent.sh / stop_self_audit.sh
+# are no longer auto-registered. P2 will replace them with the slim router hook.
+# (Scripts on disk are preserved for reference but unregistered.)
+# RESET_SCRIPT = os.path.expanduser("~/.claude/hooks/reset_session_status.sh")
+# ensure_hook("UserPromptSubmit", None, f"bash {RESET_SCRIPT}")
+# ensure_hook("UserPromptSubmit", None, f"bash {INJECT_SCRIPT}")
+# ensure_hook("PostToolUse", "Agent", f"bash {INJECT_SCRIPT}")
+# ensure_hook("PreToolUse", "Agent", f"bash {INJECT_SUBAGENT_SCRIPT}")
+# ensure_hook("Stop", None, f"bash {STOP_AUDIT_SCRIPT}")
 
 # ── v2 preserved: PostToolUse=Bash background logger (debug use, unrelated to memory) ──
 BG_HOOK_CMD = (
