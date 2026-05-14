@@ -9,6 +9,36 @@
 #
 # No `set -e` here — this file is meant to be sourced.
 
+# ── P35: hand-rolled mini yaml parser ────────────────────────────────────────
+# read_config <yaml_path> <dotted_key>
+# Reads a simple (no-anchors, no-flow) yaml file and returns the value for the
+# given 1- or 2-level dotted key (e.g. "execute_loop.failure_budget").
+# Returns empty string and exit non-zero if file missing or key not found.
+# Caller should fall back to a hardcoded default + print a warning to stderr.
+read_config() {
+    local yaml="$1" key="$2"
+    [ -f "$yaml" ] || return 1
+    local top="${key%%.*}"
+    local sub="${key#*.}"
+    if [ "$top" = "$key" ]; then
+        # single-level key
+        sed -n "s/^${key}:[[:space:]]*\(.*\)$/\1/p" "$yaml" | head -1 | tr -d "'\"" | tr -d '[:space:]'
+    else
+        # two-level: find "top:" block, then find "sub:" inside it
+        awk -v top="$top" -v sub="$sub" '
+            $0 ~ ("^"top":") { in_top=1; next }
+            in_top && /^[a-zA-Z_]/ { in_top=0 }
+            in_top && $0 ~ ("^[[:space:]]+"sub":") {
+                sub("^[[:space:]]+"sub":[[:space:]]*", "")
+                gsub(/["\047]/, "")
+                gsub(/[[:space:]]/, "")
+                print
+                exit
+            }
+        ' "$yaml"
+    fi
+}
+
 # session_dir <cwd> <sid> → echoes <cwd>/.barry_workflow/<sid>
 session_dir() {
     local cwd="$1"

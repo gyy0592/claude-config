@@ -4,13 +4,25 @@
 # (permissionDecision="allow") to avoid blocking; no policy text inlined.
 # Counters live under $PWD/.barry_workflow/nudge_counters.json (best-effort).
 #
-# Tunables (v2.1 P13): see content/rules/workflow_config.yaml
-#   pretool_nudge.read_threshold  → "$cnt -ge 3" check below
-#   pretool_nudge.max_chars       → 100-char truncation in nudge()
+# Tunables (v2.2 P35): read from content/rules/workflow_config.yaml at runtime.
+#   pretool_nudge.read_threshold  → "$cnt -ge $READ_THRESHOLD" check below
+#   pretool_nudge.max_chars       → truncation in nudge()
 set -euo pipefail
 
 # shellcheck source=_session_lib.sh
 . "$(dirname "$0")/_session_lib.sh"
+
+# P35: resolve yaml path via __CLAUDE_CONFIG_DIR__ (sed-substituted at deploy time).
+_YAML="__CLAUDE_CONFIG_DIR__/content/rules/workflow_config.yaml"
+READ_THRESHOLD="$(read_config "$_YAML" pretool_nudge.read_threshold 2>/dev/null || true)"
+if [ -z "$READ_THRESHOLD" ]; then
+    echo "[hook] config read failed for pretool_nudge.read_threshold, using default=3" >&2
+    READ_THRESHOLD=3
+fi
+MAX_CHARS="$(read_config "$_YAML" pretool_nudge.max_chars 2>/dev/null || true)"
+if [ -z "$MAX_CHARS" ]; then
+    MAX_CHARS=100
+fi
 
 INPUT="$(cat || true)"
 TOOL="$(printf '%s' "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || true)"
@@ -40,9 +52,9 @@ bump() {
 }
 
 nudge() {
-    # Emits JSON envelope with allow + a short reason. Max 100 chars enforced.
+    # Emits JSON envelope with allow + a short reason. Max $MAX_CHARS enforced.
     local msg="$1"
-    [ "${#msg}" -gt 100 ] && msg="${msg:0:97}..."
+    [ "${#msg}" -gt "$MAX_CHARS" ] && msg="${msg:0:$((MAX_CHARS-3))}..."
     jq -n --arg m "$msg" '{
         hookSpecificOutput: {
             hookEventName: "PreToolUse",
@@ -56,7 +68,7 @@ nudge() {
 case "$TOOL" in
     Read|Grep|Glob)
         cnt=$(bump "read")
-        if [ "${cnt:-0}" -ge 3 ]; then
+        if [ "${cnt:-0}" -ge "$READ_THRESHOLD" ]; then
             nudge "p3: $cnt reads this session — dispatch a subagent for broad exploration?"
         fi
         ;;

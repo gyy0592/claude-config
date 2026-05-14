@@ -3,12 +3,20 @@
 # main can call this at any point inside the loop (or before EXECUTE_EXIT) to
 # verify [PLAN]/[OBSERVE] pairing and failure-budget consumption.
 #
-# Tunables (v2.1 P13): see content/rules/workflow_config.yaml
-#   execute_loop.failure_budget  → "$ANOM_CNT -ge 3" check below
+# Tunables (v2.2 P35): read from content/rules/workflow_config.yaml at runtime.
+#   execute_loop.failure_budget  → "$ANOM_CNT -ge $FAIL_BUDGET" check below
 set -euo pipefail
 
 # shellcheck source=_session_lib.sh
 . "$(dirname "$0")/_session_lib.sh"
+
+# P35: resolve yaml path via __CLAUDE_CONFIG_DIR__ (sed-substituted at deploy time).
+_YAML="__CLAUDE_CONFIG_DIR__/content/rules/workflow_config.yaml"
+FAIL_BUDGET="$(read_config "$_YAML" execute_loop.failure_budget 2>/dev/null || true)"
+if [ -z "$FAIL_BUDGET" ]; then
+    echo "[hook] config read failed for execute_loop.failure_budget, using default=3" >&2
+    FAIL_BUDGET=3
+fi
 
 CWD="${PWD}"
 ACTION_FILE="$(latest_action_file "$CWD" || true)"
@@ -31,6 +39,6 @@ echo ""
 if [ "$PLAN_CNT" -ne "$OBS_CNT" ]; then
     echo "⚠ PLAN/OBSERVE mismatch (${PLAN_CNT} vs ${OBS_CNT}). Each [PLAN] must be paired with one [OBSERVE]."
 fi
-if [ "$ANOM_CNT" -ge 3 ]; then
-    echo "⚠ Failure budget exhausted (${ANOM_CNT} anomalies). Per failure_stop.md: call transition.sh EXECUTE_EXIT --reason=bug and report to user, UNLESS \$PWD/CLAUDE.md AUTH override is in effect."
+if [ "$ANOM_CNT" -ge "$FAIL_BUDGET" ]; then
+    echo "⚠ Failure budget exhausted (${ANOM_CNT}/${FAIL_BUDGET} anomalies). Per failure_stop.md: call transition.sh EXECUTE_EXIT --reason=bug and report to user, UNLESS \$PWD/CLAUDE.md AUTH override is in effect."
 fi
