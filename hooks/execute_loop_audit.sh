@@ -27,5 +27,5 @@ if [ "$PLAN_CNT" -ne "$OBS_CNT" ]; then
     echo "⚠ PLAN/OBSERVE mismatch (${PLAN_CNT} vs ${OBS_CNT}). Each [PLAN] must be paired with one [OBSERVE]."
 fi
 if [ "$ANOM_CNT" -ge 3 ]; then
-    echo "⚠ Failure budget exhausted (${ANOM_CNT} anomalies). Per p6_workflow.md M6: call transition.sh EXECUTE_EXIT --reason=bug and report to user, UNLESS \$PWD/CLAUDE.md AUTH override is in effect."
+    echo "⚠ Failure budget exhausted (${ANOM_CNT} anomalies). Per failure_stop.md: call transition.sh EXECUTE_EXIT --reason=bug and report to user, UNLESS \$PWD/CLAUDE.md AUTH override is in effect."
 fi

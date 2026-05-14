@@ -34,13 +34,13 @@ Transitions via `transition.sh <event>`; details in `~/.claude/rules/fsm.md`.
 
 | Trigger | Read |
 |---------|------|
-| Identity / self-reference | `~/.claude/rules/p1_identity.md` |
-| `[INFERENCE]` used | `~/.claude/rules/p2_facts_first.md` |
-| >1 file / WebSearch / code → dispatch | `~/.claude/rules/p3_dispatch.md` |
-| Recording (action.md, violation, lesson) | `~/.claude/rules/p4_recording.md` |
-| 4-step workflow + reflection | `~/.claude/rules/p6_workflow.md` |
+| `[INFERENCE]` used | `~/.claude/rules/facts_first.md` |
+| >1 file / WebSearch / code → dispatch | `~/.claude/rules/dispatch.md` |
+| Recording (action.md, violation, lesson) | `~/.claude/rules/recording.md` |
+| FSM state transition (overview) | `~/.claude/rules/fsm.md` |
+| In a specific state | `~/.claude/rules/states/<status>.md` |
+| 3-failure stop | `~/.claude/rules/failure_stop.md` |
 | Subagent prompt | `~/.claude/rules/subagent_rules.md` |
-| Unsure | `~/.claude/rules/index.md` |
 
 ## Three meta-rules (always on)
 
@@ -48,7 +48,7 @@ Transitions via `transition.sh <event>`; details in `~/.claude/rules/fsm.md`.
 2. **Reflect** — every reply opens with `[BOARD_READ]` + 4-module reflection written to `action_<sid>.md`. REFLECT status uses subagent rebuttal (main drives via SendMessage, subagent writes markdown).
 3. **Monitor** — long bg jobs need Monitor calls every 10-15 min.
 
-3-failure stop: after 3 failed attempts in an autonomous loop, stop and report. `$PWD/CLAUDE.md` AUTH keywords override.
+3-failure stop: after 3 failed attempts in an autonomous loop, stop and report. `$PWD/CLAUDE.md` AUTH keywords override. Detail in `~/.claude/rules/failure_stop.md`.
 
 ## Recording
 
@@ -65,7 +65,7 @@ Closing every action task: append entry to the relevant ledger OR write `[no new
 
 ## Conflict resolution
 
-current user instruction > latest hook injection > this file > `$PWD/CLAUDE.md` — except: `$PWD/CLAUDE.md` authorization keywords (e.g. "allow you to do anything") override the autonomous-3-failure stop defined in `p6_workflow.md` M6.
+current user instruction > latest hook injection > this file > `$PWD/CLAUDE.md` — except: `$PWD/CLAUDE.md` authorization keywords (e.g. "allow you to do anything") override the autonomous-3-failure stop defined in `failure_stop.md`.
 
 ---
 

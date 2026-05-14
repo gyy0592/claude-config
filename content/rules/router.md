@@ -2,16 +2,15 @@
 
 | Trigger | File |
 |---|---|
-| self-reference / address user | p1_identity.md |
-| writing [INFERENCE] or [ASSUMPTION] | p2_facts_first.md |
-| Read >1 file / WebSearch / code change | p3_dispatch.md |
-| edit / write / long Bash | p4_recording.md |
-| start of turn flow / 4-step + REFLECT-A 6-row | p6_workflow.md |
+| writing [INFERENCE] or [ASSUMPTION] | facts_first.md |
+| Read >1 file / WebSearch / code change | dispatch.md |
+| edit / write / long Bash | recording.md |
+| FSM state transition (overview) | fsm.md |
+| in BOOT / PREPARE / REFLECT / EXECUTE_LOOP / END | states/<status>.md |
+| 3-failure stop rule | failure_stop.md |
 | just spawned a subagent (auto-injected too) | subagent_rules.md |
-| FSM state transition | fsm.md |
 | suspected rule violation | violation.md (auto-loaded) |
 | precedent / past wisdom | lessons.md (auto-loaded) |
-| unsure which applies | index.md |
 
 Three meta-rules (always on):
 1. Dispatch — >1 file / WebSearch / code change ⇒ Agent(run_in_background=true).
@@ -19,4 +18,4 @@ Three meta-rules (always on):
 3. Monitor — long bg jobs need Monitor() every 10–15 min.
 
 FSM: BOOT → PREPARE → REFLECT ↔ EXECUTE_LOOP. transition.sh <event> on each edge.
-3-failure stop: after 3 autonomous-loop failures, stop + report (override: $PWD/CLAUDE.md AUTH keywords).
+3-failure stop: after 3 autonomous-loop failures, stop + report (override: $PWD/CLAUDE.md AUTH keywords). Detail in failure_stop.md.

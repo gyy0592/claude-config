@@ -191,6 +191,16 @@ if [ -d "$V4_RULES_SRC" ]; then
         cp "$src" "$dst"
         echo "[deploy] ✓ ${dst} (v4 policy)"
     done
+    # v2.1 P11: deploy per-state files under states/
+    if [ -d "${V4_RULES_SRC}/states" ]; then
+        mkdir -p "${RULES_DST}/states"
+        for src in "${V4_RULES_SRC}/states"/*.md; do
+            f="$(basename "$src")"
+            dst="${RULES_DST}/states/${f}"
+            cp "$src" "$dst"
+            echo "[deploy] ✓ ${dst} (v4 policy / states)"
+        done
+    fi
     shopt -u nullglob
 else
     echo "[deploy] ⚠ ${V4_RULES_SRC} missing — v4 rules not deployed"

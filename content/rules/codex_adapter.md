@@ -16,7 +16,7 @@ tool-agnostic; only the transport layer differs.
 | `Monitor(bash_id=...)` | `tail -f` / `BashOutput` | ⚠ wrapper | see `poll_bg_output` below |
 | `TaskCreate` / `TaskList` / `TaskStop` | none | ⚠ file-state | use `workspace/<task>/attempts_ledger.md` |
 | `KillBash` | `kill <pid>` | ⚠ pid lookup | parse `claude-bg.log` for pid |
-| `/goal` (slash command) | none | ❌ no native | autonomous-3-failure rule from p6_workflow.md M6 is the only stop signal |
+| `/goal` (slash command) | none | ❌ no native | autonomous-3-failure rule from failure_stop.md is the only stop signal |
 | `~/.claude/rules/*.md` auto-load | `~/.codex/rules/*.md` | ⚠ deploy | extend `set_codex.sh` to mirror `set_claude.sh` rules-deploy block |
 | `UserPromptSubmit` / `PreToolUse` / `PostToolUse` / `Stop` hooks | `~/.codex/config.toml` hooks section | ✅ different syntax, same semantics | translate JSON-envelope hooks to toml |
 
@@ -64,7 +64,7 @@ Codex has no session-scoped goal slash command. v4 workflow degrades to:
 1. user writes the goal verbatim into `workspace/<task>/goal.md` at task start.
 2. main's REFLECT (post-task) sub-agent verifies `goal.md` criteria against
    delivered artefacts before allowing `transition.sh REFLECT_DONE`.
-3. autonomous-3-failure rule (`p6_workflow.md` M6) is the only stop-gate.
+3. autonomous-3-failure rule (`failure_stop.md`) is the only stop-gate.
 
 Loss vs `/goal`: no runtime LLM evaluator forcing continuation. Trade-off
 acceptable; user oversight via `goal.md` is the substitute discipline.

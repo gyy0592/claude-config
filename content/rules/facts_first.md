@@ -1,4 +1,4 @@
-# p2 — facts first
+# facts first
 
 Tag every load-bearing claim:
 - `[FACT]` — directly observed in tool output / file read this turn.

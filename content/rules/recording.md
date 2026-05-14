@@ -1,4 +1,4 @@
-# p4 — recording
+# recording
 
 Record before acting. Every meaningful operation (file edit, long Bash, Agent spawn, config change) gets a one-line `[PLAN]` entry in `$PWD/.barry_workflow/action_<sid>.md` *before* the tool call. Confession without a file record = double violation.
 
