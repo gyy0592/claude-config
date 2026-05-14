@@ -849,33 +849,90 @@ esac</code></pre>
     <h2>6. 下一步 v2.1</h2>
     <p>从最重要、收益最大的开始：</p>
 
-    <h3>P11 — 状态强制 hook（最高优先级）</h3>
-    <p>PostToolUse hook：每次工具调用后检查 state.md current_status。如果跟 router 期望的状态不符（比如 state=BOOT 但 main 在调 Edit），<b>注入警告</b>到下个 turn。</p>
+    <h3>P11 — 规则文件大重构（最高优先级）</h3>
+    <p>当前 12 个 rule 文件 50% 是 v1 遗产 / 内容跨多 state / 含场景专属补丁。重构目标：</p>
+    <ul>
+      <li><b>删</b>：<code>p1_identity.md</code>（合进 router/facts_first 顶）/ <code>p6_workflow.md</code>（4-step 跟 state 重复；REFLECT-A 6-row 是 v1 包袱）/ <code>index.md</code>（router 本身就是查找表）</li>
+      <li><b>拆</b>：<code>p3_dispatch.md</code> 删 Monitor cadence 段（挪 patches/long_monitor.md）；<code>fsm.md</code> 切成 <code>states/{boot,prepare,reflect,execute,end}.md</code></li>
+      <li><b>抢救</b>：<code>p6_workflow.md</code> 的 M6 3-failure stop 独立成 <code>failure_stop.md</code>（之前我叫 m6_failure_stop 是 v1 编号惯性，改名）</li>
+      <li><b>合并</b>：<code>reflect_protocol.md</code> + <code>reflect_subagent_prompt.md</code> → <code>states/reflect.md</code></li>
+    </ul>
 
-    <h3>P12 — 跨 session inherit</h3>
-    <p>session_boot.sh 检测 .barry_workflow/state_*.md 已存在 → 不建新 sid，复用最近的；或者用 inherited_from: &lt;old_sid&gt; 字段。</p>
+    <h3>P12 — INFERENCE_GATE 子状态（新机制）</h3>
+    <p>原 p2_facts_first 加强：<b>非必要不给 [INFERENCE]</b>。AI 真要写 [INFERENCE] → 自动进入 INFERENCE_GATE 状态：</p>
+    <ol>
+      <li>列已经做过的努力（Read 哪些文件 + WebSearch 哪些关键词）</li>
+      <li>缺数据 → 派 agent 补全 → 回来再判</li>
+      <li>真要写 → 强制 1 轮 rebuttal（reviewer 验证证据链）</li>
+      <li>通过 → 输出 [INFERENCE]，永远带证据脚注</li>
+    </ol>
+    <p>相当于 EXECUTE_LOOP 内嵌迷你 REFLECT。或者做成第 7 个 state 平行 REFLECT — 待定。</p>
 
-    <h3>P13 — patches/ 系统</h3>
-    <p>实现 big_picture.md 描述的补丁层（schema + 加载 hook + 自动起草）。</p>
+    <h3>P13 — 硬编码 → workflow_config.yaml</h3>
+    <p>当前散在多个文件的常数集中外置：</p>
+    <pre><code>reflect:
+  rounds_default: 5
+  rounds_fallback: 10
+execute_loop:
+  failure_budget: 3
+pretool_nudge:
+  read_threshold: 3
+  max_chars: 100
+prompt_reinforce:
+  required_elements: [observable, cadence, reflection, completion]</code></pre>
+    <p>state docs + hook 脚本都 source 这个 yaml。改阈值不动 .md / .sh。</p>
 
-    <h3>P14 — P8 demo（user 监督下）</h3>
+    <h3>P14 — patches/ 系统（提前实现 big_picture §3）</h3>
+    <p>新建 <code>~/.claude/rules/patches/</code>，把场景专属补丁挪进去：</p>
+    <ul>
+      <li><code>patches/long_monitor.md</code>（cadence 三档 + Monitor 5-60-60+ 节奏）</li>
+      <li><code>patches/bug_debug.md</code>（anomaly 关键字白名单 + 失败预算 3）</li>
+      <li><code>patches/perf_debug.md</code>（baseline 必测 + 一次改一个变量）</li>
+    </ul>
+    <p>schema 见 big_picture.md §3.3。补丁有 active/draft/deprecated 三态。</p>
+
+    <h3>P15 — state-aware router（每个 state 一个 router_&lt;state&gt;.md）</h3>
+    <p>当前 router 是 static。改成 hook 读 state.md 然后 cat 对应 <code>~/.claude/rules/router_&lt;state&gt;.md</code>：</p>
+    <ul>
+      <li>显式说"你现在在 X state"</li>
+      <li>列本 state 必读的 .md 文件</li>
+      <li>列本 state <b>禁止</b>的操作（REFLECT 状态禁 Edit / Write 等）</li>
+      <li>给 transition 命令样板</li>
+    </ul>
+
+    <h3>P16 — 状态强制 hook</h3>
+    <p>PostToolUse hook 检查 state.md current_status，跟工具不符就警告。配合 P15 router 形成"硬约束"。</p>
+
+    <h3>P17 — 跨 session inherit</h3>
+    <p>session_boot.sh 检测旧 state_*.md 存在 → 复用 sid 或写 inherited_from。</p>
+
+    <h3>P18 — 模板大清理</h3>
+    <p>删 <code>content/templates/</code> 里 9 个 v1 cosplay 残留（corporal_* / soldier_* / warning_board / reward_board / traitor / status / operation_log），保留 6 个有用的（state/action/reflection/bitter_lessons/attempts_ledger/successful_fixes/goal templates）。</p>
+
+    <h3>P19 — P8 demo（user 监督下）</h3>
     <p>跑通 Qwen-0.5B + 100 GSM8K + activation hook + 利用率验证。这一跑能验证整个 EXECUTE_LOOP + REFLECT post-task 真的能工作。</p>
 
-    <h3>P15 — Scenario ↔ Seed 对齐</h3>
-    <p>把 scenarios.html 5 个场景翻译成 seed 里的"场景识别 → 行为差异"规则。比如新增 <code>p7_scenarios.md</code>，列每个 scenario 的 cadence 公式 / REFLECT 轮数。</p>
+    <h3>P20 — Scenario ↔ Patch 对齐</h3>
+    <p>把 scenarios.html 5 个场景的 cadence 公式 / REFLECT 轮数翻译成 patches/*.md 的 applies_to 触发器。</p>
 
-    <h3>P16 — IDE 边栏视图（远期）</h3>
-    <p>VS Code 扩展显示 current_status + recent transitions + active subagent，让 user 实时看到 AI 在哪个 state。</p>
+    <h3>P21 — global lessons 常态化引用</h3>
+    <p>lessons.md 已经 auto-loaded，但 AI 不一定每次 reply 前看。router always-on 段加一行明示："回答 user 前 grep lessons.md tags 检查个人偏好命中"。</p>
 
     <table>
       <tr><th>P</th><th>工时</th><th>收益</th></tr>
-      <tr><td>P11 状态强制</td><td>3h</td><td>★★★ 解决软约束问题</td></tr>
-      <tr><td>P12 跨 session</td><td>2h</td><td>★★ 长任务必需</td></tr>
-      <tr><td>P13 patches</td><td>5h</td><td>★★ 自我进化基础</td></tr>
-      <tr><td>P14 demo</td><td>4h</td><td>★★★ 验证整个系统</td></tr>
-      <tr><td>P15 scenario 对齐</td><td>2h</td><td>★ 让 seed 更具体</td></tr>
-      <tr><td>P16 IDE</td><td>?</td><td>★ 远期</td></tr>
+      <tr><td>P11 规则重构</td><td>4h</td><td>★★★ 清掉 v1 包袱</td></tr>
+      <tr><td>P12 INFERENCE_GATE</td><td>3h</td><td>★★★ 解决 AI 乱猜</td></tr>
+      <tr><td>P13 config.yaml</td><td>2h</td><td>★★ 可调不改码</td></tr>
+      <tr><td>P14 patches/</td><td>5h</td><td>★★★ 自我进化基础</td></tr>
+      <tr><td>P15 state-aware router</td><td>3h</td><td>★★★ AI 知道在哪</td></tr>
+      <tr><td>P16 状态强制</td><td>3h</td><td>★★★ 解决软约束</td></tr>
+      <tr><td>P17 跨 session</td><td>2h</td><td>★★ 长任务必需</td></tr>
+      <tr><td>P18 模板清理</td><td>1h</td><td>★ 去 v1 残留</td></tr>
+      <tr><td>P19 P8 demo</td><td>4h</td><td>★★★ 验证整个系统</td></tr>
+      <tr><td>P20 scenario↔patch</td><td>2h</td><td>★★ seed 跟 spec 对齐</td></tr>
+      <tr><td>P21 lessons 常态化</td><td>1h</td><td>★ 偏好真生效</td></tr>
     </table>
+    <p>合计 ~30 小时（4-5 工作日）。</p>
   `,
 };
 
