@@ -1,29 +1,14 @@
-[ROUTER · state=PREPARE] You are in PREPARE. Build cache_hit_map, draft plan; no execution.
+[ROUTER · state=PREPARE] You are in PREPARE. Build cache_hit_map + plan, no execution.
 
-Must-read on entry:
-  ~/.claude/rules/states/prepare.md
-  ~/.claude/rules/prompt_enhancement.md (4-element check + default suggestions)
-  ~/.claude/rules/workflow_config.yaml (prompt_reinforce.required_elements)
-  $PWD/.barry_workflow/<sid>/state.md (cache_hit_map row UNKNOWN → Read source artifact)
+→ Full pipeline + completion criteria: `cat ~/.claude/rules/states/prepare.md`
+→ 4-element check defaults: `cat ~/.claude/rules/prompt_enhancement.md`
+→ Helper: `bash ~/.claude/hooks/prepare_helper.sh`
+→ Advance when checklist done: `bash ~/.claude/hooks/transition.sh PREPARE_DONE --reason="<short>"` → REFLECT
 
-Helpers:
-  bash ~/.claude/hooks/prepare_helper.sh   # emit cache_hit_map stub + 4-element checklist
+Quick rules: Allowed = Read/Glob/Grep/WebSearch + planning notes to action.md. Forbidden = Edit/Write to source / Agent / bg jobs / tests.
 
-Allowed: Read / Glob / Grep / Bash(prepare_helper.sh|transition.sh|ls|cat) / planning notes in action.md.
-Forbidden: Edit / Write of project files / launching jobs / spawning execution agents.
-
-Before advancing — finish ALL of these:
-  - cache_hit_map filled (every artifact UNKNOWN → YES/NO)
-  - 4-element check done (observable / cadence / reflection / completion); [PROMPT_REINFORCED] written if any missing
-  - Plan written to action.md (intended deliverable + success criteria)
-  - Patches scanned: any `~/.claude/rules/patches/*.md` whose `applies_to` matches this task → Read
-
-Forget any of the above? → `cat ~/.claude/rules/states/prepare.md` + `cat ~/.claude/rules/prompt_enhancement.md`.
-
-Advance only when checklist done: `bash ~/.claude/hooks/transition.sh PREPARE_DONE --reason=<...>` → REFLECT.
-
-Always-on:
-  - facts_first.md (INFERENCE_GATE).
-  - dispatch.md.
-  - recording.md.
+Always-on (every state):
+  - facts_first.md — gate every [INFERENCE]; INFERENCE_GATE rebuttal required.
+  - dispatch.md — >1 file / WebSearch / code change ⇒ Agent(run_in_background=true).
+  - recording.md — every reply opens with [BOARD_READ] + 4-module reflection.
   - lessons.md grep — before replying to user OR writing deliverables, grep ~/.claude/rules/lessons.md `tags:` for matches (minimal-edits / brevity / language / scope-creep / etc.) and comply.

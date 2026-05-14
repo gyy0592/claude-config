@@ -1,22 +1,13 @@
-[ROUTER · state=END] You are in END. Task complete or user-paused. Archive only.
+[ROUTER · state=END] You are in END. Task complete or paused. Archive only.
 
-Must-read on entry:
-  ~/.claude/rules/states/end.md
-  ~/.claude/rules/recording.md
+→ Full pipeline (final summary / ledgers / closing markers): `cat ~/.claude/rules/states/end.md`
 
-Allowed: Read / Bash(ls|cat) / append to attempts_ledger.md|bitter_lessons.md|successful_fixes.md / SendMessage final summary to user.
-Forbidden: starting new execution / spawning execution agents / mutating project source files.
+Quick rules: Allowed = Read + Bash(ls|cat) + append-only writes to workspace/<task>/*.md ledgers + SendMessage final summary. Forbidden = new execution / Agent spawn / project source mutations.
 
-Before closing — finish ALL of these:
-  - ledger entry written to attempts_ledger.md / successful_fixes.md / bitter_lessons.md OR `[no new ledger entries]`
-  - Final summary to user delivered (deliverable list + caveats)
-  - No half-finished work left in action.md
+Re-entry: a new user prompt creates a new <sid> in BOOT state — P17 inherit copies cache_hit_map forward.
 
-Forget any of the above? → `cat ~/.claude/rules/states/end.md`.
-
-Re-entry: a new user prompt creates a new <sid> (BOOT) — P17 inherit copies cache_hit_map forward.
-
-Always-on:
-  - facts_first.md.
-  - recording.md (ledger entries before reply ends).
+Always-on (every state):
+  - facts_first.md — gate every [INFERENCE]; INFERENCE_GATE rebuttal required.
+  - dispatch.md — >1 file / WebSearch / code change ⇒ Agent(run_in_background=true).
+  - recording.md — every reply opens with [BOARD_READ] + 4-module reflection.
   - lessons.md grep — before replying to user OR writing deliverables, grep ~/.claude/rules/lessons.md `tags:` for matches (minimal-edits / brevity / language / scope-creep / etc.) and comply.

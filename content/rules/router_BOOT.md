@@ -1,21 +1,9 @@
-[ROUTER · state=BOOT] You are in BOOT. Read-only orientation; no edits.
+[ROUTER · state=BOOT] You are in BOOT. Read-only orientation, no mutations.
 
-Must-read on entry (Read if not in cache):
-  ~/.claude/rules/states/boot.md
-  $PWD/CLAUDE.md (if exists)
-  $PWD/.barry_workflow/<sid>/state.md
+→ Full pipeline + completion criteria: `cat ~/.claude/rules/states/boot.md`
+→ Advance when checklist done: `bash ~/.claude/hooks/transition.sh BOOT_DONE --reason="<short>"` → PREPARE
 
-Allowed: Read / Glob / Grep / Bash(transition.sh|ls|cat|pwd) / SendMessage to user.
-Forbidden: Edit / Write / NotebookEdit / Bash mutators (rm|mv|sed -i|>) / launching jobs.
-
-Before advancing — finish ALL of these:
-  - Read goal.md (if any) / recent bitter_lessons / last action.md tail
-  - Confirm session context (inherited_from chain, prior attempts)
-  - Decide approximate task complexity (sets which patches to apply later)
-
-Forget any of the above? → `cat ~/.claude/rules/states/boot.md`.
-
-Advance only when checklist done: `bash ~/.claude/hooks/transition.sh BOOT_DONE --reason=<...>` → PREPARE.
+Quick rules: Allowed = Read/Glob/Grep + Bash(transition.sh|ls|cat|pwd). Forbidden = Edit/Write/mutators/Agent.
 
 Always-on (every state):
   - facts_first.md — gate every [INFERENCE]; INFERENCE_GATE rebuttal required.

@@ -68,11 +68,25 @@ pathlib.Path(path).write_text(new_src)
 print(f"{event} → {new_status}")
 PY
 
-# v2.1 P26: after switching state, echo the new state's full router so AI
-# sees its constraints immediately instead of waiting for next UserPromptSubmit.
-NEW_ROUTER="$HOME/.claude/rules/router_${NEW}.md"
-if [ -f "$NEW_ROUTER" ]; then
-    echo ""
-    cat "$NEW_ROUTER"
+# v2.1 P26/P28: after switching state, echo the full detailed pipeline
+# (states/<state>.md) so AI sees the step-by-step walkthrough + completion
+# criteria immediately, not just the thin per-turn router header.
+# Mapping: STATUS → states/ filename (EXECUTE_LOOP → execute, others lowercase)
+case "$NEW" in
+    BOOT)         STATE_DOC="boot.md" ;;
+    PREPARE)      STATE_DOC="prepare.md" ;;
+    REFLECT)      STATE_DOC="reflect.md" ;;
+    EXECUTE_LOOP) STATE_DOC="execute.md" ;;
+    END)          STATE_DOC="end.md" ;;
+    *)            STATE_DOC="" ;;
+esac
+if [ -n "$STATE_DOC" ]; then
+    NEW_SPEC="$HOME/.claude/rules/states/$STATE_DOC"
+    if [ -f "$NEW_SPEC" ]; then
+        echo ""
+        echo "=== Full pipeline for $NEW (states/$STATE_DOC) ==="
+        echo ""
+        cat "$NEW_SPEC"
+    fi
 fi
 
