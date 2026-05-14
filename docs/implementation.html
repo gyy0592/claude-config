@@ -235,10 +235,15 @@
     <button data-key="exec_audit">execute_loop_audit.sh <span class="verdict v-warn">smoke</span></button>
     <button data-key="pre_nudge">pretooluse_short_nudge.sh <span class="verdict v-warn">smoke</span></button>
 
-    <div class="grp-title">第四部分 — 评估</div>
-    <button data-key="effectiveness">4. 有效性诚实评估</button>
-    <button data-key="reflection">5. 我漏了什么 / 没说清</button>
-    <button data-key="next">6. 下一步 v2.1</button>
+    <div class="grp-title">第四部分 — 运行时</div>
+    <button data-key="per_turn">每轮 vs 每次工具 vs 每个 state</button>
+    <button data-key="output_files">产物文件清单</button>
+    <button data-key="qa">FAQ — 7 个常见疑问</button>
+
+    <div class="grp-title">第五部分 — 评估</div>
+    <button data-key="effectiveness">有效性诚实评估</button>
+    <button data-key="reflection">我漏了什么 / 没说清</button>
+    <button data-key="next">下一步 v2.1</button>
   </nav>
 
   <section class="detail" id="detail"></section>
@@ -574,6 +579,197 @@ const SECTIONS = {
     verdict: "warn",
     verdictText: "⚠ 部署，smoke-test 过（Agent 没 bg=true 真能弹出 nudge）。<b>本会话从没在真任务里被触发</b>（AI 没忘规则）。这种「被动安全网」的特点就是它工作好 = 没人看到它。",
   }),
+
+  // === runtime ===
+  per_turn: () => `
+    <h2>每轮 vs 每次工具 vs 每个 state — 啥时候触发啥</h2>
+    <p>Claude Code 有 3 类 hook 事件，触发节奏完全不同：</p>
+
+    <table>
+      <tr><th>事件</th><th>什么时候触发</th><th>v2 注册的 hook</th><th>每次输出</th></tr>
+      <tr>
+        <td><b>UserPromptSubmit</b></td>
+        <td>每个 user 消息</td>
+        <td>inject_router.sh + session_boot.sh</td>
+        <td>1.1KB [ROUTER] 块 + （session_boot 静默）</td>
+      </tr>
+      <tr>
+        <td><b>PreToolUse</b></td>
+        <td>每个工具调用前</td>
+        <td>pretooluse_short_nudge.sh</td>
+        <td>0 字节（无触发条件）或 ≤100 字符 reason</td>
+      </tr>
+      <tr>
+        <td><b>PostToolUse:Bash</b></td>
+        <td>Bash 调用后</td>
+        <td>jq bg-log（仅记日志）</td>
+        <td>无（写 /tmp/claude-bg.log 不进 prompt）</td>
+      </tr>
+    </table>
+
+    <h3>「每轮都注入」的只有这 2 个</h3>
+    <ul>
+      <li><b>inject_router.sh</b> — 每 turn 1.1KB router 块。<b>真常驻 token</b>。</li>
+      <li><b>session_boot.sh</b> — 每 turn 跑，但只在 state 文件不存在时建文件，<b>无 prompt 输出</b>，0 token。</li>
+    </ul>
+
+    <h3>「派 agent 了吗」之类的提醒</h3>
+    <p>当前<b>不是每轮注入</b>，而是 PreToolUse 时按 tool 类型条件触发：</p>
+    <ul>
+      <li>Read/Grep/Glob 累计 ≥3 → "派 subagent 探索？"</li>
+      <li>Edit/Write 前 action.md 没 [PLAN] → "写 [PLAN]"</li>
+      <li>Bash 跑 sbatch/train 没 bg=true → "加 run_in_background=true"</li>
+      <li>Agent 没 bg=true → "必须 bg=true"</li>
+    </ul>
+    <p>这种 nudge 只在<b>调对应工具时</b>弹一行，调一次弹一次，不调就不弹 → 不占常驻 token。AI 看到这一行无需回复，permission 自动 allow。</p>
+
+    <h3>状态转换 — 当前实现 + 漏洞</h3>
+    <p>main 主动调 <code>bash ~/.claude/hooks/transition.sh BOOT_DONE | PREPARE_DONE | REFLECT_DONE | EXECUTE_EXIT --reason=...</code>。脚本：</p>
+    <ol>
+      <li>读最新 <code>.barry_workflow/state_*.md</code></li>
+      <li>python 改 YAML 的 current_status + 追加 stage_history + 写 last_transition</li>
+      <li>echo 一行 <code>EVENT → NEW_STATUS</code> 到 stdout</li>
+    </ol>
+    <div class="callout bad">
+      <b>真漏洞</b>：当前进入新 state 后<b>系统不会自动给 AI 输出任何提示</b>。比如 PREPARE → REFLECT，AI 怎么知道自己进了 REFLECT、该干啥？要 AI 自己 Read state.md。
+      <br><br>
+      v2.1 应该加 PostToolUse:Bash hook：监听 transition.sh 的 stdout，进新 state 时注入 mini-prompt（"现在 state=REFLECT，可做 Agent / SendMessage / Read，不可做 Edit / Write / 长 Bash"）。
+    </div>
+
+    <h3>PreToolUse 按 state 条件触发（v2.1 增强点）</h3>
+    <p>pretooluse_short_nudge.sh 当前只看 tool_name，<b>不读 state.md</b>。设计上可以加：</p>
+    <pre><code>STATE=$(python3 -c "import yaml,re,pathlib;src=pathlib.Path(latest_state).read_text();m=re.search(r'---YAML---\\n(.*?)\\n---YAML---', src, re.S);print(yaml.safe_load(m.group(1))['current_status'])")
+case "$STATE:$TOOL" in
+  PREPARE:Edit|PREPARE:Write)
+    nudge "PREPARE 状态不允许改文件，先 transition.sh PREPARE_DONE"
+    ;;
+  REFLECT:Bash|REFLECT:Edit|REFLECT:Write)
+    nudge "REFLECT 状态只允许 Agent / SendMessage / Read，请先 REFLECT_DONE"
+    ;;
+esac</code></pre>
+    <p>这样 nudge 就能<b>按 state 强制行为约束</b>，是 v2.1 P11 「状态强制」的核心实现路径。</p>
+  `,
+
+  output_files: () => `
+    <h2>产物文件清单 — 一次 session 会产生什么</h2>
+    <p>v2 系统在<b>项目根 $PWD</b>下产生 2 类文件树。一类是 per-session 临时状态（gitignored），一类是项目级长期 ledger。</p>
+
+    <h3>per-session 状态（.barry_workflow/，gitignored）</h3>
+    <table>
+      <tr><th>文件</th><th>建于</th><th>写者</th><th>内容</th></tr>
+      <tr>
+        <td><code>state_&lt;sid&gt;.md</code></td>
+        <td>BOOT（session_boot.sh）</td>
+        <td>main + transition.sh</td>
+        <td>YAML 块: current_status / stage_history / cache_hit_map / reflection_history / last_transition</td>
+      </tr>
+      <tr>
+        <td><code>action_&lt;sid&gt;.md</code></td>
+        <td>BOOT（session_boot.sh）</td>
+        <td>main（手写）</td>
+        <td>append-only 行为日志: [BOOT_DONE @ ts] / [PLAN] / [OBSERVE] / [PROMPT_REINFORCED] 等</td>
+      </tr>
+      <tr>
+        <td><code>reflection_&lt;round_id&gt;.md</code></td>
+        <td>REFLECT 阶段（main 写）</td>
+        <td>main + subagent</td>
+        <td>3 段: ## main 问 / ## reviewer reply（含 ### round N）/ ## consensus</td>
+      </tr>
+      <tr>
+        <td><code>nudge_counters.json</code></td>
+        <td>第一次 PreToolUse 时</td>
+        <td>pretooluse_short_nudge.sh</td>
+        <td>{"read": N} 类型的 Read/Grep/Glob 计数器</td>
+      </tr>
+      <tr>
+        <td><code>agent_&lt;aid&gt;/state.md</code> ⚠ <b>设计未实现</b></td>
+        <td>subagent 派出（应由 hook 建）</td>
+        <td>subagent</td>
+        <td>子 FSM 状态（独立 BOOT/PREPARE 简化版）</td>
+      </tr>
+      <tr>
+        <td><code>agent_&lt;aid&gt;/action.md</code> ⚠ <b>设计未实现</b></td>
+        <td>同上</td>
+        <td>subagent</td>
+        <td>subagent 自己的行为日志</td>
+      </tr>
+    </table>
+
+    <h3>项目级长期 ledger（workspace/&lt;task&gt;/，git tracked）</h3>
+    <p>这一层 user 自己建（或后续 init 脚本建），跨 session 持久化。</p>
+    <table>
+      <tr><th>文件</th><th>内容</th><th>谁写</th></tr>
+      <tr><td><code>goal.md</code></td><td>user 写的目标文本（main 只读）</td><td>user</td></tr>
+      <tr><td><code>attempts_ledger.md</code></td><td>ATT-N 跨轮意图汇总（试过 batch=32 / fp16=true / ...）</td><td>main</td></tr>
+      <tr><td><code>bitter_lessons.md</code></td><td>项目技术踩坑（bs=24 在 H100 必 OOM / NCCL p2p_disable 跨机会挂）</td><td>main</td></tr>
+      <tr><td><code>successful_fixes.md</code></td><td>FIX-N 最终成功修法</td><td>main</td></tr>
+      <tr><td><code>rule_violations.md</code></td><td>项目内 AI 行为错误（跟全局 violation.md 区分）</td><td>main</td></tr>
+    </table>
+
+    <h3>全局 ledger（~/.claude/rules/，跨项目）</h3>
+    <table>
+      <tr><th>文件</th><th>内容</th></tr>
+      <tr><td><code>violation.md</code></td><td>W-XXX AI 违规清单 + tags（auto-loaded 每 session）</td></tr>
+      <tr><td><code>lessons.md</code></td><td>L-XXX 跨项目 AI 行为智慧 + tags（auto-loaded）</td></tr>
+    </table>
+    <p>写时用 repo 路径 <code>content/templates/global_rules/{violation,lessons}.md</code> 避免每次写 ~/.claude/ 都弹 approval。set_claude.sh 跑一遍同步到 ~/.claude/ 部署位。</p>
+
+    <h3>会话期间长啥样（具体例子）</h3>
+    <p>跑过一个 long-monitor 任务后，<code>.barry_workflow/</code>大概这样：</p>
+    <pre><code>.barry_workflow/
+├── state_abc123.md                    # session abc123 的 FSM 状态
+├── action_abc123.md                   # session abc123 的行为日志
+├── reflection_r1-pre-task-...md       # pre-task rebuttal round 文件
+├── reflection_r2-post-task-...md      # post-task rebuttal round 文件
+├── nudge_counters.json                # {"read": 12}
+└── (将来 v2.1) agent_a3cdbcd8.../     # subagent 子目录
+    ├── state.md
+    └── action.md</code></pre>
+
+    <h3>清理策略（待定，目前没自动）</h3>
+    <ul>
+      <li>session 完成后 .barry_workflow/ 文件没机制清理 — 长项目会堆 N 个 state_*.md</li>
+      <li>建议 v2.1：每 30 天 archive 一次，或者用 <code>git clean -fdx .barry_workflow/</code> 手动清</li>
+    </ul>
+  `,
+
+  qa: () => `
+    <h2>FAQ — 7 个常见疑问</h2>
+
+    <h3>Q1: [ROUTER] 块每轮都注入吗？</h3>
+    <p><b>是。</b>UserPromptSubmit 每个 user 消息都触发 inject_router.sh，注入约 1.1KB router 块到 prompt 前面。本会话每个 user 消息你都能看到顶部那段 [ROUTER]。<b>是真常驻 token 消耗</b>，但比 v1 的 9KB inject 小 8 倍。</p>
+
+    <h3>Q2: 每轮还有什么提醒？</h3>
+    <p><b>只有 2 个 hook 每轮都跑</b>：</p>
+    <ul>
+      <li>inject_router.sh — 输出 [ROUTER] 块</li>
+      <li>session_boot.sh — 跑但<b>幂等</b>：state 文件存在就 no-op，无任何 prompt 输出</li>
+    </ul>
+    <p>「派 agent 了吗」这种提醒<b>不是每轮</b>注入，而是 PreToolUse 时按 tool 类型条件触发（调对应工具才弹一行，调一次弹一次）。这种 nudge 是 ≤100 字符 + permissionDecision=allow，AI 无需回复，<b>不占常驻 token</b>。</p>
+
+    <h3>Q3: 进入不同 state 怎么实现？AI 怎么知道？</h3>
+    <p><b>实现</b>：main 主动调 <code>bash transition.sh &lt;EVENT&gt;</code>，python 改 state.md YAML 的 current_status。echo 一行到 stdout 当 main 的 Bash 工具回显。</p>
+    <p><b>AI 怎么知道进了新 state？</b>当前<b>没有自动提示机制</b>。AI 要主动 Read state.md，或者看 transition.sh 的 stdout 回显。<b>这是真漏洞</b>，v2.1 需要 PostToolUse:Bash hook 监听 transition.sh 输出，自动注入"现在你进入 X，能做 Y 不能做 Z"提示。</p>
+
+    <h3>Q4: PreToolUse 能按 state 触发？</h3>
+    <p>设计上能 — hook 脚本可以读 state.md 然后 case-on-state。<b>当前 pretooluse_short_nudge.sh 没读 state.md</b>，只看 tool_name + tool_input。这是 v2.1 P11「状态强制」核心实现路径：state=PREPARE 时禁 Edit/Write、state=REFLECT 时禁 Bash 改文件，全用 nudge 拦下。</p>
+
+    <h3>Q5: subagent 有 session id？能写自己的 action.md / state.md 吗？</h3>
+    <p><b>有 agent_id</b>（Claude Code 派 Agent() 时立刻返回，本会话你看到的 a3cdbcd829a650797、a84882fd4e95d33fd 等 17 字符 hex 串就是）。</p>
+    <p><b>设计上完全可以</b>每个 subagent 写到 <code>.barry_workflow/agent_&lt;aid&gt;/{state,action}.md</code>，子 FSM 走 BOOT/PREPARE/EXECUTE 简化版。<b>当前未实现</b>：subagent_rules.md rule B 规定了"写自己的 action.md"，但没 hook 自动建目录、subagent 自己也没机制强制按规则写。这是 v2.1 改善点。</p>
+
+    <h3>Q6: 当前 [ROUTER] 块在哪个文档？</h3>
+    <p><b>不是单独的 .md 文件</b>。是 <code>hooks/inject_router.sh</code> 里的 <code>cat &lt;&lt;'EOF' ... EOF</code> here-doc，每个 turn 直接 echo 这段文字到 stdout，Claude Code runtime 把它当 context 附加。</p>
+    <p>这个设计是<b>故意的</b>：router 既是 hook 输出又是 user 看到的文字，放脚本里能保证两边一致；放 .md 还得 hook 去读再 echo，多一层 IO。</p>
+
+    <h3>Q7: 一次 session 产生哪些文件？</h3>
+    <p>详见前一个 tab「产物文件清单」。简版：</p>
+    <ul>
+      <li>per-session 临时：state_&lt;sid&gt;.md / action_&lt;sid&gt;.md / reflection_&lt;round&gt;.md / nudge_counters.json</li>
+      <li>项目级长期：workspace/&lt;task&gt;/ 下 5 个 ledger（goal / attempts / bitter / successful / violations）</li>
+      <li>全局 ledger：~/.claude/rules/violation.md + lessons.md（auto-loaded）</li>
+    </ul>
+  `,
 
   // === eval ===
   effectiveness: () => `
