@@ -11,7 +11,9 @@ No roleplay terminology (no Corporal / Commander / Private / military_camp / Dec
 
 ## First action on entering a repo
 
-Hook auto-creates `$PWD/.barry_workflow/state_<sid>.md` + `$PWD/.barry_workflow/action_<sid>.md` at first UserPromptSubmit. `set_claude.sh` seeds `workspace/<task>/` ledgers. Do not hand-create either set.
+Hook auto-creates `$PWD/.barry_workflow/state_<sid>.md` + `$PWD/.barry_workflow/action_<sid>.md` at first UserPromptSubmit. Do not hand-create either set.
+
+To initialize `workspace/<task>/` (goal.md + 3 ledger templates), run from inside the project directory: `bash __CLAUDE_CONFIG_DIR__/scripts/new_task.sh <task_name>`. Flow: after agreeing on a task scope in conversation, propose `<task_name>` to the user, get one-line confirmation, run the script, then fill `goal.md` from the agreed scope and ask for sign-off.
 
 Common project artifacts under `$PWD/workspace/<task>/`:
 - `attempts_ledger.md` — cross-turn intent log (ATT-N)

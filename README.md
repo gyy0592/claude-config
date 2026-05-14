@@ -28,11 +28,15 @@ git clone https://github.com/gyy0592/claude-config.git ~/Programs/claude-config
 cd ~/Programs/claude-config
 bash set_claude.sh
 
-# 3. 正常使用 Claude Code
+# 3. 进入你的项目；为第一个任务建 workspace（一次性，每个新任务都跑一次）
 cd <你的项目>
+bash ~/Programs/claude-config/scripts/new_task.sh <任务名>     # 建 workspace/<任务名>/{goal,*ledger}.md
+$EDITOR workspace/<任务名>/goal.md                              # 填目标（或留给 AI 在第一轮帮你填）
+
+# 4. 正常使用 Claude Code
 claude
 
-# 4. 开关
+# 5. 开关
 bash ~/Programs/claude-config/scripts/switch_hooks.sh off      # 临时关
 bash ~/Programs/claude-config/scripts/switch_hooks.sh on
 bash ~/Programs/claude-config/scripts/switch_hooks.sh status
