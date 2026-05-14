@@ -1,140 +1,140 @@
 <p align="center">
-  <img src="docs/img/bp_hero_en.png" alt="Barry's Workflow" width="780"/>
+  <img src="docs/img/bp_hero.png" alt="Barry's Workflow" width="780"/>
 </p>
 
 <h1 align="center">Barry's Workflow — Claude Code Edition</h1>
 
 <p align="center">
-  Turn an AI coding agent from a <i>stimulus-response machine</i> into a <i>state machine that reflects on itself</i>.<br/>
-  Fight training-distribution bias. Block "feels-done" delusions. Let the docs self-evolve.
+  把 AI coding agent 从「条件反射机器」变成「会自我反思的状态机」。<br/>
+  对抗训练集偏见，阻止「觉得自己做对了」的错觉，用文档自我进化。
 </p>
 
 <p align="center">
   <a href="docs/big_picture.md"><b>📖 big_picture</b></a> ·
-  <a href="README.zh.md"><b>🇨🇳 中文</b></a>
+  <a href="README.en.md"><b>🇬🇧 English</b></a>
 </p>
 
 ---
 
-## ⚡ Get started — 60 seconds
+## ⚡ 快速上手 — 60 秒
 
 ```bash
-# 1. Install (one command, idempotent, safe to re-run)
+# 1. 安装（一条命令，幂等，可反复跑）
 git clone https://github.com/gyy0592/claude-config.git ~/Programs/claude-config \
   && cd ~/Programs/claude-config \
   && bash set_claude.sh
 ```
 
-> Manual input? Only when you already have a `~/.claude/rules/violation.md` or `lessons.md` from an earlier install — the script asks `[Y/n]` to overwrite. Non-interactive shells auto-pick `Y`. Otherwise zero prompts.
+> 需要手动输入吗？只在你 `~/.claude/rules/` 下已经有 `violation.md` 或 `lessons.md`（老安装残留）时，脚本会问 `[Y/n]` 要不要覆盖。非交互模式（管道）自动选 `Y`。其他情况一路自动。
 
 ```bash
-# 2. Run claude as usual — the FSM auto-engages in any repo that has .git, CLAUDE.md, or workspace/
-cd <your-project>
+# 2. 像往常一样跑 claude —— 在有 .git / CLAUDE.md / workspace/ 的 repo 里 FSM 自动启用
+cd <你的项目>
 claude
 
-# 3. Turn it OFF for a trivial one-shot (no FSM, no [ROUTER] header)
+# 3. 关掉（简单一次性任务不想要 FSM 跟 [ROUTER] 头）
 bash ~/Programs/claude-config/scripts/switch_hooks.sh off
 
-# 4. Turn it back ON
+# 4. 再打开
 bash ~/Programs/claude-config/scripts/switch_hooks.sh on
 
-# 5. Check current state
+# 5. 看当前状态
 bash ~/Programs/claude-config/scripts/switch_hooks.sh status
 ```
 
-That's it. The rest of this README is "why it works that way" + tunable extras.
+就这些。下面是「为什么这么设计」+ 可调细节。
 
 ---
 
-## Table of Contents
+## 目录
 
-- [1. Why — skip-to-done](#1-why--skip-to-done)
-- [2. Overall idea](#2-overall-idea)
-- [3. What it actually does](#3-what-it-actually-does)
-- [4. Install](#4-install)
-- [5. Daily usage](#5-daily-usage)
-- [6. Expected behavior (from P8 demo)](#6-expected-behavior-from-p8-demo)
-- [7. Installing my custom skills](#7-installing-my-custom-skills)
-- [8. Uninstall / temporarily go vanilla](#8-uninstall--temporarily-go-vanilla)
-- [9. Read more](#9-read-more)
+- [1. 为什么 — 跳步病 (skip-to-done)](#1-为什么--跳步病-skip-to-done)
+- [2. 整体思路](#2-整体思路)
+- [3. 它实际在做什么](#3-它实际在做什么)
+- [4. 安装](#4-安装)
+- [5. 日常用法](#5-日常用法)
+- [6. 预期表现（来自 P8 demo）](#6-预期表现来自-p8-demo)
+- [7. 安装我自己的 skills](#7-安装我自己的-skills)
+- [8. 卸载 / 关掉只用纯 claude](#8-卸载--关掉只用纯-claude)
+- [9. 深入了解](#9-深入了解)
 
 ---
 
-## 1. Why — skip-to-done
+## 1. 为什么 — 跳步病 (skip-to-done)
 
-<img src="docs/img/bp_motivation_en.png" alt="motivation" width="100%"/>
+<img src="docs/img/bp_motivation.png" alt="motivation" width="100%"/>
 
-Most LLM training data is "problem + final fixed code" pairs. The **middle** — diagnosis, attempts, retests — is largely missing. So default behavior is **jump to the conclusion**:
+LLM 的训练数据里大多是「问题 + 修好后的代码」的成品 pair，缺少**中间的诊断 / 试错 / 复测**步骤。所以默认行为就是「**跳到结论**」：
 
-- Claims "fixed" without running the test
-- Says "OK" without reading console output
-- Edits the wrong file / touches a pile of unrelated files and reports "as requested"
-- Spin up 10 parallel AIs to compare approaches — all 10 walk the **same** wrong path (entropy collapse)
+- 没跑测试就说"已修复"
+- 没看 console 输出就声明"OK"
+- 改错位置 / 改了一堆无关文件还说"按你说的做了"
+- 并行开 10 个 AI 想看不同思路，结果 10 个走的是**同一条歪路**（entropy collapse）
 
-Just writing "please think carefully" in the prompt doesn't help — the training distribution pulls it back.
+光靠在 prompt 里写「请仔细思考」不行——训练分布会把它推回原样。
 
 <details>
-<summary>🧠 what is entropy collapse</summary>
+<summary>🧠 entropy collapse 是什么</summary>
 
-<img src="docs/img/bp_entropy_en.png" alt="entropy collapse" width="100%"/>
+<img src="docs/img/bp_entropy.png" alt="entropy collapse" width="100%"/>
 
 </details>
 
 ---
 
-## 2. Overall idea
+## 2. 整体思路
 
-**AI is conditional generation.** The output distribution is shaped entirely by what we feed in — prompt, context, files. "State" is just a name for the set of active conditions. Controlling state = controlling conditions = steering the distribution toward the outputs we actually need.
+**AI 是条件生成（conditional generation）模型。** 输出分布完全由输入决定——prompt、上下文、读入的文件，这些就是"条件"。"状态"不过是当前激活的条件集合的名字。控制状态 = 控制条件 = 把分布收窄到我们真正需要的输出。
 
-Barry's Workflow provides **two types of conditions**, both required:
+Barry's Workflow 提供**两类条件**，缺一不可：
 
-| Condition source | What it contains | Role |
+| 条件来源 | 包含什么 | 作用 |
 |---|---|---|
-| **A — Designed workflow** | FSM rules, per-state router injections, `[PLAN]/[OBSERVE]` discipline, REFLECT rebuttal protocol | Hard floor. Enforces the intermediate steps that training data never taught. Static, human-designed. |
-| **B — Self-evolving docs** | `workspace/<task>/bitter_lessons.md`, `successful_fixes.md`, `rule_violations.md`, `patches/*.md` | Narrows the distribution further every session. Each accumulated lesson pushes the AI away from training-set defaults toward what worked in *this* codebase. Grows over time. |
+| **A — 设计好的工作流** | FSM 规则、按 state 注入的 router、`[PLAN]/[OBSERVE]` 纪律、REFLECT rebuttal 协议 | 硬底线。把训练数据里没有的中间步骤强制补回来。静态、人工设计。 |
+| **B — 自我进化文档** | `workspace/<task>/bitter_lessons.md`、`successful_fixes.md`、`rule_violations.md`、`patches/*.md` | 每次 session 进一步收窄分布。每条积累的经验都把 AI 从训练集默认轨道推向「这个代码库里真正有效的做法」。随时间增长。 |
 
-Neither source alone is sufficient. The workflow gives the AI the right structure; the self-evolving docs give it the right priors for *this* project.
+两类条件都必须有。工作流给 AI 正确的结构；自我进化文档给 AI 对当前项目正确的先验知识。
 
-**The self-evolution loop** (condition source B):
+**自我进化闭环**（条件来源 B）：
 
 ```
-session hits an unexpected pitfall
-  → AI records it in workspace/<task>/bitter_lessons.md (L-N entry + tags)
-  → next session: AI reads bitter_lessons.md in BOOT → distribution narrowed
-  → if pattern recurs: AI (or user) drafts a patch under content/rules/patches/
-  → patch is promoted to active → injected as a condition in future sessions
-  → distribution narrowed further, permanently
+session 踩到一个意外的坑
+  → AI 记到 workspace/<task>/bitter_lessons.md（L-N 条目 + tags）
+  → 下次 session：BOOT 阶段读 bitter_lessons.md → 分布收窄
+  → 如果坑反复出现：AI（或用户）起草一个 patch 到 content/rules/patches/
+  → patch 升级为 active → 之后的 session 作为条件注入
+  → 分布永久进一步收窄
 ```
 
-Entropy collapse is partly a self-evolution failure: when no project-specific knowledge accumulates, every session starts from the same vanilla distribution and makes the same mistakes.
+Entropy collapse 的根源之一就是自我进化失败：没有项目特定知识积累，每次 session 都从同一个 vanilla 分布出发，犯同样的错。
 
-Plus one mechanism against **"feels-done" delusion**:
+附加一个**反「觉得自己做对了」**的机制：
 
 <details open>
-<summary><b>Clean-Context Rebuttal — spawn a fresh AI as reviewer</b></summary>
+<summary><b>Clean-Context Rebuttal — 派一个不知道上下文的 AI 当审稿人</b></summary>
 
-<img src="docs/img/bp_rebuttal_en.png" alt="rebuttal" width="100%"/>
+<img src="docs/img/bp_rebuttal.png" alt="rebuttal" width="100%"/>
 
 </details>
 
 ---
 
-## 3. What it actually does
+## 3. 它实际在做什么
 
-A session is one FSM run. Every state transition calls `hooks/transition.sh`. Each turn injects the current state's router, telling the AI **what's allowed, what's not, how to advance**.
+整个 session 是一个 FSM。每次状态切换都调用 `hooks/transition.sh`，每轮 prompt 注入当前 state 的 router，告诉 AI **现在能干什么、不能干什么、怎么进下一步**。
 
-### FSM
+### FSM 状态机
 
 ```mermaid
 flowchart LR
-    BOOT[BOOT<br/>read context]
-    PREPARE[PREPARE<br/>plan + cache]
-    REFLECT[REFLECT<br/>spawn rebuttal subagent]
-    EXECUTE[EXECUTE_LOOP<br/>PLAN → tool → OBSERVE]
-    END[END<br/>archive + ledger]
+    BOOT[BOOT<br/>读上下文]
+    PREPARE[PREPARE<br/>列计划 + 缓存]
+    REFLECT[REFLECT<br/>派 subagent rebuttal]
+    EXECUTE[EXECUTE_LOOP<br/>PLAN → 工具 → OBSERVE]
+    END[END<br/>归档 + ledger]
 
     BOOT --> PREPARE --> REFLECT --> EXECUTE
-    EXECUTE -- "anomaly / done<br/>→ REFLECT" --> REFLECT
+    EXECUTE -- "异常 / 完成<br/>回 REFLECT" --> REFLECT
     EXECUTE --> END
 
     classDef state fill:#eef6ff,stroke:#0969da,color:#0a2540;
@@ -143,40 +143,40 @@ flowchart LR
     class END terminal
 ```
 
-### Generic FSM + scenario patches
+### 通用状态机 + 场景补丁
 
-<img src="docs/img/bp_fsm_patches_en.png" alt="state machine + patches" width="100%"/>
+<img src="docs/img/bp_fsm_patches.png" alt="state machine + patches" width="100%"/>
 
-The 5 scenario patches under `content/rules/patches/` override defaults for specific task types. They can be **written by hand** OR **auto-drafted by AI** from recurring entries in `bitter_lessons.md` — this is the self-evolution loop.
+5 个 scenario patch（`content/rules/patches/`）针对特定任务类型 override 默认行为。可以**人工写**，也可以由 AI 把 `bitter_lessons.md` 反复出现的坑**自动起草**为补丁——这构成自我进化闭环。
 
-### What a session leaves behind
+### 一次 session 留下什么
 
 ```
 .barry_workflow/<sid>/
-├── state.md              YAML: current state + history + cache_hit_map
-├── action.md             append-only [PLAN] / [OBSERVE] log
-├── transitions.log       3-line summary per state change (FSM timeline)
-└── reflection_*.md       REFLECT round files
+├── state.md              YAML: 当前 state + 历史 + cache_hit_map
+├── action.md             逐步 [PLAN] / [OBSERVE] 日志
+├── transitions.log       每次 state 转换的 3 行摘要（FSM 时间线）
+└── reflection_*.md       REFLECT 阶段的 rebuttal 记录
 
-workspace/<task>/         (long-lived, git tracked)
-├── goal.md               user writes, main reads only
-├── bitter_lessons.md     L-N + tags: project gotchas
-├── successful_fixes.md   FIX-N + tags: confirmed fixes
-├── attempts_ledger.md    ATT-N + tags: what was tried (cross-turn intent log)
-└── rule_violations.md    W-N + tags: project-level AI behavioral mistakes
+workspace/<task>/         （跨 session 长期存活，git tracked）
+├── goal.md               用户写，main 只读
+├── bitter_lessons.md     L-N + tags：项目踩过的坑
+├── successful_fixes.md   FIX-N + tags：确认有效的修法
+├── attempts_ledger.md    ATT-N + tags：尝试过什么（跨 turn 意图日志）
+└── rule_violations.md    W-N + tags：本项目 AI 行为错误
 ```
 
 ---
 
-## 4. Install
+## 4. 安装
 
-### Prerequisites
+### 前置
 
 ```bash
 npm install -g @anthropic-ai/claude-code
 ```
 
-### Deploy
+### 部署
 
 ```bash
 git clone https://github.com/gyy0592/claude-config.git ~/Programs/claude-config
@@ -184,116 +184,116 @@ cd ~/Programs/claude-config
 bash set_claude.sh
 ```
 
-`set_claude.sh` will:
+`set_claude.sh` 会做：
 
-1. Copy 8 hooks into `~/.claude/hooks/`, sed-substituting `__CLAUDE_CONFIG_DIR__` to the actual repo path
-2. Sync rule files into `~/.claude/rules/` (router / states / patches / messages — all of them)
-3. Register 4 hooks in `~/.claude/settings.json` (UserPromptSubmit / PreToolUse / PostToolUse)
-4. Diff any existing `~/.claude/rules/violation.md + lessons.md` against the repo version; on conflict, ask which to keep (auto-prefers repo in non-interactive mode)
+1. 拷贝 8 个 hook 到 `~/.claude/hooks/`，sed 替换 `__CLAUDE_CONFIG_DIR__` 为实际仓库路径
+2. 同步规则文件到 `~/.claude/rules/`（router/states/patches/messages 全部）
+3. 在 `~/.claude/settings.json` 注册 4 个 hook（UserPromptSubmit / PreToolUse / PostToolUse）
+4. 把已有的 `~/.claude/rules/violation.md + lessons.md` 跟仓库版本做 diff，冲突时询问保留方向（非交互场景自动以仓库为准）
 
-### Upgrade / re-deploy
+### 升级 / 重部署
 
 ```bash
 cd ~/Programs/claude-config && git pull && bash set_claude.sh
 ```
 
-Idempotent — safe to re-run.
+idempotent，反复跑安全。
 
-### Migrating from the old v1 (cosplay rules)
+### 从旧版（v1 cosplay 规则）迁移
 
 ```bash
-bash cleanup_v1.sh          # remove old hooks + ~/.claude_status/ runtime cruft
-bash set_claude.sh          # then deploy v2
+bash cleanup_v1.sh          # 清掉旧 hook + ~/.claude_status/ runtime 残留
+bash set_claude.sh          # 再部署 v2
 ```
 
 ---
 
-## 5. Daily usage
+## 5. 日常用法
 
-### Entering a project
+### 进入一个项目
 
-On the first `claude` invocation in a repo, the session_boot hook auto-creates:
+第一次在某个 repo 里跑 `claude` 时，session_boot hook 会自动建：
 
 ```
 .barry_workflow/<session-id>/{state,action,transitions.log}
 ```
 
-Only fires if the cwd has `.git` / `CLAUDE.md` / `workspace/` (anti-pollution).
+只在有 `.git` / `CLAUDE.md` / `workspace/` 的目录建（避免污染随便目录）。
 
-### Long-running task → workspace ledgers
+### 长期任务用 workspace ledger
 
-For a longer project (training-pipeline tuning, paper reproduction, etc.):
+为某个长期项目（比如 stage1 训练优化、某个论文复现）建一个 task 目录：
 
 ```bash
 mkdir -p workspace/<task_name>
-echo "<your goal>" > workspace/<task_name>/goal.md
+echo "<你的目标>" > workspace/<task_name>/goal.md
 ```
 
-`goal.md` is user-controlled; main reads only. Other ledgers (`bitter_lessons / successful_fixes / attempts_ledger / rule_violations`) grow as the AI works.
+`goal.md` 是 user 控制，main 只读。其他 ledger（`bitter_lessons / successful_fixes / attempts_ledger / rule_violations`）会随着 AI 工作积累。
 
-### Temporarily go vanilla
+### 关掉 hook 临时用纯 claude
 
-For a trivial one-shot where you don't want the FSM overhead:
+简单一次性任务嫌 FSM 麻烦：
 
 ```bash
-bash scripts/switch_hooks.sh off       # un-register the 4 hooks
-bash scripts/switch_hooks.sh on        # add them back
-bash scripts/switch_hooks.sh status    # show what's currently registered
+bash scripts/switch_hooks.sh off       # 删掉 4 个 hook 注册
+bash scripts/switch_hooks.sh on        # 加回来
+bash scripts/switch_hooks.sh status    # 看现在哪些活着
 ```
 
-Only touches the hooks section of `~/.claude/settings.json`. Rule files, hook script files, and the bg-bash logger hook are untouched.
+只动 `~/.claude/settings.json` 的 hooks 段，**规则文件 + hook 文件本体 + bg-bash 日志 hook** 都保留。
 
-### See what the AI did this turn
+### 看 AI 这轮做了什么
 
 ```bash
-# Clean transcript (user msg + AI text + tool calls + results)
+# 抓干净的对话（用户消息 + AI 文本 + 工具调用 + 工具返回）
 python3 scripts/extract_transcript.py \
   ~/.claude/projects/<encoded-cwd>/<sid>.jsonl \
   --tool-result-lines 5 --no-system-reminder
 
-# FSM timeline (3 lines per state change: ts + transition + tool count + last AI sentence)
+# 看 FSM 时间线（每次 state 切换 + tool_use 计数 + 转移前最后一句话）
 cat .barry_workflow/<sid>/transitions.log
 ```
 
-### Browse a session in your browser (viewer)
+### 浏览器看 session（viewer）
 
-`viewer/` is a 3-pane local HTML inspector (agent tree / state + reflections / clean transcript). One-button launch:
+`viewer/` 是个 3 栏的本地 HTML 查看器（左 agent 树 / 中上 state + reflection / 中下干净 transcript）。一键启动：
 
 ```bash
-bash scripts/start_viewer.sh          # auto-pick free port, print URL
-bash scripts/start_viewer.sh status   # show pid + URL
-bash scripts/start_viewer.sh stop     # kill it
+bash scripts/start_viewer.sh          # 自动选空端口，打印 URL
+bash scripts/start_viewer.sh status   # 看 pid 跟端口
+bash scripts/start_viewer.sh stop     # 杀掉
 ```
 
-If you're SSH'd into the host, set up port forwarding from your laptop first:  
-`ssh -L <port>:localhost:<port> user@host` — then open the printed URL in your laptop browser.
+如果是 SSH 进的服务器，本地终端先开端口转发：  
+`ssh -L <port>:localhost:<port> user@host`，然后浏览器打开打印出的 URL。
 
-The default sample session is the P8 demo (cloud claude migrating a real repo). Drop your own session data into `viewer/data/<sid>/` to inspect any session.
+默认 sample 是 P8 demo session。要看自己的 session，把数据放到 `viewer/data/<sid>/` 即可。
 
 ---
 
-## 6. Expected behavior (from P8 demo)
+## 6. 预期表现（来自 P8 demo）
 
-An end-to-end demo: a fresh cloud claude (with the v2 hooks deployed) was given a real migration task — integrate an existing repo into the v2 ledger system.
+一次真实端到端测试：让一个全新的 cloud claude（带本仓库 v2 hooks）自己把一个已有的 repo 接入 v2 ledger 体系。
 
-**All 4 core checks PASSED**:
+**4 项核心 check 全部 PASS**：
 
-| Check | Result | Evidence |
+| Check | 结果 | 证据 |
 |---|:--:|---|
-| Full 5-stage FSM walk | ✅ | `stage_history` 5 entries: BOOT_DONE → PREPARE_DONE → REFLECT_DONE(pre) → EXECUTE_EXIT → REFLECT_DONE(post) |
-| Router injection by state | ✅ | Multiple `[ROUTER · state=X]` in transcript |
-| Subagent dispatch works | ✅ | 2× `Agent(run_in_background=true)`: REFLECT rebuttal + EXECUTE ledger-build |
-| session_boot auto-creates files | ✅ | First UserPromptSubmit produced `.barry_workflow/<sid>/{state,action}.md` |
+| FSM 5 阶段全走完 | ✅ | `stage_history` 5 entries: BOOT_DONE → PREPARE_DONE → REFLECT_DONE(pre) → EXECUTE_EXIT → REFLECT_DONE(post) |
+| Router 注入按 state 切换 | ✅ | transcript 多次 `[ROUTER · state=X]` |
+| Subagent 派得动 | ✅ | 2 次 `Agent(run_in_background=true)`：REFLECT rebuttal + EXECUTE 建 ledger |
+| session_boot 自动建文件 | ✅ | 首轮 UserPromptSubmit 后 `.barry_workflow/<sid>/{state,action}.md` 出现 |
 
-**Deliverables**: 5 ledgers (with L-N / W-N / FIX-N / ATT-N + tags), legacy archive directory, 5 [PLAN]/[OBSERVE] pairs in action.md.
+**交付**：5 个 ledger（带 L-N / W-N / FIX-N / ATT-N + tags）+ legacy 归档目录 + 5 个 `[PLAN]/[OBSERVE]` 配对。
 
-**Actual cost**: 18 min wall-clock, ~250K tokens (includes 2 subagents).
+**实际开销**：18 min wall-clock，~250K tokens（含 2 个 subagent）。
 
 ---
 
-## 7. Installing my custom skills
+## 7. 安装我自己的 skills
 
-`skills/` contains 30+ reusable skills (censor audit, code-tree map, efficiency-audit, etc.). Install by symlinking into `~/.claude/skills/`:
+`skills/` 下是 30+ 个**复用 skill**（censor 审计 / code-tree 代码地图 / efficiency-audit 性能审计 / 等等）。装法是 symlink 到 `~/.claude/skills/`：
 
 ```bash
 mkdir -p ~/.claude/skills
@@ -303,7 +303,7 @@ for s in ~/Programs/claude-config/skills/*/; do
 done
 ```
 
-Or cherry-pick:
+也可以挑某几个装：
 
 ```bash
 ln -sfn ~/Programs/claude-config/skills/censor          ~/.claude/skills/censor
@@ -311,44 +311,44 @@ ln -sfn ~/Programs/claude-config/skills/code-tree       ~/.claude/skills/code-tr
 ln -sfn ~/Programs/claude-config/skills/efficiency-audit ~/.claude/skills/efficiency-audit
 ```
 
-Trigger logic for each skill lives in its `SKILL.md` frontmatter `description` field — Claude invokes it automatically when context matches.
+skill 的触发逻辑都在各自目录的 `SKILL.md` frontmatter `description` 里——Claude 见到匹配语境自动调。
 
-Full list → [`docs/skills.md`](docs/skills.md) (EN) / [`docs/skills.zh.md`](docs/skills.zh.md) (中文).
+清单详见 [`docs/skills.md`](docs/skills.md) / [`docs/skills.zh.md`](docs/skills.zh.md)。
 
 ---
 
-## 8. Uninstall / temporarily go vanilla
+## 8. 卸载 / 关掉只用纯 claude
 
-**Temporary off** (keep all files, just stop firing hooks):
+**临时关**（保留所有文件，只是 hook 不触发）：
 
 ```bash
 bash scripts/switch_hooks.sh off
 ```
 
-**Full uninstall**:
+**完全卸载**：
 
 ```bash
 bash scripts/switch_hooks.sh off
 rm -rf ~/.claude/hooks/{inject_router,session_boot,pretooluse_short_nudge,state_enforce,transition,prepare_helper,execute_loop_audit,_session_lib}.sh
-rm -rf ~/.claude/rules/{router*.md,states,patches,messages,facts_first.md,dispatch.md,recording.md,subagent_rules.md,failure_stop.md,fsm.md,prompt_enhancement.md,codex_adapter.md,workflow_config.yaml}
-# Keep user content:
-#   ~/.claude/rules/violation.md   ← cross-project W-XXX
-#   ~/.claude/rules/lessons.md     ← cross-project L-XXX
+rm -rf ~/.claude/rules/{router*.md,states,patches,messages,facts_first.md,dispatch.md,recording.md,subagent_rules.md,failure_stop.md,fsm.md,prompt_enhancement.md,codex_adapter.md,workflow_config.yaml,subagent_rules.md}
+# 用户内容保留:
+# ~/.claude/rules/violation.md   ← 跨项目 W-XXX
+# ~/.claude/rules/lessons.md     ← 跨项目 L-XXX
 ```
 
-Won't touch `~/.claude/skills/` (those symlinks are installed separately).
+不会动 `~/.claude/skills/`（symlink）— skill 是独立装的。
 
 ---
 
-## 9. Read more
+## 9. 深入了解
 
-| Doc | Audience | Content |
+| 文档 | 给谁 | 内容 |
 |---|---|---|
-| [`docs/big_picture.md`](docs/big_picture.md) | Non-engineers / first-time readers | Motivation + entropy collapse + two core principles + design philosophy |
-| [`docs/skills.md`](docs/skills.md) / [`docs/skills.zh.md`](docs/skills.zh.md) | Skill users | Full skill catalog + triggers |
+| [`docs/big_picture.md`](docs/big_picture.md) | 非工程师 / 初次了解的人 | 动机 + entropy collapse + 两个核心原则 + 设计哲学 |
+| [`docs/skills.md`](docs/skills.md) / [`docs/skills.zh.md`](docs/skills.zh.md) | skill 使用者 | 完整 skill 清单 + 触发条件 |
 
-> The `docs/` folder also has `big_picture.html` + `scenarios.html` + `big_picture_en.html` for richer offline viewing (open via `python3 -m http.server` if you want). GitHub renders only the markdown above.
+> `docs/` 下还有 `big_picture.html` + `scenarios.html` + `big_picture_en.html` 几个 HTML 版本，效果更丰富。GitHub 不渲染 HTML，但 clone 仓库后直接双击 / 浏览器打开本地 .html 文件即可看。
 
 ---
 
-<p align="center"><i>Maintained by <a href="https://github.com/gyy0592">@gyy0592</a>. Bug reports / improvement ideas welcome via issues.</i></p>
+<p align="center"><i>由 <a href="https://github.com/gyy0592">@gyy0592</a> 维护。bug / 改进建议欢迎开 issue。</i></p>
