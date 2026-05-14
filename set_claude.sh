@@ -175,7 +175,24 @@ for f in violation.md lessons.md; do
     fi
 done
 
-# ── 5c. Deploy ~/.claude/hooks/ (v2-hook NEW: inject_decrees.sh + inject_decrees_to_subagent.sh) ──
+# ── 5b'. Deploy v4 policy files (content/rules/ → ~/.claude/rules/) ──
+V4_RULES_SRC="${CONTENT_DIR}/rules"
+if [ -d "$V4_RULES_SRC" ]; then
+    for f in p1_identity.md p2_facts_first.md p3_dispatch.md p4_recording.md p6_workflow.md subagent_rules.md fsm.md index.md; do
+        src="${V4_RULES_SRC}/${f}"
+        dst="${RULES_DST}/${f}"
+        if [ ! -f "$src" ]; then
+            echo "[deploy] ⚠ v4 rule source missing: ${src} (skipping)"
+            continue
+        fi
+        cp "$src" "$dst"
+        echo "[deploy] ✓ ${dst} (v4 policy)"
+    done
+else
+    echo "[deploy] ⚠ ${V4_RULES_SRC} missing — v4 rules not deployed"
+fi
+
+# ── 5c. Deploy ~/.claude/hooks/ (legacy inject_decrees*.sh kept on disk; v4 P2: inject_router.sh) ──
 HOOKS_SRC="${CLAUDE_CONFIG_DIR}/hooks"
 HOOKS_DST="$HOME/.claude/hooks"
 
@@ -186,7 +203,7 @@ fi
 
 mkdir -p "$HOOKS_DST"
 
-for f in inject_decrees.sh inject_decrees_to_subagent.sh stop_self_audit.sh reset_session_status.sh; do
+for f in inject_decrees.sh inject_decrees_to_subagent.sh stop_self_audit.sh reset_session_status.sh inject_router.sh; do
     src="${HOOKS_SRC}/${f}"
     dst="${HOOKS_DST}/${f}"
     if [ ! -f "$src" ]; then
@@ -322,16 +339,12 @@ def ensure_hook(event, matcher, command):
     bucket.append(entry)
     changed = True
 
-# v4 P1: legacy v2-hook registrations DISABLED.
-# reset_session_status.sh / inject_decrees.sh / inject_decrees_to_subagent.sh / stop_self_audit.sh
-# are no longer auto-registered. P2 will replace them with the slim router hook.
-# (Scripts on disk are preserved for reference but unregistered.)
-# RESET_SCRIPT = os.path.expanduser("~/.claude/hooks/reset_session_status.sh")
-# ensure_hook("UserPromptSubmit", None, f"bash {RESET_SCRIPT}")
-# ensure_hook("UserPromptSubmit", None, f"bash {INJECT_SCRIPT}")
-# ensure_hook("PostToolUse", "Agent", f"bash {INJECT_SCRIPT}")
-# ensure_hook("PreToolUse", "Agent", f"bash {INJECT_SUBAGENT_SCRIPT}")
-# ensure_hook("Stop", None, f"bash {STOP_AUDIT_SCRIPT}")
+# v4 P2: slim router hook replaces the four legacy v2-hook registrations.
+# Legacy scripts (inject_decrees.sh / inject_decrees_to_subagent.sh /
+# reset_session_status.sh / stop_self_audit.sh) remain on disk for reference
+# but are no longer auto-registered.
+ROUTER_SCRIPT = os.path.expanduser("~/.claude/hooks/inject_router.sh")
+ensure_hook("UserPromptSubmit", None, f"bash {ROUTER_SCRIPT}")
 
 # ── v2 preserved: PostToolUse=Bash background logger (debug use, unrelated to memory) ──
 BG_HOOK_CMD = (
