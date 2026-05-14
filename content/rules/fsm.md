@@ -35,8 +35,11 @@ Inner loop (one iteration = one tool call):
 
 Monitor cadence for bg jobs spawned inside EXECUTE_LOOP:
 - Wall-time < 5 min → check once on completion notification.
-- 5–60 min → `Monitor(bash_id=...)` every 10–15 min.
-- > 60 min → also write a `[SILENCE_START]` block in action.md naming task / ETA / completion marker.
+- 5–60 min → `Monitor(bash_id=...)` every 10–15 min. **Monitor blocks the main thread up to `timeout_ms` (default 5 min, max 1 hr)** — this is how main "sleeps" inside one turn without burning context on idle polls.
+- > 60 min → use `Monitor(persistent=true)` or split via `CronCreate` (cross-session). Also write `[SILENCE_START]` block in action.md naming task / ETA / completion marker — note that `[SILENCE_START]` is an **audit marker only**, no hook enforces it; the actual sleep mechanism is Monitor or task_notification waiting.
+
+Anomaly keywords (used by `execute_loop_audit.sh` to count failure budget):
+`refuted | anomaly | fail(ed|ure)? | stuck | unchanged | timeout | exit code [1-9] | traceback | OOM | killed | crash | hang` (case-insensitive). When you write `[OBSERVE]` and the result disagrees with `[PLAN]`, include at least one of these words so the auditor counts it.
 
 Failure budget: after 3 consecutive [OBSERVE] entries refuting their [PLAN]
 in the same EXECUTE_LOOP session, stop and call `transition.sh EXECUTE_EXIT

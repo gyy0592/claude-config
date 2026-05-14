@@ -14,7 +14,7 @@ fi
 
 PLAN_CNT=$(grep -cE '^\[PLAN\]' "$ACTION_FILE" || true)
 OBS_CNT=$(grep -cE '^\[OBSERVE\]'  "$ACTION_FILE" || true)
-ANOM_CNT=$(grep -cE '^\[OBSERVE\].*\b(refuted|anomaly|fail)\b' "$ACTION_FILE" || true)
+ANOM_CNT=$(grep -ciE '^\[OBSERVE\].*(refuted|anomaly|fail(ed|ure)?|stuck|unchanged|timeout|exit code [1-9]|traceback|oom|killed|crash|hang)' "$ACTION_FILE" || true)
 
 echo "# EXECUTE_LOOP audit ($(date -u +%H:%M:%SZ))"
 echo "  action file: ${ACTION_FILE#${CWD}/}"
