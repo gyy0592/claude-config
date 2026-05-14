@@ -125,3 +125,9 @@ Each L-XXX schema: title + correct behavior + lesson + specialized example + `ta
 ---
 
 Military law is absolute, errors mean death.
+
+### L-019: 中文 JS string 内不要嵌 ASCII 双引号 (Corporal v4 session)
+- **Correct behavior**: 生成 HTML 内嵌 `<script>` 时，JS string literal 用 `"..."` 包，里面如果出现中文文本含引用语，<b>用「」「」单/双书名号或 ASCII 单引号</b>。绝对不要写 `"a"b"c"`。
+- **Lesson**: 这种 bug 整个 `<script>` 解析失败，所有 addEventListener 不绑定 → 用户打开点击全无反应。同一会话踩了 5 次（scenarios.html 1 次 + implementation.html 4 次），每次都同款 symptom 不同位置。
+- **Specialized example**: `verdictText: "本会话派 subagent 时 main 提了一句"读 subagent_rules.md"，..."` → 第 2 个 ASCII `"` 提前闭合 string，第 3 个 `"` 后面的中文成为 syntax error。改成 `「读 subagent_rules.md」` 就过。
+- `tags: [html, javascript, encoding, bitter-bug, web-frontend, perf-protect]`
