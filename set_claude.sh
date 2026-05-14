@@ -181,48 +181,47 @@ for f in violation.md lessons.md; do
     fi
 done
 
-# ── 5b'. Deploy v4 policy files (content/rules/ → ~/.claude/rules/) ──
+# ── 5b'. Deploy v4 always-on policy files (content/rules/ → ~/.claude/rules/) ──
+# P36: ONLY the 7 always-on files are copied to ~/.claude/rules/ for auto-load.
+# The following are NOT copied — hooks read them directly from content/rules/ via
+# __CLAUDE_CONFIG_DIR__ sed-substitution:
+#   router*.md, states/*.md, patches/*.md, messages/*.md,
+#   fsm.md, prompt_enhancement.md, codex_adapter.md, workflow_config.yaml
 V4_RULES_SRC="${CONTENT_DIR}/rules"
 if [ -d "$V4_RULES_SRC" ]; then
+    # P36 cleanup: remove obsolete deployed copies that would double-load into context.
+    rm -f \
+        "${RULES_DST}/router.md" \
+        "${RULES_DST}/router_BOOT.md" \
+        "${RULES_DST}/router_PREPARE.md" \
+        "${RULES_DST}/router_REFLECT.md" \
+        "${RULES_DST}/router_EXECUTE_LOOP.md" \
+        "${RULES_DST}/router_END.md" \
+        "${RULES_DST}/fsm.md" \
+        "${RULES_DST}/prompt_enhancement.md" \
+        "${RULES_DST}/codex_adapter.md" \
+        "${RULES_DST}/workflow_config.yaml" \
+        2>/dev/null || true
+    find "${RULES_DST}/states"   -maxdepth 1 -type f -name '*.md' -delete 2>/dev/null || true
+    find "${RULES_DST}/patches"  -maxdepth 1 -type f -name '*.md' -delete 2>/dev/null || true
+    find "${RULES_DST}/messages" -maxdepth 1 -type f -name '*.md' -delete 2>/dev/null || true
+    rmdir "${RULES_DST}/states"   2>/dev/null || true
+    rmdir "${RULES_DST}/patches"  2>/dev/null || true
+    rmdir "${RULES_DST}/messages" 2>/dev/null || true
+    echo "[deploy] ✓ P36 cleanup: obsolete router/states/patches/messages/config files removed from ~/.claude/rules/"
+
+    # Deploy ONLY the 7 always-on files (hooks read the rest from repo directly).
     shopt -s nullglob
-    for src in "${V4_RULES_SRC}"/*.md "${V4_RULES_SRC}"/*.yaml; do
-        f="$(basename "$src")"
+    for f in facts_first.md dispatch.md recording.md failure_stop.md subagent_rules.md; do
+        src="${V4_RULES_SRC}/${f}"
         dst="${RULES_DST}/${f}"
-        cp "$src" "$dst"
-        echo "[deploy] ✓ ${dst} (v4 policy)"
+        if [ -f "$src" ]; then
+            cp "$src" "$dst"
+            echo "[deploy] ✓ ${dst} (v4 always-on policy)"
+        else
+            echo "[deploy] ⚠ always-on file missing: ${src} (skipping)"
+        fi
     done
-    # v2.1 P11: deploy per-state files under states/
-    if [ -d "${V4_RULES_SRC}/states" ]; then
-        mkdir -p "${RULES_DST}/states"
-        for src in "${V4_RULES_SRC}/states"/*.md; do
-            f="$(basename "$src")"
-            dst="${RULES_DST}/states/${f}"
-            cp "$src" "$dst"
-            echo "[deploy] ✓ ${dst} (v4 policy / states)"
-        done
-    fi
-    # v2.1 P23: deploy externalized hook messages under messages/
-    if [ -d "${V4_RULES_SRC}/messages" ]; then
-        mkdir -p "${RULES_DST}/messages"
-        for src in "${V4_RULES_SRC}/messages"/*.md; do
-            f="$(basename "$src")"
-            dst="${RULES_DST}/messages/${f}"
-            cp "$src" "$dst"
-            echo "[deploy] ✓ ${dst} (v4 policy / messages)"
-        done
-    fi
-    # v2.1 P14: deploy scenario patches under patches/
-    if [ -d "${V4_RULES_SRC}/patches" ]; then
-        mkdir -p "${RULES_DST}/patches"
-        # Clean stale patches first (so deleted-in-repo patches don't linger).
-        find "${RULES_DST}/patches" -maxdepth 1 -type f -name '*.md' -delete 2>/dev/null || true
-        for src in "${V4_RULES_SRC}/patches"/*.md; do
-            f="$(basename "$src")"
-            dst="${RULES_DST}/patches/${f}"
-            cp "$src" "$dst"
-            echo "[deploy] ✓ ${dst} (v4 policy / patches)"
-        done
-    fi
     shopt -u nullglob
 else
     echo "[deploy] ⚠ ${V4_RULES_SRC} missing — v4 rules not deployed"

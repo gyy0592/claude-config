@@ -7,8 +7,10 @@ set -euo pipefail
 # shellcheck source=_session_lib.sh
 . "$(dirname "$0")/_session_lib.sh"
 
-RULES_DIR="$HOME/.claude/rules"
-FALLBACK="${RULES_DIR}/router.md"
+# P36: router files read from repo via __CLAUDE_CONFIG_DIR__ (sed-substituted at deploy time).
+# These are NOT copied to ~/.claude/rules/ — only the 7 always-on files live there now.
+RULES_REPO_DIR="__CLAUDE_CONFIG_DIR__/content/rules"
+FALLBACK="${RULES_REPO_DIR}/router.md"
 
 # Discover state file using session lib. PWD comes from claude-code; default cwd.
 CWD="${PWD:-$(pwd)}"
@@ -21,7 +23,7 @@ fi
 
 ROUTER_FILE=""
 if [ -n "$STATUS" ]; then
-    candidate="${RULES_DIR}/router_${STATUS}.md"
+    candidate="${RULES_REPO_DIR}/router_${STATUS}.md"
     [ -f "$candidate" ] && ROUTER_FILE="$candidate"
 fi
 [ -z "$ROUTER_FILE" ] && ROUTER_FILE="$FALLBACK"

@@ -50,9 +50,9 @@ else
 fi
 
 echo ""
-# v2.1 P23: emit the prompt-reinforcement checklist from a maintainable .md
-# file rather than hard-coded heredoc here.
-MSG_DIR="$HOME/.claude/rules/messages"
+# v2.1 P23 / P36: emit the prompt-reinforcement checklist from a maintainable .md
+# file in the repo (not ~/.claude/rules/messages — that dir is no longer deployed).
+MSG_DIR="__CLAUDE_CONFIG_DIR__/content/rules/messages"
 CHECKLIST="$MSG_DIR/prepare_checklist.md"
 if [ -f "$CHECKLIST" ]; then
     cat "$CHECKLIST"

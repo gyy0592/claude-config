@@ -98,7 +98,8 @@ case "$NEW" in
     *)            STATE_DOC="" ;;
 esac
 if [ -n "$STATE_DOC" ]; then
-    NEW_SPEC="$HOME/.claude/rules/states/$STATE_DOC"
+    # P36: states/ files read from repo via __CLAUDE_CONFIG_DIR__ (sed-substituted at deploy time).
+    NEW_SPEC="__CLAUDE_CONFIG_DIR__/content/rules/states/$STATE_DOC"
     if [ -f "$NEW_SPEC" ]; then
         echo ""
         echo "=== Full pipeline for $NEW (states/$STATE_DOC) ==="
