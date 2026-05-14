@@ -10,9 +10,12 @@
 #   prompt_reinforce.required_elements  → 4-element checklist printed below
 set -euo pipefail
 
+# shellcheck source=_session_lib.sh
+. "$(dirname "$0")/_session_lib.sh"
+
 CWD="${PWD}"
-STATE_DIR="${CWD}/.barry_workflow"
 WORKSPACE_DIR="${CWD}/workspace"
+LATEST_SDIR="$(latest_session_dir "$CWD" || true)"
 
 echo "# PREPARE helper — $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo ""
@@ -27,7 +30,12 @@ if [ -d "$WORKSPACE_DIR" ]; then
         [ -f "$f" ] && artifacts+=("$f")
     done
 fi
-for f in "$STATE_DIR"/state_*.md "$STATE_DIR"/action_*.md "${CWD}/CLAUDE.md" "${CWD}/goal.md"; do
+if [ -n "$LATEST_SDIR" ]; then
+    for f in "$LATEST_SDIR"/state.md "$LATEST_SDIR"/action.md; do
+        [ -f "$f" ] && artifacts+=("$f")
+    done
+fi
+for f in "${CWD}/CLAUDE.md" "${CWD}/goal.md"; do
     [ -f "$f" ] && artifacts+=("$f")
 done
 

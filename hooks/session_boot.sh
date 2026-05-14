@@ -1,27 +1,28 @@
 #!/usr/bin/env bash
 # session_boot.sh — UserPromptSubmit hook. Creates per-session state + action
-# files under $PWD/.barry_workflow/ if missing. Idempotent. No-ops if templates
-# can't be found (deploy not yet run).
+# files under $PWD/.barry_workflow/<sid>/ if missing. Idempotent.
+# v2.1 P22: per-session subdir layout.
 set -euo pipefail
 
-# Hook input (JSON on stdin); cwd from $PWD, session id from input.
+# shellcheck source=_session_lib.sh
+. "$(dirname "$0")/_session_lib.sh"
+
 INPUT="$(cat || true)"
 SID="$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)"
 CWD="$(printf '%s' "$INPUT" | jq -r '.cwd // empty' 2>/dev/null || true)"
 [ -z "$CWD" ] && CWD="${PWD:-$(pwd)}"
 [ -z "$SID" ] && SID="$(date +%s)-noidshort"
 
-STATE_DIR="${CWD}/.barry_workflow"
-STATE_FILE="${STATE_DIR}/state_${SID}.md"
-ACTION_FILE="${STATE_DIR}/action_${SID}.md"
-
-# Don't create anything outside a git-tracked / claude-aware project root.
 # Heuristic: only create if .git or CLAUDE.md or workspace/ exists at $CWD.
 if [ ! -d "${CWD}/.git" ] && [ ! -f "${CWD}/CLAUDE.md" ] && [ ! -d "${CWD}/workspace" ]; then
     exit 0
 fi
 
-mkdir -p "$STATE_DIR"
+SDIR="$(session_dir "$CWD" "$SID")"
+STATE_FILE="${SDIR}/state.md"
+ACTION_FILE="${SDIR}/action.md"
+
+mkdir -p "$SDIR"
 
 TEMPLATE_ROOT="__CLAUDE_CONFIG_DIR__/content/templates"
 STATE_TPL="${TEMPLATE_ROOT}/state_template.md"
@@ -38,5 +39,4 @@ if [ ! -f "$ACTION_FILE" ] && [ -f "$ACTION_TPL" ]; then
         "$ACTION_TPL" > "$ACTION_FILE"
 fi
 
-# Silent on success; UserPromptSubmit hooks should not emit unless adding context.
 exit 0

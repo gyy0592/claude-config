@@ -7,11 +7,13 @@
 #   execute_loop.failure_budget  → "$ANOM_CNT -ge 3" check below
 set -euo pipefail
 
+# shellcheck source=_session_lib.sh
+. "$(dirname "$0")/_session_lib.sh"
+
 CWD="${PWD}"
-STATE_DIR="${CWD}/.barry_workflow"
-ACTION_FILE="$(ls -1t "${STATE_DIR}"/action_*.md 2>/dev/null | head -1 || true)"
+ACTION_FILE="$(latest_action_file "$CWD" || true)"
 if [ -z "$ACTION_FILE" ]; then
-    echo "no action_*.md under $STATE_DIR" >&2
+    echo "no action.md under $(barry_root "$CWD")" >&2
     exit 1
 fi
 

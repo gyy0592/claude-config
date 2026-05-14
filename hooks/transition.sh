@@ -4,6 +4,9 @@
 # Events: BOOT_DONE | PREPARE_DONE | REFLECT_DONE | EXECUTE_EXIT
 set -euo pipefail
 
+# shellcheck source=_session_lib.sh
+. "$(dirname "$0")/_session_lib.sh"
+
 EVENT="${1:-}"
 REASON=""
 shift || true
@@ -19,10 +22,9 @@ if [ -z "$EVENT" ]; then
 fi
 
 CWD="${PWD}"
-STATE_DIR="${CWD}/.barry_workflow"
-STATE_FILE="$(ls -1t "${STATE_DIR}"/state_*.md 2>/dev/null | head -1 || true)"
+STATE_FILE="$(latest_state_file "$CWD" || true)"
 if [ -z "$STATE_FILE" ]; then
-    echo "transition.sh: no state file under ${STATE_DIR}" >&2
+    echo "transition.sh: no state file under $(barry_root "$CWD")" >&2
     exit 1
 fi
 

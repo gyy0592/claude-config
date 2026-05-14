@@ -9,11 +9,21 @@
 #   pretool_nudge.max_chars       → 100-char truncation in nudge()
 set -euo pipefail
 
+# shellcheck source=_session_lib.sh
+. "$(dirname "$0")/_session_lib.sh"
+
 INPUT="$(cat || true)"
 TOOL="$(printf '%s' "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || true)"
+SID="$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)"
 CWD="$(printf '%s' "$INPUT" | jq -r '.cwd // empty' 2>/dev/null || true)"
 [ -z "$CWD" ] && CWD="${PWD:-$(pwd)}"
-CTR_DIR="${CWD}/.barry_workflow"
+# Resolve session dir: prefer SID from input, else fall back to latest session.
+if [ -n "$SID" ] && [ -d "$(session_dir "$CWD" "$SID")" ]; then
+    CTR_DIR="$(session_dir "$CWD" "$SID")"
+else
+    CTR_DIR="$(latest_session_dir "$CWD" || true)"
+fi
+[ -z "$CTR_DIR" ] && CTR_DIR="${CWD}/.barry_workflow"
 CTR="${CTR_DIR}/nudge_counters.json"
 [ -d "$CTR_DIR" ] && [ ! -f "$CTR" ] && echo '{}' > "$CTR" 2>/dev/null || true
 
@@ -52,7 +62,7 @@ case "$TOOL" in
         ;;
     Edit|Write|NotebookEdit)
         # Check that last action_*.md line is a [PLAN] marker.
-        action="$(ls -1t "${CWD}/.barry_workflow"/action_*.md 2>/dev/null | head -1 || true)"
+        action="$(latest_action_file "$CWD" || true)"
         if [ -n "$action" ]; then
             last_marker=$(grep -E '^\[(PLAN|BOOT_DONE|PREPARE_DONE|REFLECT_DONE|EXECUTE_EXIT|OBSERVE)\]' "$action" | tail -1 || true)
             if ! printf '%s' "$last_marker" | grep -q '^\[PLAN\]'; then
