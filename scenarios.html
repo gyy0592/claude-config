@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>barry-workflow — 场景 + 期望流程</title>
+<style>
+  :root {
+    --bg: #f7f9fc;
+    --panel: #ffffff;
+    --panel-2: #eef2f7;
+    --border: #d0d7de;
+    --fg: #1f2328;
+    --muted: #57606a;
+    --accent: #0969da;
+    --accent-soft: #ddf4ff;
+    --orange: #bc4c00;
+    --orange-soft: #fff1e5;
+    --green: #1a7f37;
+    --green-soft: #dafbe1;
+    --red: #cf222e;
+    --red-soft: #ffebe9;
+    --purple: #8250df;
+    --purple-soft: #fbefff;
+    --yellow-soft: #fff8c5;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", Helvetica, sans-serif;
+    height: 100%;
+  }
+  header {
+    padding: 16px 26px 12px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 { margin: 0; font-size: 18px; }
+  header .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  main {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    height: calc(100vh - 78px);
+  }
+  nav {
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 14px 0;
+    overflow-y: auto;
+  }
+  nav .grp-title {
+    font-size: 11px;
+    color: var(--muted);
+    padding: 10px 18px 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  nav button.scen {
+    display: block;
+    width: 100%;
+    padding: 10px 18px;
+    background: transparent;
+    border: none;
+    border-left: 3px solid transparent;
+    text-align: left;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--fg);
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+  nav button.scen:hover { background: var(--accent-soft); }
+  nav button.scen.on {
+    background: var(--orange-soft);
+    border-left-color: var(--orange);
+    color: var(--orange);
+    font-weight: 600;
+  }
+  nav button.scen .meta {
+    display: block;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+    font-weight: normal;
+  }
+  nav button.scen.on .meta { color: var(--orange); opacity: 0.8; }
+
+  section.detail {
+    overflow-y: auto;
+    padding: 24px 32px;
+  }
+  section.detail h2 {
+    margin: 0 0 4px;
+    font-size: 20px;
+    color: var(--orange);
+  }
+  section.detail .trigger {
+    margin: 8px 0 24px;
+    padding: 12px 14px;
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .stage-row {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 16px;
+    margin-bottom: 14px;
+    padding: 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .stage-row .stage-name {
+    font-weight: 600;
+    color: var(--accent);
+    font-size: 14px;
+  }
+  .stage-row .stage-name .skip {
+    color: var(--muted);
+    font-weight: normal;
+    font-size: 12px;
+    font-style: italic;
+  }
+  .stage-row .stage-body {
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .stage-row.skipped { opacity: 0.55; }
+  .stage-row.skipped .stage-name { color: var(--muted); }
+  .stage-row ul { margin: 4px 0; padding-left: 18px; }
+  .stage-row li { margin-bottom: 3px; }
+  .stage-row code {
+    font-family: ui-monospace, "SF Mono", monospace;
+    background: var(--purple-soft);
+    color: var(--purple);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 12px;
+  }
+  .stage-row b { color: var(--orange); }
+
+  .pitfalls {
+    margin-top: 22px;
+    padding: 14px;
+    background: var(--red-soft);
+    border-left: 3px solid var(--red);
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .pitfalls .title {
+    font-weight: 600;
+    color: var(--red);
+    margin-bottom: 6px;
+  }
+  .pitfalls ul { margin: 4px 0; padding-left: 18px; }
+  .pitfalls code { background: white; padding: 1px 5px; border-radius: 3px; font-family: ui-monospace, monospace; font-size: 12px; }
+
+  .observable {
+    margin-top: 16px;
+    padding: 14px;
+    background: var(--green-soft);
+    border-left: 3px solid var(--green);
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .observable .title {
+    font-weight: 600;
+    color: var(--green);
+    margin-bottom: 6px;
+  }
+  .observable ul { margin: 4px 0; padding-left: 18px; }
+  .observable code { background: white; padding: 1px 5px; border-radius: 3px; font-family: ui-monospace, monospace; font-size: 12px; }
+
+  .cadence-block {
+    margin-top: 12px;
+    padding: 12px 14px;
+    background: var(--yellow-soft);
+    border-left: 3px solid #bf8700;
+    border-radius: 6px;
+    font-size: 12.5px;
+    line-height: 1.55;
+    font-family: ui-monospace, "SF Mono", monospace;
+  }
+  .cadence-block .title {
+    font-weight: 600;
+    color: #bf8700;
+    margin-bottom: 6px;
+    font-family: inherit;
+  }
+  .reflect-rounds {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: var(--purple-soft);
+    color: var(--purple);
+    font-size: 11px;
+    font-family: ui-monospace, monospace;
+    margin-left: 6px;
+  }
+
+  section.detail .empty {
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 40vh;
+    text-align: center;
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>barry-workflow — 场景 + 期望流程</h1>
+  <div class="sub">左侧选场景 → 看每个 state 该做啥 / 不该做啥 · 这是讨论稿，确认后用来改 workflow</div>
+</header>
+
+<main>
+  <nav>
+    <div class="grp-title">场景</div>
+    <button class="scen" data-key="long_monitor">
+      1. 长监控任务
+      <span class="meta">sbatch / docker / 训练等长跑</span>
+    </button>
+    <button class="scen" data-key="bug_code">
+      2a. 任务出 bug — 代码错
+      <span class="meta">traceback / exit ≠ 0 / 输出错</span>
+    </button>
+    <button class="scen" data-key="bug_perf">
+      2b. 任务出 bug — 性能差
+      <span class="meta">GPU util 低 / 代码慢</span>
+    </button>
+    <button class="scen" data-key="simple">
+      3. 简单任务一次跑通
+      <span class="meta">typo / 一行改 / 简短问</span>
+    </button>
+    <button class="scen" data-key="explore">
+      4. 探索性任务
+      <span class="meta">调研 / 没明确方案</span>
+    </button>
+  </nav>
+
+  <section class="detail" id="detail">
+    <div class="empty">← 选一个场景</div>
+  </section>
+</main>
+
+<script>
+const SCENARIOS = {
+  long_monitor: {
+    title: "1. 长监控任务",
+    trigger: "user 让 main 跑一个长任务并监控完成（sbatch 训练 / docker 长跑 / 任何 wall-time ≥ 5 分钟的 bg job）。例：'帮我提 sbatch 这个 train.sh，监控直到跑完，输出 loss 曲线'。",
+    stages: [
+      {
+        name: "BOOT",
+        body: `
+          <ul>
+            <li>session_boot.sh 自动建 state + action 文件，main 写 <code>[BOOT_DONE]</code></li>
+            <li><code>transition.sh BOOT_DONE</code> → PREPARE</li>
+          </ul>`,
+      },
+      {
+        name: "PREPARE",
+        body: `
+          <ul>
+            <li><b>必须先估两个时间</b>：
+              <ul>
+                <li><code>T_queue</code>：跑 <code>sacct --format=Elapsed,Submit,Start -S "now-7days"</code> 看历史队列等待中位数</li>
+                <li><code>T_run</code>：跑 <code>sacct --format=Elapsed,JobName -S "now-7days" | grep <similar_jobname></code> 看同类任务平均跑多久</li>
+              </ul>
+            </li>
+            <li>4 要素检查 — 这场景里 cadence = 上述 T 计算出来的；observable = step / loss / GPU util；completion = <code>sacct state=COMPLETED</code>；reflection = 完成后 post-task</li>
+            <li><code>transition.sh PREPARE_DONE</code> → REFLECT</li>
+          </ul>`,
+      },
+      {
+        name: "REFLECT pre-task",
+        rounds: "1 轮",
+        body: `
+          <ul>
+            <li>派 agent 1 轮验证：cadence 公式对吗？完成判据漏没漏？失败信号定义对吗？</li>
+            <li>1 轮 = agent 写一次 reviewer reply，main 看 → CONSENSUS。<b>不做 back-and-forth</b>（监控逻辑通常没争议，1 轮足够）</li>
+            <li><code>transition.sh REFLECT_DONE</code> → EXECUTE_LOOP</li>
+          </ul>
+          <div class="cadence-block">
+            <div class="title">cadence 公式（核心）</div>
+            queue 阶段：poll 间隔 = T_queue / 5<br>
+            run 阶段初始（密集）：poll 间隔 = T_run / 20<br>
+            连续 2 次 OBSERVE 干净 (无 anomaly)：切到 T_run / 5
+          </div>`,
+      },
+      {
+        name: "EXECUTE_LOOP",
+        body: `
+          <ul>
+            <li><b>迭代 1</b>：<code>sbatch train.sh</code> + <code>run_in_background=true</code>。<code>[PLAN]</code> 期望: job_id + state=PD/R。<code>[OBSERVE]</code>: job_id=12345, state=PD</li>
+            <li><b>迭代 2 (queue 阶段)</b>：<code>Monitor(bash_id, timeout_ms = T_queue/5 * 1000)</code>。**Monitor block 主线程**直到 timeout 或 bash 完成 — main 在此期间 0 token 生成，context 不污染</li>
+            <li>醒来后 <code>squeue -j 12345</code>。OBSERVE: 仍 PD / 已 R。继续直到 R</li>
+            <li><b>迭代 3 (run 密集)</b>：<code>Monitor(timeout_ms = T_run/20 * 1000)</code> + tail log。OBSERVE: step=N, loss 在降</li>
+            <li><b>迭代 4-5 (run 密集)</b>：同上，连续 2 次干净</li>
+            <li><b>切疏松</b>：之后 <code>Monitor(timeout_ms = T_run/5 * 1000)</code>，poll 4 次盖完整运行期</li>
+            <li><b>完成</b>：sacct state=COMPLETED → <code>transition.sh EXECUTE_EXIT --reason=done</code></li>
+          </ul>`,
+      },
+      {
+        name: "REFLECT post-task",
+        rounds: "1 轮",
+        body: `
+          <ul>
+            <li>agent 验：artifact 在不在（checkpoint / log / metric）；loss 曲线趋势正常吗；GPU util 中位数达标吗</li>
+            <li>1 轮足够，监控类任务无歧义</li>
+            <li>共识 → REFLECT_DONE → END</li>
+          </ul>`,
+      },
+      {
+        name: "END",
+        body: `
+          <ul>
+            <li>ledger: 在 <code>workspace/<task>/attempts_ledger.md</code> 写 ATT-N + job_id + 最终结果</li>
+            <li><code>/goal</code> 检测到 deliverable 齐 → 自动 clear</li>
+          </ul>`,
+      },
+    ],
+    pitfalls: [
+      "❌ <code>while true; do squeue; sleep 60; done</code> 自旋 — 烧 context + 同步阻塞 tool slot",
+      "❌ Monitor() 用默认 5 分钟 timeout 反复醒 — queue 10 分钟以上时浪费唤醒",
+      "❌ 跑前没估 T_queue / T_run，用固定 15 分钟 poll — 短任务 over-poll，长任务 under-monitor",
+      "❌ 跳过 REFLECT pre-task — 万一 cadence 公式错（除以零 / T_run 估为 0），后面整个 EXECUTE 跑错",
+      "❌ EXECUTE 中跑去干别的事 (改其他文件 / 看别的 issue) — 违反 state 控制原则",
+    ],
+    observable: [
+      "<code>squeue -j &lt;id&gt; --noheader -o '%T'</code> → PD / R / CG / CD",
+      "<code>sacct -j &lt;id&gt; --format=State,ExitCode,Elapsed</code>",
+      "<code>nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader -i &lt;gpu&gt;</code>",
+      "<code>tail -50 slurm-&lt;id&gt;.out | grep -E '^Step|loss'</code>",
+      "anomaly 关键字（写进 OBSERVE 才能被 audit 计数）：<code>stuck / unchanged / timeout / OOM / killed / exit code [1-9]</code>",
+    ],
+  },
+
+  bug_code: {
+    title: "2a. 任务出 bug — 代码错",
+    trigger: "已有代码跑出明确错误（Python traceback / exit code ≠ 0 / assertion failed / 输出跟预期不符）。例：'修一下这个脚本，跑 GSM8K 报 KeyError'。",
+    stages: [
+      {
+        name: "BOOT",
+        body: `<ul><li>同常规</li></ul>`,
+      },
+      {
+        name: "PREPARE",
+        body: `
+          <ul>
+            <li>cache_hit_map 列：错误堆栈 / 涉及的源文件 / 用户提示</li>
+            <li>4 要素：observable = 错误消息消失 + 正确输出；completion = test passes / 用户确认</li>
+          </ul>`,
+      },
+      {
+        name: "REFLECT pre-task",
+        rounds: "1 轮",
+        body: `
+          <ul>
+            <li>main 给 agent 列三栏：<b>[FACT]</b>（错误消息原文 + 涉及文件）/ <b>[INFERENCE]</b>（推测的 root cause 1-3 个）/ <b>[ASSUMPTION]</b>（依赖环境 / 调用方）</li>
+            <li>agent 1 轮：哪些 [INFERENCE] 证据不足？有没有遗漏的 root cause？</li>
+            <li>共识后定优先级 → REFLECT_DONE</li>
+          </ul>`,
+      },
+      {
+        name: "EXECUTE_LOOP",
+        body: `
+          <ul>
+            <li><b>迭代 1 — 复现</b>：跑出错命令，OBSERVE 必须**字面引用 traceback 行号**。不复现就别往下走</li>
+            <li><b>迭代 2 — 定位</b>：Read 涉及的源文件 + 周边 ±50 行。OBSERVE 引具体行号</li>
+            <li><b>迭代 3 — fix</b>：改 1 处。OBSERVE 跑同样的命令，错误消失 = 符合 PLAN</li>
+            <li>**失败预算 = 3 个 anomaly**（拓展后的 regex 能抓 traceback / exit code / KeyError 等）。第 3 个 anomaly → <code>EXIT --reason=bug</code> → REFLECT on-anomaly</li>
+          </ul>`,
+      },
+      {
+        name: "REFLECT on-anomaly",
+        rounds: "2 轮",
+        body: `
+          <ul>
+            <li><b>这里必须 2 轮真 rebuttal</b>（agent 写 + main 反驳一次 + agent 再写）— 因为多半是初始 [INFERENCE] 错了，需要质疑</li>
+            <li>main: "我试过 X / Y / Z 都失败，agent 你提候选根因 A/B/C"</li>
+            <li>agent: 列 A/B/C + 各自证据</li>
+            <li>main: "B 我觉得不对因为... A 你忽略了..." (round 2)</li>
+            <li>agent: 修正 → CONSENSUS</li>
+            <li>回 EXECUTE_LOOP 试新方向</li>
+          </ul>`,
+      },
+      {
+        name: "REFLECT post-task",
+        rounds: "1 轮",
+        body: `
+          <ul>
+            <li>agent 验：fix 真的解决问题了吗（不是绕过）？有没有加测试防回归？</li>
+            <li>写 <code>successful_fixes.md</code> FIX-N + 写 <code>bitter_lessons.md</code>（如果是项目级踩坑）</li>
+          </ul>`,
+      },
+      {
+        name: "END",
+        body: `<ul><li>正常收尾</li></ul>`,
+      },
+    ],
+    pitfalls: [
+      "❌ 没复现就直接改代码 — 改完不知道是不是真的修了",
+      "❌ OBSERVE 写'看起来没问题了' — 没有具体输出引用，audit 抓不到",
+      "❌ on-anomaly REFLECT 写 1 轮就完事 — agent 没机会被反驳，结论可能跟初版一样错",
+      "❌ fix 一个 symptom 而不是 root cause（try/except 包住 KeyError 而不查为什么 key 不存在）",
+      "❌ 修完不加测试 → 下次回归",
+    ],
+    observable: [
+      "复现命令的 exit code",
+      "traceback 文件行号（精确引用）",
+      "fix 后跑同命令的输出 diff",
+      "测试 pass count",
+      "anomaly 关键字：<code>traceback / fail(ed)? / exit code [1-9] / KeyError / TypeError / killed</code>",
+    ],
+  },
+
+  bug_perf: {
+    title: "2b. 任务出 bug — 性能差",
+    trigger: "代码能跑但慢 / GPU 利用率低 / 内存爆 / 单 step 时间长。例：'GSM8K 推理跑 100 题要 30 分钟，GPU util 才 12%，太慢了，加速一下'。",
+    stages: [
+      {
+        name: "BOOT",
+        body: `<ul><li>同常规</li></ul>`,
+      },
+      {
+        name: "PREPARE",
+        body: `
+          <ul>
+            <li><b>必先测 baseline</b>：跑当前代码，记录 step time / GPU util 中位数 / CPU util / mem 占用</li>
+            <li>4 要素：observable = baseline 数字 → 目标数字（user 给或 main 提议）；completion = 达标</li>
+          </ul>`,
+      },
+      {
+        name: "REFLECT pre-task",
+        rounds: "1 轮",
+        body: `
+          <ul>
+            <li>main 列 3 个候选瓶颈（含证据）：
+              <ul>
+                <li><b>CPU bound</b>：data loader 单线程 / preprocessing 慢</li>
+                <li><b>GPU bound</b>：batch 太小 / 没用 amp / 模型本身 underutilized</li>
+                <li><b>IO bound</b>：从 NFS 读 / 大文件每 step 重读</li>
+              </ul>
+            </li>
+            <li>agent 1 轮：根据 baseline 数字（low GPU util + high wait time）哪个最可能？建议 profile 命令</li>
+            <li>共识后选 1 个先 profile → REFLECT_DONE</li>
+          </ul>`,
+      },
+      {
+        name: "EXECUTE_LOOP",
+        body: `
+          <ul>
+            <li><b>迭代 1 — profile</b>：跑 <code>py-spy</code> / <code>nsys</code> / <code>torch.profiler</code> 5 分钟。OBSERVE 引具体 hot function（"_pin_memory 占 38%"）</li>
+            <li><b>迭代 2 — 改一个变量</b>：根据 profile 改一处（num_workers=4 / batch=32 / fp16=true）。<b>不要一次改多个</b>，否则不知道哪个起作用</li>
+            <li><b>迭代 3 — 测新数字</b>：跟 baseline 比 step time / GPU util。OBSERVE 引具体数字</li>
+            <li>不达标 → anomaly +1（用 <code>slow / unchanged / inefficient / bottleneck</code> 关键字）</li>
+            <li>3 个 anomaly → on-anomaly</li>
+          </ul>`,
+      },
+      {
+        name: "REFLECT on-anomaly",
+        rounds: "2 轮",
+        body: `
+          <ul>
+            <li><b>2 轮 rebuttal</b>：性能问题往往是多个瓶颈叠加，1 轮看不准</li>
+            <li>main: "改 num_workers 没用，改 batch 也没用，但 GPU util 还是 12%"</li>
+            <li>agent: "你忽略了 IO — 看看 <code>iostat -x 1</code>，可能 disk 才是瓶颈"</li>
+            <li>main: "其实 disk 是 NVMe，应该不是。但你说的 NCCL communication 我没查过" (round 2)</li>
+            <li>agent: 修正方向 → CONSENSUS</li>
+          </ul>`,
+      },
+      {
+        name: "REFLECT post-task",
+        rounds: "1 轮",
+        body: `
+          <ul>
+            <li>agent 验：新数字达标？是不是临时虚高（短跑跑爆 cache）？</li>
+            <li><b>必须跑长一点</b>（≥ 5 分钟）确认稳态利用率，不是头几个 step 假象</li>
+            <li>记 <code>bitter_lessons.md</code>：这个配置 + 这个机器的瓶颈在哪</li>
+          </ul>`,
+      },
+      {
+        name: "END",
+        body: `<ul><li>正常收尾</li></ul>`,
+      },
+    ],
+    pitfalls: [
+      "❌ 没测 baseline 就改优化 — 后面不知道改没改进",
+      "❌ 一次改多个变量（num_workers + batch + amp 同时改）— 不知道哪个起作用，回滚找不到",
+      "❌ 只看头 30 秒的 GPU util — warmup 期间数字假高 / 假低，应看稳态",
+      "❌ 'GPU util 提升了 20%' 这种相对数没绝对值 — 必须给出 before/after 具体数",
+      "❌ anomaly 关键字漏写：'慢' / '不达标' 这种被旧 regex 抓不到，要写 <code>slow / unchanged / inefficient</code>",
+    ],
+    observable: [
+      "step time (ms)",
+      "GPU util (%, 中位数 + p95)",
+      "CPU util (%)",
+      "memory (GB)",
+      "iostat / nvidia-smi dmon / py-spy top-frame",
+      "anomaly 关键字：<code>slow / unchanged / inefficient / bottleneck / underutilized / OOM / stuck</code>",
+    ],
+  },
+
+  simple: {
+    title: "3. 简单任务一次跑通",
+    trigger: "明确的小任务，无歧义：fix typo / 改一行配置 / 回答一个具体问题 / 加一个 print。例：'把 README 第 3 行的 \"prod\" 改成 \"production\"'。",
+    stages: [
+      {
+        name: "BOOT",
+        body: `<ul><li>同常规（state 文件还是建，但不会怎么用）</li></ul>`,
+      },
+      {
+        name: "PREPARE",
+        body: `
+          <ul>
+            <li>简化：cache_hit_map 跳过详细 sha1 列举，main 直接说"目标文件 1 个，无 cache"</li>
+            <li>4 要素 quick：observable = 文件 diff；completion = 改完即完</li>
+            <li><b>不</b>跑 prepare_helper.sh — 那个 helper 是给复杂任务用的</li>
+          </ul>`,
+      },
+      {
+        name: "REFLECT pre-task",
+        skip: true,
+        body: `
+          <ul>
+            <li><b>跳过</b>。直接 <code>transition.sh PREPARE_DONE</code> → 然后 <code>transition.sh REFLECT_DONE</code>（fast-track）</li>
+            <li>简单任务跑 12 分钟 rebuttal = 浪费。但仍走 state 框架，只是 REFLECT 状态秒过</li>
+          </ul>`,
+      },
+      {
+        name: "EXECUTE_LOOP",
+        body: `
+          <ul>
+            <li><b>迭代 1</b>：Edit / Write 一次。OBSERVE: 引 diff</li>
+            <li>（可选）<b>迭代 2</b>：跑下 lint / format 验证</li>
+            <li><code>EXIT --reason=done</code></li>
+          </ul>`,
+      },
+      {
+        name: "REFLECT post-task",
+        rounds: "1 轮",
+        body: `
+          <ul>
+            <li><b>保留 post-task</b>（这一步小任务也值得做，10 秒）</li>
+            <li>agent 不用派 — main 自己 1 轮自检：diff 对吗？有没有改错文件？</li>
+            <li>或者派一个超轻 agent prompt="diff 看一眼对吗"，预计 30 秒回</li>
+          </ul>`,
+      },
+      {
+        name: "END",
+        body: `<ul><li>正常收尾。ledger 可写 <code>[no new ledger entries]</code></li></ul>`,
+      },
+    ],
+    pitfalls: [
+      "❌ 死板走全部 6 个 state — 改一行字跑 30 分钟 rebuttal，user 直接疯",
+      "❌ 反方向：跳过所有 state 包括 post-task — 容易把 'pro' 改成 'productionduction'，没人发现",
+      "❌ EXECUTE 改完后不跑验证（哪怕看一眼 diff）",
+      "❌ 当作真复杂任务硬上 prepare_helper.sh 列 40 行 cache_hit_map",
+    ],
+    observable: [
+      "git diff 输出",
+      "目标文件改后的内容片段",
+    ],
+  },
+
+  explore: {
+    title: "4. 探索性任务",
+    trigger: "没明确解决方案，user 想调研 / 比较 / 决定方向。例：'看看现在大模型 fine-tune 有哪些 PEFT 方法适合 0.5B 模型，给我推荐一个'。",
+    stages: [
+      {
+        name: "BOOT",
+        body: `<ul><li>同常规</li></ul>`,
+      },
+      {
+        name: "PREPARE",
+        body: `
+          <ul>
+            <li>cache_hit_map：列 user 是否给参考材料 / 已有 paper bookmark / 历史相关 task</li>
+            <li>4 要素：observable = 候选方案对比表；completion = 推荐 1 个 + 理由 ≥ 3 条；cadence = WebSearch 批量做不是一个一个</li>
+          </ul>`,
+      },
+      {
+        name: "REFLECT pre-task",
+        rounds: "2 轮",
+        body: `
+          <ul>
+            <li><b>必须 2 轮真 rebuttal</b> — 探索性任务最大的坑是搜索方向跑偏</li>
+            <li><b>round 1</b> — main: "我准备搜 [PEFT, LoRA, adapter, prefix-tuning] 这 4 个关键词。论文范围 2023-2026"</li>
+            <li><b>round 2</b> — agent: "你漏了 IA3 和 BitFit，而且 'PEFT' 是统称，搜出来全是综述，建议加 'small language model' 限定"</li>
+            <li>main: "同意加 IA3 + BitFit，但 'small language model' 范围太窄，改成 'parameter-efficient AND (0.5B OR 1B OR 'small')'" </li>
+            <li>agent 同意 → CONSENSUS</li>
+          </ul>`,
+      },
+      {
+        name: "EXECUTE_LOOP",
+        body: `
+          <ul>
+            <li><b>迭代 1 — 批量 WebSearch</b>：派一个 Explore subagent 同时跑 4-6 个关键词搜索，bg=true</li>
+            <li><b>迭代 2 — 等返回 + Read 候选 paper abstract</b></li>
+            <li><b>迭代 3 — 列对比表</b>：方案 / 参数量 / 训练数据量需求 / 推理开销 / 实现复杂度</li>
+            <li><b>迭代 4（可选）— 试小段代码</b>：拿 1-2 个最有希望的方案，HuggingFace PEFT 库快速跑通验证可行</li>
+            <li><code>EXIT --reason=done</code></li>
+          </ul>`,
+      },
+      {
+        name: "REFLECT post-task",
+        rounds: "1 轮",
+        body: `
+          <ul>
+            <li>agent 验：对比表完整？推荐方案的理由是不是真的有证据支撑？有没有忽略硬约束（user 显存 / 数据量）？</li>
+            <li>如果 agent 强烈反对推荐 → 升级 round 2</li>
+          </ul>`,
+      },
+      {
+        name: "END",
+        body: `<ul><li>deliverable 是 markdown 表格 + 推荐段落，不是代码</li></ul>`,
+      },
+    ],
+    pitfalls: [
+      "❌ pre-task 跳过 → 搜索方向跑偏 → EXECUTE 浪费 10 分钟在不相关 paper 上",
+      "❌ pre-task 只 1 轮 → 关键词没被质疑 → 漏关键方案",
+      "❌ WebSearch 一个一个串行做 → 慢，应该派 subagent 并行",
+      "❌ 读 paper 只看 abstract 不看 limitation 段 — limitation 决定方案适不适合",
+      "❌ 推荐时只说 'X 最好' 不说 'X 因为 Y、Z 比 W 适合你的场景' — user 没法判",
+    ],
+    observable: [
+      "WebSearch 结果数 + 每个关键词搜出的 paper 数",
+      "对比表行数（每行 1 方案）+ 列数（≥ 5 列）",
+      "推荐方案的支持证据数（target ≥ 3）",
+      "试代码（如有）：能跑通 + 关键 metric",
+    ],
+  },
+};
+
+const detail = document.getElementById("detail");
+
+function render(key) {
+  document.querySelectorAll("nav button.scen").forEach(b => b.classList.toggle("on", b.dataset.key === key));
+  const s = SCENARIOS[key];
+  let html = `<h2>${s.title}</h2>`;
+  html += `<div class="trigger"><b>触发</b>：${s.trigger}</div>`;
+  for (const st of s.stages) {
+    const cls = st.skip ? "stage-row skipped" : "stage-row";
+    const rounds = st.rounds ? `<span class="reflect-rounds">${st.rounds}</span>` : "";
+    const skipNote = st.skip ? ` <span class="skip">— 跳过</span>` : "";
+    html += `
+      <div class="${cls}">
+        <div class="stage-name">${st.name}${rounds}${skipNote}</div>
+        <div class="stage-body">${st.body}</div>
+      </div>`;
+  }
+  if (s.observable) {
+    html += `<div class="observable"><div class="title">📊 关键 observable</div><ul>${s.observable.map(x=>`<li>${x}</li>`).join("")}</ul></div>`;
+  }
+  if (s.pitfalls) {
+    html += `<div class="pitfalls"><div class="title">⚠ 反例 (AI 容易犯的错)</div><ul>${s.pitfalls.map(x=>`<li>${x}</li>`).join("")}</ul></div>`;
+  }
+  detail.innerHTML = html;
+}
+
+document.querySelectorAll("nav button.scen").forEach(b => {
+  b.addEventListener("click", () => render(b.dataset.key));
+});
+// 默认展开第一个
+render("long_monitor");
+</script>
+</body>
+</html>
