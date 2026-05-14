@@ -91,4 +91,20 @@ if [ ! -f "$ACTION_FILE" ] && [ -f "$ACTION_TPL" ]; then
     fi
 fi
 
+# v2.3 — idempotently seed shared project ledgers under $CWD/workspace/.
+# Only fires if workspace/ exists; copies any missing ledger from templates.
+# Per-task goal.md is still created by scripts/new_task.sh (needs task name).
+WORKSPACE="${CWD}/workspace"
+if [ -d "$WORKSPACE" ]; then
+    for f in bitter_lessons.md successful_fixes.md attempts_ledger.md; do
+        dst="${WORKSPACE}/${f}"
+        src="${TEMPLATE_ROOT}/${f}"
+        if [ ! -f "$dst" ] && [ -f "$src" ]; then
+            cp "$src" "$dst"
+        fi
+    done
+    # rule_violations.md has no template — create empty if absent.
+    [ ! -f "${WORKSPACE}/rule_violations.md" ] && : > "${WORKSPACE}/rule_violations.md"
+fi
+
 exit 0
