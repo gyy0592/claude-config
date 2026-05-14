@@ -39,11 +39,11 @@ LLM coding sessions fail in predictable ways: skipping checks, claiming "done" b
 
 Read in order:
 
-1. [`big_picture.md`](big_picture.md) — design essence + patch system + self-evolution. **Start here.**
-2. [`fsm_visualization.html`](fsm_visualization.html) — click-through diagram of the 6 states, with each state's expected sub-flow and predicted failure modes. Light theme.
-3. [`scenarios.html`](scenarios.html) — 5 concrete scenarios (long-monitor, code-bug, perf-bug, simple, exploratory) with state-by-state expected behaviour + common pitfalls.
-4. [`v4_plan.md`](v4_plan.md) — the original implementation plan (P1–P10).
-5. [`RESEARCH_NOTES_GOAL_HOOK.md`](RESEARCH_NOTES_GOAL_HOOK.md) — why `/goal` replaces stop hooks.
+1. [`big_picture.md`](docs/big_picture.md) — design essence + patch system + self-evolution. **Start here.**
+2. [`fsm_visualization.html`](docs/fsm_visualization.html) — click-through diagram of the 6 states, with each state's expected sub-flow and predicted failure modes. Light theme.
+3. [`scenarios.html`](docs/scenarios.html) — 5 concrete scenarios (long-monitor, code-bug, perf-bug, simple, exploratory) with state-by-state expected behaviour + common pitfalls.
+4. [`v4_plan.md`](docs/v4_plan.md) — the original implementation plan (P1–P10).
+5. [`RESEARCH_NOTES_GOAL_HOOK.md`](docs/RESEARCH_NOTES_GOAL_HOOK.md) — why `/goal` replaces stop hooks.
 
 ## Current status (2026-05-14)
 
