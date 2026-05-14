@@ -5,76 +5,53 @@
 <h1 align="center">Barry's Workflow — Claude Code Edition</h1>
 
 <p align="center">
-  Turn an AI coding agent from a <i>stimulus-response machine</i> into a <i>state machine that reflects on itself</i>.<br/>
-  Fight training-distribution bias. Block "feels-done" delusions. Let the docs self-evolve.
+  A set of hooks + rule files that constrain every Claude Code session<br/>
+  into a five-state Finite State Machine (FSM):<br/>
+  BOOT / PREPARE / REFLECT / EXECUTE_LOOP / END.<br/>
+  Prevents the model from skipping intermediate steps and delivering "fixed code" without verification.
 </p>
 
 <p align="center">
-  <a href="docs/big_picture.md"><b>📖 big_picture</b></a> ·
   <a href="README.md"><b>🇨🇳 中文</b></a>
 </p>
 
 ---
 
-## ⚡ Get started — 60 seconds
+## ⚡ Quickstart
 
 ```bash
-# 1. Install (one command, idempotent, safe to re-run)
-git clone https://github.com/gyy0592/claude-config.git ~/Programs/claude-config \
-  && cd ~/Programs/claude-config \
-  && bash set_claude.sh
-```
+# 1. Prerequisite
+npm install -g @anthropic-ai/claude-code
 
-> Manual input? Only when you already have a `~/.claude/rules/violation.md` or `lessons.md` from an earlier install — the script asks `[Y/n]` to overwrite. Non-interactive shells auto-pick `Y`. Otherwise zero prompts.
+# 2. Install this repo (idempotent, safe to re-run)
+git clone https://github.com/gyy0592/claude-config.git ~/Programs/claude-config
+cd ~/Programs/claude-config
+bash set_claude.sh
 
-```bash
-# 2. Run claude as usual — the FSM auto-engages in any repo that has .git, CLAUDE.md, or workspace/
+# 3. Use Claude Code normally
 cd <your-project>
 claude
 
-# 3. Turn it OFF for a trivial one-shot (no FSM, no [ROUTER] header)
-bash ~/Programs/claude-config/scripts/switch_hooks.sh off
-
-# 4. Turn it back ON
+# 4. Toggle
+bash ~/Programs/claude-config/scripts/switch_hooks.sh off      # temporarily disable
 bash ~/Programs/claude-config/scripts/switch_hooks.sh on
-
-# 5. Check current state
 bash ~/Programs/claude-config/scripts/switch_hooks.sh status
 ```
 
-That's it. The rest of this README is "why it works that way" + tunable extras.
+Detailed install/uninstall in [§6](#6-installation). Design rationale and mechanism below.
 
 ---
 
-## Table of Contents
-
-- [1. Why — skip-to-done](#1-why--skip-to-done)
-- [2. Overall idea](#2-overall-idea)
-- [3. What it actually does](#3-what-it-actually-does)
-- [4. Install](#4-install)
-- [5. Daily usage](#5-daily-usage)
-- [6. Expected behavior (from P8 demo)](#6-expected-behavior-from-p8-demo)
-- [7. Installing my custom skills](#7-installing-my-custom-skills)
-- [8. Uninstall / temporarily go vanilla](#8-uninstall--temporarily-go-vanilla)
-- [9. Read more](#9-read-more)
-
----
-
-## 1. Why — skip-to-done
+## 1. Motivation
 
 <img src="docs/img/bp_motivation_en.png" alt="motivation" width="100%"/>
 
-Most LLM training data is "problem + final fixed code" pairs. The **middle** — diagnosis, attempts, retests — is largely missing. So default behavior is **jump to the conclusion**:
+Most LLM training samples are "problem → fixed code" pairs, lacking the intermediate diagnose / try / re-test process. The default output distribution thus biases toward producing the end state directly: claiming "fixed" without running tests, scope creep beyond the request, and even when sampled independently multiple times, output paths cluster tightly (the single trajectory closest to the training distribution is hit repeatedly).
 
-- Claims "fixed" without running the test
-- Says "OK" without reading console output
-- Edits the wrong file / touches a pile of unrelated files and reports "as requested"
-- Spin up 10 parallel AIs to compare approaches — all 10 walk the **same** wrong path (entropy collapse)
-
-Just writing "please think carefully" in the prompt doesn't help — the training distribution pulls it back.
+Adding "please double check" to the prompt cannot reshape this distribution — instructions themselves are low-weight conditions and get diluted as the conversation grows.
 
 <details>
-<summary>🧠 what is entropy collapse</summary>
+<summary>🧠 What is entropy collapse</summary>
 
 <img src="docs/img/bp_entropy_en.png" alt="entropy collapse" width="100%"/>
 
@@ -82,273 +59,180 @@ Just writing "please think carefully" in the prompt doesn't help — the trainin
 
 ---
 
-## 2. Overall idea
+## 2. Core idea: treat the AI as a conditional generator
 
-**AI is conditional generation.** The output distribution is shaped entirely by what we feed in — prompt, context, files. "State" is just a name for the set of active conditions. Controlling state = controlling conditions = steering the distribution toward the outputs we actually need.
+<img src="docs/img/bp_principles_en.png" alt="two-condition framework" width="100%"/>
 
-Barry's Workflow provides **two types of conditions**, both required:
+The AI's output distribution is fully determined by input conditions (prompt, context files, tool returns). What we call a "state" is just the name of the currently active set of conditions. **Controlling state = controlling conditions = narrowing the distribution to what we actually want.**
 
-| Condition source | What it contains | Role |
+This repo supplies two kinds of conditions, both required:
+
+| Condition source | Content | Nature |
 |---|---|---|
-| **A — Designed workflow** | FSM rules, per-state router injections, `[PLAN]/[OBSERVE]` discipline, REFLECT rebuttal protocol | Hard floor. Enforces the intermediate steps that training data never taught. Static, human-designed. |
-| **B — Self-evolving docs** | `workspace/<task>/bitter_lessons.md`, `successful_fixes.md`, `rule_violations.md`, `patches/*.md` | Narrows the distribution further every session. Each accumulated lesson pushes the AI away from training-set defaults toward what worked in *this* codebase. Grows over time. |
+| **A. Designed workflow** | Five-state FSM rules, per-state injected **router text** (one markdown per state describing allowed/forbidden tools and required outputs, concatenated by a hook in front of every user turn), `[PLAN]` / `[OBSERVE]` logging discipline, and the **rebuttal protocol** in REFLECT (see §3) | Static, human-designed; covers intermediate steps missing from training data |
+| **B. Self-evolving docs** | Project-level **ledgers** (append-only numbered markdown files: `bitter_lessons.md` / `successful_fixes.md` / `rule_violations.md`) and `content/rules/patches/*.md` scenario patches | Dynamic, accumulates per project. Each session appends entries; next session's BOOT phase reads them, further narrowing the distribution |
 
-Neither source alone is sufficient. The workflow gives the AI the right structure; the self-evolving docs give it the right priors for *this* project.
+A gives the AI the correct structure; B gives it priors specific to **this project**. Both are injected into every turn's `UserPromptSubmit` context via hooks.
 
-**The self-evolution loop** (condition source B):
+---
+
+## 3. The state machine
+
+<img src="docs/img/bp_fsm_patches_en.png" alt="state machine + patches" width="100%"/>
 
 ```
-session hits an unexpected pitfall
-  → AI records it in workspace/<task>/bitter_lessons.md (L-N entry + tags)
-  → next session: AI reads bitter_lessons.md in BOOT → distribution narrowed
-  → if pattern recurs: AI (or user) drafts a patch under content/rules/patches/
-  → patch is promoted to active → injected as a condition in future sessions
-  → distribution narrowed further, permanently
+BOOT ──► PREPARE ──► REFLECT ──► EXECUTE_LOOP ──► END
+            ▲                          │
+            └──────── anomaly rollback ─┘
 ```
 
-Entropy collapse is partly a self-evolution failure: when no project-specific knowledge accumulates, every session starts from the same vanilla distribution and makes the same mistakes.
+| State | Allowed tools | Required output | Exit condition |
+|---|---|---|---|
+| **BOOT** | Read / Glob / Grep / read-only Bash | Read all of `~/.claude/rules/` and the ledgers under `workspace/<task>/` | `transition.sh BOOT_DONE` |
+| **PREPARE** | above + repeated Read (using `state.md`'s `cache_hit_map` to skip re-reads) | Write a `[PLAN]` todo list | `PREPARE_DONE` |
+| **REFLECT** | `Agent(run_in_background=true)` | Spawn an independent sub-agent to perform rebuttal | sub-agent writes `[CONSENSUS_REACHED]`; default cap 3 rounds, configurable in `~/.claude/rules/workflow_config.yaml` |
+| **EXECUTE_LOOP** | all | one `[PLAN]` line before each tool call, one `[OBSERVE]` line after | `EXECUTE_EXIT`; within the same loop `execute_loop_audit.sh` scans `action.md` for anomaly keywords — 3 rebuttals force rollback to REFLECT |
+| **END** | Read / write to workspace only | Append distilled entries from this session to `bitter_lessons.md` / `successful_fixes.md` etc. | session end |
 
-Plus one mechanism against **"feels-done" delusion**:
+State transitions are **actively** initiated by the model after meeting the exit condition: it calls `bash ~/.claude/hooks/transition.sh <event>`. `transition.sh` is **not** a hook — it's a script the model invokes. It writes `state.md`; on the next `UserPromptSubmit`, `inject_router.sh` reads the new state and injects the corresponding router text.
 
-<details open>
-<summary><b>Clean-Context Rebuttal — spawn a fresh AI as reviewer</b></summary>
+**Where `<task>` comes from**: the user manually places `workspace/<task>/goal.md`; on first `UserPromptSubmit`, `session_boot.sh` picks the most recently modified task directory and writes its name to the `task` field of `state.md`.
+
+### REFLECT's rebuttal protocol
+
+<details>
+<summary>expand</summary>
 
 <img src="docs/img/bp_rebuttal_en.png" alt="rebuttal" width="100%"/>
 
 </details>
 
----
+The main agent writes its current plan to `.barry_workflow/<sid>/reflection_<round>.md`, then spawns a sub-agent via the `Agent` tool. The sub-agent starts as a **fresh session**: no inherited conversation history from the main agent, and its system prompt is regenerated by hooks (not reused from the main agent). The sub-agent reads only the plan file, the rule files, and the code repo itself. Main and sub append alternating rounds in the same reflection file until the sub-agent writes `[CONSENSUS_REACHED]`, or `reflect.max_rounds` (default 3) is reached.
 
-## 3. What it actually does
-
-A session is one FSM run. Every state transition calls `hooks/transition.sh`. Each turn injects the current state's router, telling the AI **what's allowed, what's not, how to advance**.
-
-### FSM
-
-```mermaid
-flowchart LR
-    BOOT[BOOT<br/>read context]
-    PREPARE[PREPARE<br/>plan + cache]
-    REFLECT[REFLECT<br/>spawn rebuttal subagent]
-    EXECUTE[EXECUTE_LOOP<br/>PLAN → tool → OBSERVE]
-    END[END<br/>archive + ledger]
-
-    BOOT --> PREPARE --> REFLECT --> EXECUTE
-    EXECUTE -- "anomaly / done<br/>→ REFLECT" --> REFLECT
-    EXECUTE --> END
-
-    classDef state fill:#eef6ff,stroke:#0969da,color:#0a2540;
-    classDef terminal fill:#e6ffec,stroke:#1a7f37,color:#0a3d1f;
-    class BOOT,PREPARE,REFLECT,EXECUTE state
-    class END terminal
-```
-
-### Generic FSM + scenario patches
-
-<img src="docs/img/bp_fsm_patches_en.png" alt="state machine + patches" width="100%"/>
-
-The 5 scenario patches under `content/rules/patches/` override defaults for specific task types. They can be **written by hand** OR **auto-drafted by AI** from recurring entries in `bitter_lessons.md` — this is the self-evolution loop.
-
-### What a session leaves behind
-
-```
-.barry_workflow/<sid>/
-├── state.md              YAML: current state + history + cache_hit_map
-├── action.md             append-only [PLAN] / [OBSERVE] log
-├── transitions.log       3-line summary per state change (FSM timeline)
-└── reflection_*.md       REFLECT round files
-
-workspace/<task>/         (long-lived, git tracked)
-├── goal.md               user writes, main reads only
-├── bitter_lessons.md     L-N + tags: project gotchas
-├── successful_fixes.md   FIX-N + tags: confirmed fixes
-├── attempts_ledger.md    ATT-N + tags: what was tried (cross-turn intent log)
-└── rule_violations.md    W-N + tags: project-level AI behavioral mistakes
-```
+This counters the self-persuasion bias within a single context — under the same conversation history, the model almost always concludes "the plan is fine."
 
 ---
 
-## 4. Install
+## 4. Scenario patches
 
-### Prerequisites
+Five patches under `content/rules/patches/` override default state behavior for specific task types (hyperparameter tuning, doc migration, perf audit, etc.). Patches can be hand-authored; alternatively, during EXECUTE_LOOP the user runs the `/gen-patch-draft` skill to draft a patch from recurring entries in `bitter_lessons.md` — human review required before it lands under `patches/`. The next session's BOOT phase reads it, closing the loop "concrete pitfall → general constraint."
 
-```bash
-npm install -g @anthropic-ai/claude-code
+Patches do **not** auto-activate, avoiding the runaway path where "the AI drafts constraints on itself."
+
+---
+
+## 5. File layout
+
+```
+.barry_workflow/<session_id>/        per-session, gitignored by default
+  state.md           YAML: current_state / stage_history / task / cache_hit_map
+  action.md          [PLAN] / [OBSERVE] step log
+  transitions.log    3-line summary per state transition
+  reflection_*.md    multi-round rebuttal records
+
+workspace/<task>/                    persistent across sessions, recommended for git track
+  goal.md            user-written, read-only for main agent
+  bitter_lessons.md  project-level technical pitfalls (independent numbering L-N within project)
+  successful_fixes.md
+  attempts_ledger.md
+  rule_violations.md project-level AI behavioral errors (independent numbering W-N within project)
+
+~/.claude/rules/                     global rules (cross-project)
+  violation.md       global W-XXX (separate namespace from project-level rule_violations.md)
+  lessons.md         global L-XXX (separate namespace from project-level bitter_lessons.md)
+  router_<STATE>.md  per-state injection text
+  states/<state>.md  full per-state spec
+  patches/*.md       scenario patches
+  workflow_config.yaml  tunables (reflect.max_rounds etc.)
 ```
 
-### Deploy
+`bitter_lessons.md` (project tech pitfalls) vs `rule_violations.md` (project AI behavioral errors): the former records facts like "batch size X OOMs on this GPU"; the latter records mistakes like "skipped [PLAN] and called the tool directly." Both are indexed by `tags:` lines; new sessions grep by task-relevant tags during BOOT.
+
+Project-level numbering (`L-N` / `W-N`) and global numbering (`L-XXX` / `W-XXX`) live in **independent namespaces** — no cross-file references.
+
+---
+
+## 6. Installation
 
 ```bash
+npm install -g @anthropic-ai/claude-code   # prerequisite
 git clone https://github.com/gyy0592/claude-config.git ~/Programs/claude-config
 cd ~/Programs/claude-config
 bash set_claude.sh
 ```
 
-`set_claude.sh` will:
+What `set_claude.sh` does:
 
-1. Copy 8 hooks into `~/.claude/hooks/`, sed-substituting `__CLAUDE_CONFIG_DIR__` to the actual repo path
-2. Sync rule files into `~/.claude/rules/` (router / states / patches / messages — all of them)
-3. Register 4 hooks in `~/.claude/settings.json` (UserPromptSubmit / PreToolUse / PostToolUse)
-4. Diff any existing `~/.claude/rules/violation.md + lessons.md` against the repo version; on conflict, ask which to keep (auto-prefers repo in non-interactive mode)
+1. Copies 8 scripts from `hooks/` to `~/.claude/hooks/`, sed-substituting `__CLAUDE_CONFIG_DIR__` with the actual repo path:
+   `inject_router.sh` · `session_boot.sh` · `pretooluse_short_nudge.sh` · `state_enforce.sh` · `transition.sh` · `prepare_helper.sh` · `execute_loop_audit.sh` · `_session_lib.sh` (utility library sourced by the others)
+2. Syncs `content/rules/` to `~/.claude/rules/`
+3. Registers 4 hook callbacks in the `hooks` field of `~/.claude/settings.json`, across 3 trigger points:
+   - `UserPromptSubmit` × 2: `session_boot.sh` + `inject_router.sh`
+   - `PreToolUse` × 1: `state_enforce.sh` (includes a `pretooluse_short_nudge` sub-branch)
+   - `PostToolUse` × 1: `execute_loop_audit.sh`
+4. Diffs existing `violation.md` / `lessons.md` against the repo versions; on conflict, prompts interactively (defaults to repo version under pipe execution)
 
-### Upgrade / re-deploy
+Idempotent. Upgrade: `git pull && bash set_claude.sh`.
 
-```bash
-cd ~/Programs/claude-config && git pull && bash set_claude.sh
-```
-
-Idempotent — safe to re-run.
-
-### Migrating from the old v1 (cosplay rules)
+### Toggle and uninstall
 
 ```bash
-bash cleanup_v1.sh          # remove old hooks + ~/.claude_status/ runtime cruft
-bash set_claude.sh          # then deploy v2
+bash scripts/switch_hooks.sh off     # remove hook registrations from settings.json
+bash scripts/switch_hooks.sh on
+bash scripts/switch_hooks.sh status
 ```
+
+Full uninstall:
+
+```bash
+bash scripts/switch_hooks.sh off
+rm ~/.claude/hooks/{inject_router,session_boot,pretooluse_short_nudge,state_enforce,transition,prepare_helper,execute_loop_audit,_session_lib}.sh
+rm -rf ~/.claude/rules/{router*.md,states,patches,messages}
+rm ~/.claude/rules/{facts_first,dispatch,recording,subagent_rules,failure_stop,fsm,prompt_enhancement,codex_adapter}.md
+rm ~/.claude/rules/workflow_config.yaml
+```
+
+`violation.md` / `lessons.md` / `~/.claude/skills/` are preserved as user long-term assets.
 
 ---
 
-## 5. Daily usage
+## 7. Skills
 
-### Entering a project
-
-On the first `claude` invocation in a repo, the session_boot hook auto-creates:
-
-```
-.barry_workflow/<session-id>/{state,action,transitions.log}
-```
-
-Only fires if the cwd has `.git` / `CLAUDE.md` / `workspace/` (anti-pollution).
-
-### Long-running task → workspace ledgers
-
-For a longer project (training-pipeline tuning, paper reproduction, etc.):
-
-```bash
-mkdir -p workspace/<task_name>
-echo "<your goal>" > workspace/<task_name>/goal.md
-```
-
-`goal.md` is user-controlled; main reads only. Other ledgers (`bitter_lessons / successful_fixes / attempts_ledger / rule_violations`) grow as the AI works.
-
-### Temporarily go vanilla
-
-For a trivial one-shot where you don't want the FSM overhead:
-
-```bash
-bash scripts/switch_hooks.sh off       # un-register the 4 hooks
-bash scripts/switch_hooks.sh on        # add them back
-bash scripts/switch_hooks.sh status    # show what's currently registered
-```
-
-Only touches the hooks section of `~/.claude/settings.json`. Rule files, hook script files, and the bg-bash logger hook are untouched.
-
-### See what the AI did this turn
-
-```bash
-# Clean transcript (user msg + AI text + tool calls + results)
-python3 scripts/extract_transcript.py \
-  ~/.claude/projects/<encoded-cwd>/<sid>.jsonl \
-  --tool-result-lines 5 --no-system-reminder
-
-# FSM timeline (3 lines per state change: ts + transition + tool count + last AI sentence)
-cat .barry_workflow/<sid>/transitions.log
-```
-
-### Browse a session in your browser (viewer)
-
-`viewer/` is a 3-pane local HTML inspector (agent tree / state + reflections / clean transcript). One-button launch:
-
-```bash
-bash scripts/start_viewer.sh          # auto-pick free port, print URL
-bash scripts/start_viewer.sh status   # show pid + URL
-bash scripts/start_viewer.sh stop     # kill it
-```
-
-If you're SSH'd into the host, set up port forwarding from your laptop first:  
-`ssh -L <port>:localhost:<port> user@host` — then open the printed URL in your laptop browser.
-
-The default sample session is the P8 demo (cloud claude migrating a real repo). Drop your own session data into `viewer/data/<sid>/` to inspect any session.
-
----
-
-## 6. Expected behavior (from P8 demo)
-
-An end-to-end demo: a fresh cloud claude (with the v2 hooks deployed) was given a real migration task — integrate an existing repo into the v2 ledger system.
-
-**All 4 core checks PASSED**:
-
-| Check | Result | Evidence |
-|---|:--:|---|
-| Full 5-stage FSM walk | ✅ | `stage_history` 5 entries: BOOT_DONE → PREPARE_DONE → REFLECT_DONE(pre) → EXECUTE_EXIT → REFLECT_DONE(post) |
-| Router injection by state | ✅ | Multiple `[ROUTER · state=X]` in transcript |
-| Subagent dispatch works | ✅ | 2× `Agent(run_in_background=true)`: REFLECT rebuttal + EXECUTE ledger-build |
-| session_boot auto-creates files | ✅ | First UserPromptSubmit produced `.barry_workflow/<sid>/{state,action}.md` |
-
-**Deliverables**: 5 ledgers (with L-N / W-N / FIX-N / ATT-N + tags), legacy archive directory, 5 [PLAN]/[OBSERVE] pairs in action.md.
-
-**Actual cost**: 18 min wall-clock, ~250K tokens (includes 2 subagents).
-
----
-
-## 7. Installing my custom skills
-
-`skills/` contains 30+ reusable skills (censor audit, code-tree map, efficiency-audit, etc.). Install by symlinking into `~/.claude/skills/`:
+`skills/` contains 30+ standalone skills (censor / code-tree / efficiency-audit, etc.) auto-invoked by Claude Code via each `SKILL.md`'s frontmatter `description`. Orthogonal to the hook system above; install independently:
 
 ```bash
 mkdir -p ~/.claude/skills
 for s in ~/Programs/claude-config/skills/*/; do
-  name=$(basename "$s")
-  ln -sfn "$s" ~/.claude/skills/"$name"
+  ln -sfn "$s" ~/.claude/skills/$(basename "$s")
 done
 ```
 
-Or cherry-pick:
-
-```bash
-ln -sfn ~/Programs/claude-config/skills/censor          ~/.claude/skills/censor
-ln -sfn ~/Programs/claude-config/skills/code-tree       ~/.claude/skills/code-tree
-ln -sfn ~/Programs/claude-config/skills/efficiency-audit ~/.claude/skills/efficiency-audit
-```
-
-Trigger logic for each skill lives in its `SKILL.md` frontmatter `description` field — Claude invokes it automatically when context matches.
-
-Full list → [`docs/skills.md`](docs/skills.md) (EN) / [`docs/skills.zh.md`](docs/skills.zh.md) (中文).
+Catalog: [`docs/skills.md`](docs/skills.md) / [`docs/skills.zh.md`](docs/skills.zh.md).
 
 ---
 
-## 8. Uninstall / temporarily go vanilla
+## 8. Viewer
 
-**Temporary off** (keep all files, just stop firing hooks):
-
-```bash
-bash scripts/switch_hooks.sh off
-```
-
-**Full uninstall**:
+`viewer/` is a local HTML three-pane session inspector (left: agent tree; top-right: state and reflection; bottom-right: cleaned transcript).
 
 ```bash
-bash scripts/switch_hooks.sh off
-rm -rf ~/.claude/hooks/{inject_router,session_boot,pretooluse_short_nudge,state_enforce,transition,prepare_helper,execute_loop_audit,_session_lib}.sh
-rm -rf ~/.claude/rules/{router*.md,states,patches,messages,facts_first.md,dispatch.md,recording.md,subagent_rules.md,failure_stop.md,fsm.md,prompt_enhancement.md,codex_adapter.md,workflow_config.yaml}
-# Keep user content:
-#   ~/.claude/rules/violation.md   ← cross-project W-XXX
-#   ~/.claude/rules/lessons.md     ← cross-project L-XXX
+bash scripts/start_viewer.sh           # auto-picks a port and prints the URL
+bash scripts/start_viewer.sh status
+bash scripts/start_viewer.sh stop
 ```
 
-Won't touch `~/.claude/skills/` (those symlinks are installed separately).
+For SSH-remote use: `ssh -L <port>:localhost:<port> user@host`. A sample session ships under `viewer/data/sample/`; place your own session data at `viewer/data/<sid>/`.
 
 ---
 
-## 9. Read more
+## 9. Further reading
 
-| Doc | Audience | Content |
-|---|---|---|
-| [`docs/big_picture.md`](docs/big_picture.md) | Non-engineers / first-time readers | Motivation + entropy collapse + two core principles + design philosophy |
-| [`docs/skills.md`](docs/skills.md) / [`docs/skills.zh.md`](docs/skills.zh.md) | Skill users | Full skill catalog + triggers |
+| Doc | Content |
+|---|---|
+| [`docs/skills.md`](docs/skills.md) / [`docs/skills.zh.md`](docs/skills.zh.md) | Skill catalog and trigger conditions |
 
-> The `docs/` folder also has `big_picture.html` + `scenarios.html` + `big_picture_en.html` for richer viewing. GitHub does not render HTML, but after cloning the repo you can open these files directly in your browser (file:// or double-click).
+`docs/` also contains a few HTML files (illustrated motivation; expected behavior for typical scenarios). GitHub does not render HTML; clone and open them locally in a browser.
 
 ---
 
-<p align="center"><i>Maintained by <a href="https://github.com/gyy0592">@gyy0592</a>. Bug reports / improvement ideas welcome via issues.</i></p>
+<p align="center"><i>Maintained by <a href="https://github.com/gyy0592/claude-config">@gyy0592</a>. Issues and PRs welcome.</i></p>
