@@ -368,6 +368,11 @@ ensure_hook("UserPromptSubmit", None, f"bash {BOOT_SCRIPT}")
 NUDGE_SCRIPT = os.path.expanduser("~/.claude/hooks/pretooluse_short_nudge.sh")
 ensure_hook("PreToolUse", None, f"bash {NUDGE_SCRIPT}")
 
+# v2.1 P16: PostToolUse state-enforce (informational stderr warning when
+# tool conflicts with current FSM state).
+STATE_ENFORCE_SCRIPT = os.path.expanduser("~/.claude/hooks/state_enforce.sh")
+ensure_hook("PostToolUse", None, f"bash {STATE_ENFORCE_SCRIPT}")
+
 # ── v2 preserved: PostToolUse=Bash background logger (debug use, unrelated to memory) ──
 BG_HOOK_CMD = (
     "jq -c 'select(.tool_input.run_in_background==true) | "
