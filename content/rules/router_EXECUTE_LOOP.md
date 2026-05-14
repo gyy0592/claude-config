@@ -4,6 +4,7 @@
 → 3-failure stop: `cat ~/.claude/rules/failure_stop.md`
 → Audit helper: `bash ~/.claude/hooks/execute_loop_audit.sh`
 → Advance when deliverable done: `bash ~/.claude/hooks/transition.sh EXECUTE_EXIT --reason=<completion|bug|anomaly|stuck>` → REFLECT
+→ User changed task mid-session (new goal.md / unrelated request): `bash ~/.claude/hooks/transition.sh RESET_TO_BOOT --reason=task-switch` → BOOT (re-read updated goal.md)
 
 Quick rules: all tools allowed. Required = [PLAN] before / [OBSERVE] after every mutator or long Bash. Agent must be run_in_background=true. Long jobs need Monitor() cadence.
 

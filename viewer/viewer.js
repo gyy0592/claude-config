@@ -93,7 +93,7 @@ function renderSidebar() {
 
   ul.appendChild(el("li", {
     class: "main" + (state.selectedAgent === "main" ? " active" : ""),
-    onclick: () => { state.selectedAgent = "main"; renderSidebar(); renderStatePane(); }
+    onclick: () => { state.selectedAgent = "main"; renderSidebar(); renderStatePane(); renderTranscriptPane(); }
   },
     el("span", { class: "icon" }),
     el("span", {}, "main"),
@@ -101,14 +101,17 @@ function renderSidebar() {
   ));
 
   for (const sa of m.subagents) {
-    const label = `agent_${sa.aid}`;
+    const label = `agent_${sa.aid.slice(0, 8)}`;
+    let badge = "agent";
+    if (sa.kind === "ledger-only") badge = "ledger";
+    else if (sa.kind === "jsonl-extract") badge = "jsonl";
     ul.appendChild(el("li", {
       class: "sub" + (state.selectedAgent === sa.aid ? " active" : ""),
-      onclick: () => { state.selectedAgent = sa.aid; renderSidebar(); renderStatePane(); }
+      onclick: () => { state.selectedAgent = sa.aid; renderSidebar(); renderStatePane(); renderTranscriptPane(); }
     },
       el("span", { class: "icon" }),
       el("span", {}, label),
-      el("span", { class: "badge" }, sa.kind === "ledger-only" ? "ledger" : "agent")
+      el("span", { class: "badge" }, badge)
     ));
   }
 
@@ -174,6 +177,9 @@ async function renderStateTab(body, meta, statePath) {
       meta.innerHTML = `<span class="status-chip status-${current}">${current}</span><span class="dim" style="font-family:var(--mono);font-size:11.5px;color:var(--muted);">${statePath}</span>`;
 
       const wrap = el("div");
+      // Metrics bar (per-state duration + token usage, from manifest.metrics).
+      const metricsBar = buildMetricsBar();
+      if (metricsBar) wrap.appendChild(metricsBar);
       wrap.appendChild(buildTimeline(current, parsed.stage_history || []));
 
       // stage history table
@@ -308,6 +314,68 @@ function parseStateYAML(text) {
   return out;
 }
 
+function fmtDuration(s) {
+  if (s == null || s < 0) return "—";
+  if (s < 60) return s + "s";
+  const m = Math.floor(s / 60), r = s % 60;
+  if (m < 60) return r ? `${m}m${r}s` : `${m}m`;
+  const h = Math.floor(m / 60), rm = m % 60;
+  return rm ? `${h}h${rm}m` : `${h}h`;
+}
+
+function fmtTokens(n) {
+  if (n == null) return "—";
+  if (n >= 1000) return (n / 1000).toFixed(n >= 10000 ? 0 : 1) + "k";
+  return String(n);
+}
+
+function buildMetricsBar() {
+  const metrics = state.manifest?.metrics;
+  if (!metrics || !metrics.per_state || metrics.per_state.length === 0) return null;
+  // Aggregate by state name (in case of multi-visit, sum durations + tokens).
+  const agg = {};
+  for (const r of metrics.per_state) {
+    const a = agg[r.state] = agg[r.state] || { seconds: 0, in: 0, out: 0, cache_r: 0, cache_c: 0, turns: 0 };
+    if (r.seconds != null) a.seconds += r.seconds;
+    a.in      += r.tok_input_tokens             || 0;
+    a.out     += r.tok_output_tokens            || 0;
+    a.cache_r += r.tok_cache_read_input_tokens  || 0;
+    a.cache_c += r.tok_cache_creation_input_tokens || 0;
+    a.turns   += r.tok_turns                    || 0;
+  }
+  const wrap = el("div", { class: "metrics-bar" });
+  let total_s = 0, total_in = 0, total_out = 0, total_cr = 0;
+  for (const s of FSM_STATES) {
+    const a = agg[s];
+    const box = el("div", { class: "metric-box state-" + s + (a ? "" : " empty") });
+    box.appendChild(el("div", { class: "metric-state" }, s));
+    if (a) {
+      box.appendChild(el("div", { class: "metric-time" }, fmtDuration(a.seconds)));
+      const tokRow = el("div", { class: "metric-tokens" });
+      tokRow.appendChild(el("span", { class: "tok-in",  title: "input tokens" },  "↓" + fmtTokens(a.in)));
+      tokRow.appendChild(el("span", { class: "tok-out", title: "output tokens" }, "↑" + fmtTokens(a.out)));
+      if (a.cache_r) tokRow.appendChild(el("span", { class: "tok-cache", title: "cache read" }, "⟳" + fmtTokens(a.cache_r)));
+      box.appendChild(tokRow);
+      box.appendChild(el("div", { class: "metric-turns" }, `${a.turns} turn${a.turns !== 1 ? "s" : ""}`));
+      total_s += a.seconds; total_in += a.in; total_out += a.out; total_cr += a.cache_r;
+    } else {
+      box.appendChild(el("div", { class: "metric-time empty" }, "—"));
+    }
+    wrap.appendChild(box);
+  }
+  // Total summary box
+  const tot = el("div", { class: "metric-box metric-total" });
+  tot.appendChild(el("div", { class: "metric-state" }, "TOTAL"));
+  tot.appendChild(el("div", { class: "metric-time" }, fmtDuration(total_s)));
+  const trow = el("div", { class: "metric-tokens" });
+  trow.appendChild(el("span", { class: "tok-in" },  "↓" + fmtTokens(total_in)));
+  trow.appendChild(el("span", { class: "tok-out" }, "↑" + fmtTokens(total_out)));
+  if (total_cr) trow.appendChild(el("span", { class: "tok-cache" }, "⟳" + fmtTokens(total_cr)));
+  tot.appendChild(trow);
+  wrap.appendChild(tot);
+  return wrap;
+}
+
 function buildTimeline(current, history) {
   const wrap = el("div", { class: "timeline" });
   for (let i = 0; i < FSM_STATES.length; i++) {
@@ -322,13 +390,27 @@ function buildTimeline(current, history) {
 // ---------- Transcript pane ----------
 async function renderTranscriptPane() {
   const body = $("transcript-body");
-  const path = state.manifest?.main?.transcript_path;
-  if (!path) { body.innerHTML = '<div class="placeholder">No transcript.</div>'; return; }
+  // Pick transcript path based on selected agent.
+  let path = null;
+  if (state.selectedAgent === "main") {
+    path = state.manifest?.main?.transcript_path;
+  } else {
+    const sa = state.manifest?.subagents?.find(s => s.aid === state.selectedAgent);
+    path = sa?.transcript_path || null;
+  }
+  if (!path) {
+    body.innerHTML = '<div class="placeholder">No transcript file for this agent. (For ledger-only subagents, switch to action tab.)</div>';
+    return;
+  }
   body.innerHTML = '<div class="placeholder">Loading…</div>';
   try {
     const text = await fetchText(`data/${state.sid}/${path}`);
     const blocks = parseTranscript(text);
     body.innerHTML = "";
+    const header = el("div", { class: "transcript-header" },
+      `Showing ${state.selectedAgent === "main" ? "main session" : "subagent " + state.selectedAgent.slice(0, 8)} — ${blocks.length} blocks · ${path}`
+    );
+    body.appendChild(header);
     for (const b of blocks) body.appendChild(renderBlock(b));
     bindTranscriptFilters();
     applyTranscriptFilters();

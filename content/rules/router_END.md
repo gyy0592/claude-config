@@ -5,6 +5,7 @@
 Quick rules: Allowed = Read + Bash(ls|cat) + append-only writes to workspace/<task>/*.md ledgers + SendMessage final summary. Forbidden = new execution / Agent spawn / project source mutations.
 
 Re-entry: a new user prompt creates a new <sid> in BOOT state — P17 inherit copies cache_hit_map forward.
+Same-session task switch: `bash ~/.claude/hooks/transition.sh RESET_TO_BOOT --reason=task-switch` → BOOT (re-read updated goal.md without new <sid>).
 
 Always-on (every state):
   - facts_first.md — gate every [INFERENCE]; INFERENCE_GATE rebuttal required.

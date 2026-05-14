@@ -342,3 +342,48 @@ details.collapsible pre { margin: 8px 0 0; }
 }
 .tr-hide { display: none !important; }
 .tr-hl { background: var(--yellow-soft); }
+
+/* ── metrics bar (per-state duration + token usage) ──────────────── */
+.metrics-bar {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin-bottom: 14px;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.metric-box {
+  border: 1px solid var(--border-soft);
+  border-radius: 5px;
+  padding: 6px 8px;
+  background: var(--panel);
+}
+.metric-box.empty { opacity: 0.45; }
+.metric-state {
+  font-weight: 700;
+  font-size: 10.5px;
+  letter-spacing: 0.4px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.metric-time { font-size: 14px; font-weight: 600; color: var(--fg); margin-top: 2px; }
+.metric-time.empty { color: var(--muted); font-weight: 400; }
+.metric-tokens { margin-top: 3px; display: flex; flex-wrap: wrap; gap: 6px; font-size: 10.5px; }
+.metric-tokens .tok-in { color: var(--accent); }
+.metric-tokens .tok-out { color: var(--green); }
+.metric-tokens .tok-cache { color: var(--purple); }
+.metric-turns { margin-top: 2px; color: var(--muted); font-size: 10px; }
+.metric-box.metric-total { border-color: var(--accent); background: var(--accent-soft); }
+.metric-box.metric-total .metric-state { color: var(--accent); }
+
+/* ── transcript header (which agent is shown) ────────────────────── */
+.transcript-header {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  background: var(--panel);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+}

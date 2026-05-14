@@ -4,6 +4,7 @@
     "state_path": "state.md",
     "action_path": "action.md",
     "transcript_path": "transcript.txt",
+    "transitions_log_path": null,
     "reflections": [
       "reflection_r1-pre-task-20260514T0722Z.md",
       "reflection_r2-post-task-20260514T0733Z.md"
@@ -16,9 +17,35 @@
       "action_path": "action_agent_ledger.md"
     }
   ],
+  "metrics": {
+    "per_state": [
+      {
+        "state": "BOOT",
+        "seconds": 93
+      },
+      {
+        "state": "PREPARE",
+        "seconds": 36
+      },
+      {
+        "state": "REFLECT",
+        "seconds": 138
+      },
+      {
+        "state": "EXECUTE_LOOP",
+        "seconds": 561
+      },
+      {
+        "state": "REFLECT",
+        "seconds": 91
+      }
+    ]
+  },
+  "current_status": "EXECUTE_LOOP",
   "files": [
     "action.md",
     "action_agent_ledger.md",
+    "manifest.json",
     "nudge_counters.json",
     "reflection_r1-pre-task-20260514T0722Z.md",
     "reflection_r2-post-task-20260514T0733Z.md",

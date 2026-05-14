@@ -30,7 +30,7 @@ BOOT → PREPARE → REFLECT → EXECUTE_LOOP
                    └──────────────┘
 ```
 
-Transitions via `transition.sh <event>`; details in `~/.claude/rules/fsm.md`.
+Transitions via `transition.sh <event>`; details in `~/.claude/rules/fsm.md`. Same-session task switch (user gives unrelated new request, or `goal.md` updated): use `RESET_TO_BOOT` event to re-enter BOOT and re-read inputs.
 
 ## 5 policies (router pointers — read on demand)
 

@@ -3,6 +3,7 @@
 → Full pipeline (rebuttal protocol / N rounds / CONSENSUS): `cat ~/.claude/rules/states/reflect.md`
 → Subagent constraints: `cat ~/.claude/rules/subagent_rules.md`
 → Advance when consensus reached: `bash ~/.claude/hooks/transition.sh REFLECT_DONE --reason="<short>"` → EXECUTE_LOOP
+→ User changed task mid-session: `bash ~/.claude/hooks/transition.sh RESET_TO_BOOT --reason=task-switch` → BOOT
 
 Quick rules: Allowed = Read + Bash(transition.sh|ls|cat) + Agent(run_in_background=true) for rebuttal subagent + SendMessage. Forbidden = Edit/Write/NotebookEdit + Bash mutators — defer mutations until REFLECT_DONE.
 

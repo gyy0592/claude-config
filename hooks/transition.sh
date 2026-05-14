@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 # transition.sh — FSM state mutator. Called by main as:
 #   bash transition.sh <event>  [--reason=<...>]
-# Events: BOOT_DONE | PREPARE_DONE | REFLECT_DONE | EXECUTE_EXIT
+# Events: BOOT_DONE | PREPARE_DONE | REFLECT_DONE | EXECUTE_EXIT | RESET_TO_BOOT
+#
+# RESET_TO_BOOT: same-session task switch. Use when user changes the active task
+# (goal.md updated, new request unrelated to current FSM track). Re-enters BOOT
+# so the AI re-reads the updated goal.md + ledger and re-walks the pipeline.
 set -euo pipefail
 
 # shellcheck source=_session_lib.sh
@@ -17,7 +21,7 @@ for arg in "$@"; do
 done
 
 if [ -z "$EVENT" ]; then
-    echo "usage: transition.sh <BOOT_DONE|PREPARE_DONE|REFLECT_DONE|EXECUTE_EXIT> [--reason=...]" >&2
+    echo "usage: transition.sh <BOOT_DONE|PREPARE_DONE|REFLECT_DONE|EXECUTE_EXIT|RESET_TO_BOOT> [--reason=...]" >&2
     exit 2
 fi
 
@@ -39,6 +43,7 @@ case "$EVENT" in
     PREPARE_DONE)  NEW=REFLECT ;;
     REFLECT_DONE)  NEW=EXECUTE_LOOP ;;
     EXECUTE_EXIT)  NEW=REFLECT ;;
+    RESET_TO_BOOT) NEW=BOOT ;;
     *) echo "transition.sh: unknown event $EVENT" >&2; exit 2 ;;
 esac
 
