@@ -429,7 +429,8 @@
   <div class="wrap">
     <div class="num">解决方向 / Solution</div>
     <h2>两个核心原则</h2>
-    <p class="lead">本工作流不是另一个 prompt 模板集。它是一个<b>外部行为约束器</b>，把 AI 从"条件反射"模式强制切到"状态机"模式。</p>
+    <p class="lead"><b>AI 是条件生成（conditional generation）模型。</b>输出分布完全由输入决定——prompt、上下文、读入的文件，这些就是「条件」。「状态」不过是当前激活的条件集合的名字。控制状态 = 控制条件 = 把分布收窄到我们需要的输出。</p>
+    <p class="lead">本工作流提供<b>两类条件</b>，缺一不可：<b>设计好的工作流</b>（条件来源 A）给 AI 正确的结构；<b>自我进化文档</b>（条件来源 B）给 AI 对当前项目正确的先验知识。两类都是条件，两类都必须有。</p>
 
     <div class="pillars">
       <div class="pillar machine">
@@ -544,12 +545,13 @@
       </div>
     </div>
 
-    <p>补丁有<b>两个来源</b>：</p>
+    <h3 style="margin-top: 28px; font-size: 17px; color: var(--green);">自我进化闭环 — 条件来源 B 如何收窄分布</h3>
+    <p>补丁有<b>两个来源</b>——每种来源都是把新的条件注入未来 session 的途径：</p>
     <ul>
       <li><b>人工</b> — user 看到 AI 在某场景下做砸，写一个补丁修</li>
-      <li><b>AI 自动</b> — 工作中累积 bitter_lessons / 失败案例 → 系统起草补丁草稿 → user 审核升 active</li>
+      <li><b>AI 自动</b> — session 踩坑 → AI 写到 <code>bitter_lessons.md</code> → 反复出现的坑由系统起草补丁草稿 → user 审核升 active → 永久注入为条件</li>
     </ul>
-    <p>这构成<b>自我进化闭环</b>：跑得越久补丁越多，AI 在这套环境里的表现越来越脱离 vanilla 训练集行为。</p>
+    <p>跑得越久，积累的条件越多，AI 在这套环境里的输出分布越来越脱离 vanilla 训练集行为——<b>在这个项目上越用越准</b>。Entropy collapse 的根本原因之一是自我进化失败：没有项目知识积累，每次都从同一个分布出发犯同样的错。</p>
   </div>
 </section>
 
