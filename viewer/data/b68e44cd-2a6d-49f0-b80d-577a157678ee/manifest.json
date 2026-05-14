@@ -1,0 +1,28 @@
+{
+  "sid": "b68e44cd-2a6d-49f0-b80d-577a157678ee",
+  "main": {
+    "state_path": "state.md",
+    "action_path": "action.md",
+    "transcript_path": "transcript.txt",
+    "reflections": [
+      "reflection_r1-pre-task-20260514T0722Z.md",
+      "reflection_r2-post-task-20260514T0733Z.md"
+    ]
+  },
+  "subagents": [
+    {
+      "aid": "ledger",
+      "kind": "ledger-only",
+      "action_path": "action_agent_ledger.md"
+    }
+  ],
+  "files": [
+    "action.md",
+    "action_agent_ledger.md",
+    "nudge_counters.json",
+    "reflection_r1-pre-task-20260514T0722Z.md",
+    "reflection_r2-post-task-20260514T0733Z.md",
+    "state.md",
+    "transcript.txt"
+  ]
+}
