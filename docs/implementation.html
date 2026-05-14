@@ -545,11 +545,37 @@ const SECTIONS = {
     <h3>set_claude.sh critical fix（commit a6b5079）</h3>
     <p>P8 demo 部署时发现：原 <code>diff "$src" "$dst" | head -20 | sed</code> 在 violation/lessons 文件冲突分支里跑。<code>diff</code> 文件不同返 1，配合脚本 <code>set -euo pipefail</code> 让脚本<b>静默退出</b>——只完成 CLAUDE.md + memory symlink，hooks/rules/states 全没部署，但 exit code 报 0。任何"远端已经有 violation/lessons"的用户都中招。修法：<code>(diff ... || true) | head</code>。</p>
 
-    <h3>未做 / 部分做 (剩到 v2.2)</h3>
+    <h3>P36 — rules/ 分两层（commit e953cbe）</h3>
+    <p>Claude Code 启动时把 <code>~/.claude/rules/*.md</code> 全部 auto-load 进 context。之前我们往那塞了 17+ 个文件（router_* / states/* / patches/* / prompt_enhancement / codex_adapter / fsm / messages / workflow_config.yaml），其中**只有部分每轮真用得到**，剩下 ~30-35KB 是 dead token。更糟：inject_router 和 transition.sh 还会动态再注入当前 state 的——**双重加载**。</p>
+    <p><b>修法</b>：rules/ 拆两层。</p>
     <ul>
-      <li><b>workflow_config.yaml 运行时 source</b>：当前是「引用 by comment」，hook 没真 source YAML</li>
-      <li><b>patches/* 自动加载</b>：补丁是静态文件，没机制按 applies_to 自动 detect 场景 → 注入</li>
-      <li><b>agent_&lt;aid&gt;/ 子目录自动建</b>：subagent_rules.md 规定写自己的 action.md，但 hook 没自动 mkdir</li>
+      <li><b>留在 <code>~/.claude/rules/</code>（auto-load 7 个）</b>：facts_first / dispatch / recording / failure_stop / subagent_rules + violation / lessons（global ledger 设计上 always-on）</li>
+      <li><b>搬回 repo <code>content/rules/</code>（hook 用 <code>__CLAUDE_CONFIG_DIR__</code> 引用）</b>：router_*.md × 6 / states/*.md × 5 / patches/*.md × 5 / prompt_enhancement / codex_adapter / fsm / messages/ / workflow_config.yaml</li>
+    </ul>
+    <p>set_claude.sh deploy 段只 copy 5 个 always-on（+ violation/lessons 单独处理）。Re-deploy 时显式 <code>rm -f</code> 老路径下的 hook-referenced 文件，防止升级后双载。</p>
+
+    <h3>P35 — workflow_config.yaml 真 runtime source（commit ecfc167）</h3>
+    <p>之前 yaml 文件存在但 hook 值硬编码、yaml 只是 comment 引用。</p>
+    <ul>
+      <li><code>_session_lib.sh</code> 加 <code>read_config(yaml, dotted_key)</code> — 25 行 awk+sed，无 yq/python 依赖，支持 1-2 层 dotted key</li>
+      <li><code>pretooluse_short_nudge.sh</code>：READ_THRESHOLD + MAX_CHARS 从 yaml 读</li>
+      <li><code>execute_loop_audit.sh</code>：FAIL_BUDGET 从 yaml 读</li>
+      <li>读不到 key 时 fallback 硬编码默认 + stderr 警告</li>
+    </ul>
+
+    <h3>viewer/ — 本地 HTML session 查看器</h3>
+    <p>3 栏布局：左 agent 树 / 中上 state + reflection / 中下干净 transcript。浅色调匹配 big_picture.html。</p>
+    <ul>
+      <li><b><code>scripts/start_viewer.sh</code></b>：一键启动 — 自动选空端口、起 http.server 后台、打印 URL（含 SSH 端口转发提示）。子命令 <code>status</code> / <code>stop</code>。</li>
+      <li>样本数据：P8 demo session（cloud claude 18 min 完整迁移），见 <code>viewer/data/&lt;sid&gt;/</code></li>
+      <li>URL 参数：<code>?sid=&lt;sid&gt;&amp;agent=&lt;aid&gt;&amp;tab=state|action|reflections</code></li>
+    </ul>
+
+    <h3>未做 / 部分做 (剩到 v2.3)</h3>
+    <ul>
+      <li><b>P31 Subagent FSM (task-type aware)</b>：subagent 也走自己的 FSM，按 task_type 分级（simple_query / focused_task / complex_task / reviewer）。前提已验证（hook 在 subagent fire + agent_id 可获）。需要复活 inject_subagent_prompt hook（subagent 不 auto-load rules/）。详 <code>docs/v2.2_plan.md</code>。</li>
+      <li><b>patches/* 自动加载</b>：补丁是静态文件，没机制按 applies_to 自动 detect 场景 → 注入。可能迁移到 skills/ 结构借用 Claude Code 的 skill auto-trigger（haiku 已查清机制）。</li>
+      <li><b>PreToolUse 真硬 block</b>：当前 state_enforce 是 PostToolUse advisory。要 PreToolUse hook 真拒绝越界 tool 需先验证 claude-code 钩子能否 block。</li>
       <li><b>W-026..W-028 合并回 repo</b>：用户在远端 ~/.claude/rules/violation.md 加的条目，repo 里还没</li>
     </ul>
   `,

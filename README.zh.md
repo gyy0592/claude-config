@@ -228,6 +228,21 @@ python3 scripts/extract_transcript.py \
 cat .barry_workflow/<sid>/transitions.log
 ```
 
+### 浏览器看 session（viewer）
+
+`viewer/` 是个 3 栏的本地 HTML 查看器（左 agent 树 / 中上 state + reflection / 中下干净 transcript）。一键启动：
+
+```bash
+bash scripts/start_viewer.sh          # 自动选空端口，打印 URL
+bash scripts/start_viewer.sh status   # 看 pid 跟端口
+bash scripts/start_viewer.sh stop     # 杀掉
+```
+
+如果是 SSH 进的服务器，本地终端先开端口转发：  
+`ssh -L <port>:localhost:<port> user@host`，然后浏览器打开打印出的 URL。
+
+默认 sample 是 P8 demo session。要看自己的 session，把数据放到 `viewer/data/<sid>/` 即可。
+
 ---
 
 ## 6. 预期表现（来自 P8 demo）

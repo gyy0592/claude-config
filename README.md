@@ -228,6 +228,21 @@ python3 scripts/extract_transcript.py \
 cat .barry_workflow/<sid>/transitions.log
 ```
 
+### Browse a session in your browser (viewer)
+
+`viewer/` is a 3-pane local HTML inspector (agent tree / state + reflections / clean transcript). One-button launch:
+
+```bash
+bash scripts/start_viewer.sh          # auto-pick free port, print URL
+bash scripts/start_viewer.sh status   # show pid + URL
+bash scripts/start_viewer.sh stop     # kill it
+```
+
+If you're SSH'd into the host, set up port forwarding from your laptop first:  
+`ssh -L <port>:localhost:<port> user@host` — then open the printed URL in your laptop browser.
+
+The default sample session is the P8 demo (cloud claude migrating a real repo). Drop your own session data into `viewer/data/<sid>/` to inspect any session.
+
 ---
 
 ## 6. Expected behavior (from P8 demo)
