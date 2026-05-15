@@ -706,7 +706,7 @@ const SECTIONS = {
     <h3>N (round budget)</h3>
     <p>默认 N=5；耗尽 fallback N=10；再耗尽写 [REFLECT_FAILURE] 报 user。常量在 <code>workflow_config.yaml reflect.rounds_default / rounds_fallback</code>。</p>
     <h3>INFERENCE_GATE — mini 1-round rebuttal (P12 v2.1 新)</h3>
-    <p>AI 想写 [INFERENCE] → 触发 GATE：列已经做过的努力 (Read 哪些 + Search 哪些) → 缺数据派 agent 补 → 真要写则 1 轮 rebuttal → 通过则输出 [INFERENCE] + 永远带证据脚注。<br>实现在 EXECUTE_LOOP 内嵌，不另开 state，保持 4 状态简洁。</p>
+    <p>AI 想写 [INFERENCE] → 触发 GATE：列已经做过的努力 (Read 哪些 + Search 哪些) → 缺数据派 agent 补 → 真要写则 1 轮 rebuttal → 通过则输出 [INFERENCE] + 永远带证据脚注。<br>实现在 EXECUTE_LOOP 内嵌，不另开 state（v2.4 后 FSM 是 6 状态：BOOT/PREPARE/REFLECT/EXECUTE_LOOP/RECORDING/END，INFERENCE_GATE 仍走 in-state mini-rebuttal）。</p>
     <h3>禁止操作</h3>
     <p>REFLECT 期间 main 禁 Edit / Write / 改文件 Bash（state_enforce.sh 警告）。只能 Agent / SendMessage / Read。</p>
   `,

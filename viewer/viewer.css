@@ -259,6 +259,7 @@ html, body {
 .status-PREPARE { background: var(--yellow-soft); color: var(--orange); }
 .status-REFLECT { background: var(--purple-soft); color: var(--purple); }
 .status-EXECUTE_LOOP { background: var(--green-soft); color: var(--green); }
+.status-RECORDING { background: var(--yellow-soft); color: var(--orange); }
 .status-END { background: var(--panel-2); color: var(--muted); }
 
 details.collapsible {
