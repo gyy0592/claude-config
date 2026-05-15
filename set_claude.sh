@@ -217,7 +217,7 @@ if [ -d "$V4_RULES_SRC" ]; then
 
     # Deploy ONLY the 7 always-on files (hooks read the rest from repo directly).
     shopt -s nullglob
-    for f in facts_first.md dispatch.md recording.md failure_stop.md subagent_rules.md; do
+    for f in facts_first.md dispatch.md recording.md failure_stop.md subagent_rules.md autonomy.md; do
         src="${V4_RULES_SRC}/${f}"
         dst="${RULES_DST}/${f}"
         if [ -f "$src" ]; then

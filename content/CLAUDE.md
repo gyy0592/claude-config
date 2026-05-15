@@ -65,7 +65,9 @@ Transitions via `transition.sh <event>`; full event table in `~/.claude/rules/st
 2. **Reflect** — every reply opens with `[BOARD_READ]` + 4-module reflection written to `action_<sid>.md`. REFLECT status uses subagent rebuttal (main drives via SendMessage, subagent writes markdown).
 3. **Monitor** — long bg jobs need Monitor calls every 10-15 min.
 
-3-failure stop: after 3 failed attempts in an autonomous loop, stop and report. `$PWD/CLAUDE.md` AUTH keywords override. Detail in `~/.claude/rules/failure_stop.md`.
+3-failure stop: after 3 failed attempts in an autonomous loop, stop and report. Detail in `~/.claude/rules/failure_stop.md`.
+
+Autonomy default: do NOT ask the user mid-task. Allowed only on (a) destructive ops, (b) 3-failure-stop, (c) prior explicit user opt-in. Otherwise REFLECT subagent rebuttal + decide yourself. Detail in `~/.claude/rules/autonomy.md`.
 
 ## Recording
 
@@ -82,7 +84,7 @@ Closing every action task: append entry to the relevant ledger OR write `[no new
 
 ## Conflict resolution
 
-current user instruction > latest hook injection > this file > `$PWD/CLAUDE.md` — except: `$PWD/CLAUDE.md` authorization keywords (e.g. "allow you to do anything") override the autonomous-3-failure stop defined in `failure_stop.md`.
+current user instruction > latest hook injection > this file > `$PWD/CLAUDE.md`.
 
 ---
 

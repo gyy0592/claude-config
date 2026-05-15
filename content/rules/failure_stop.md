@@ -2,7 +2,7 @@
 
 After 3 attempts in an autonomous loop fail to produce the success criterion, stop and report to the user instead of grinding further.
 
-Override: `$PWD/CLAUDE.md` AUTH keywords ("allow you to do anything", "don't ask just fix") suspend this rule.
+This is one of the three sanctioned conditions for mid-task user interruption (alongside destructive ops and explicit user opt-in — see `autonomy.md`).
 
 Failure counting: `[OBSERVE]` entries that refute their `[PLAN]` within the same EXECUTE_LOOP session count as failures. `execute_loop_audit.sh` enforces this via the anomaly-keyword scan in `states/execute.md`.
 

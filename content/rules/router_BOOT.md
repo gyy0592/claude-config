@@ -10,3 +10,4 @@ Always-on (every state):
   - dispatch.md — >1 file / WebSearch / code change ⇒ Agent(run_in_background=true).
   - recording.md — every reply opens with [BOARD_READ] + 4-module reflection.
   - lessons.md grep — before replying to user OR writing deliverables, grep ~/.claude/rules/lessons.md `tags:` for matches (minimal-edits / brevity / language / scope-creep / etc.) and comply.
+  - autonomy.md — do NOT ask the user. Allowed only on (a) destructive ops, (b) 3-failure-stop, (c) prior explicit user opt-in. Otherwise REFLECT subagent rebuttal + decide yourself.
