@@ -29,15 +29,23 @@ Project artifacts layout (shared ledgers across all tasks in this repo, per-task
 
 When reading ledgers in BOOT, grep by current `task:` value (from `state.md`) plus relevant `tags:` to surface cross-task lessons that still apply.
 
-## 4-status FSM (per session)
+## 6-status FSM (per session)
 
 ```
 BOOT → PREPARE → REFLECT → EXECUTE_LOOP
-                   ↑              ↓ (anomaly / completion)
-                   └──────────────┘
+                   ↑↓ (NEED_RECORD)    ↓ (EXECUTE_EXIT, mandatory)
+                   ↓                  ↓
+                 RECORDING ← ← ← ← ← ←
+                   ↓ RECORD_DONE     ↑ BACK_TO_LOOP (mid-task resume)
+                  END
 ```
 
-Transitions via `transition.sh <event>`; details in `~/.claude/rules/fsm.md`. Same-session task switch (user gives unrelated new request, or `goal.md` updated): use `RESET_TO_BOOT` event to re-enter BOOT and re-read inputs.
+States:
+- **BOOT / PREPARE / REFLECT / EXECUTE_LOOP** — core work loop (unchanged from v2.3).
+- **RECORDING** (v2.4) — dedicated ledger-writing state. EXECUTE_EXIT now routes through RECORDING (was direct → REFLECT). Mid-task NEED_RECORD (from REFLECT or EXECUTE_LOOP) also enters RECORDING; resume via BACK_TO_LOOP using `prev_status` field.
+- **END** — final summary only (ledger writes were done in RECORDING).
+
+Transitions via `transition.sh <event>`; full event table in `~/.claude/rules/states/recording.md`. Same-session task switch (user gives unrelated new request, or `goal.md` updated): use `RESET_TO_BOOT` event from any state to re-enter BOOT.
 
 ## 5 policies (router pointers — read on demand)
 

@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 # transition.sh — FSM state mutator. Called by main as:
 #   bash transition.sh <event>  [--reason=<...>]
-# Events: BOOT_DONE | PREPARE_DONE | REFLECT_DONE | EXECUTE_EXIT | RESET_TO_BOOT
+# Events:
+#   BOOT_DONE | PREPARE_DONE | REFLECT_DONE | EXECUTE_EXIT
+#   NEED_RECORD | RECORD_DONE | BACK_TO_LOOP
+#   RESET_TO_BOOT
+#
+# RECORDING state (v2.4): a dedicated ledger-writing state. EXECUTE_EXIT now
+# routes EXECUTE_LOOP → RECORDING (was → REFLECT); from REFLECT or
+# EXECUTE_LOOP, NEED_RECORD can also enter RECORDING mid-task. RECORDING exits
+# via either RECORD_DONE → END (final) or BACK_TO_LOOP → prev state (resume).
 #
 # RESET_TO_BOOT: same-session task switch. Use when user changes the active task
 # (goal.md updated, new request unrelated to current FSM track). Re-enters BOOT
@@ -21,7 +29,7 @@ for arg in "$@"; do
 done
 
 if [ -z "$EVENT" ]; then
-    echo "usage: transition.sh <BOOT_DONE|PREPARE_DONE|REFLECT_DONE|EXECUTE_EXIT|RESET_TO_BOOT> [--reason=...]" >&2
+    echo "usage: transition.sh <BOOT_DONE|PREPARE_DONE|REFLECT_DONE|EXECUTE_EXIT|NEED_RECORD|RECORD_DONE|BACK_TO_LOOP|RESET_TO_BOOT> [--reason=...]" >&2
     exit 2
 fi
 
@@ -36,13 +44,50 @@ TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 # Capture OLD status BEFORE the Python mutator rewrites state.md
 OLD_STATUS="$(grep '^current_status:' "$STATE_FILE" | awk '{print $2}' | tr -d '[:space:]')"
+# Back-compat: state.md created before v2.4 lacks prev_status. `|| true` keeps
+# set -e from killing the script; missing line yields empty → "null" below.
+OLD_PREV_STATUS="$(grep '^prev_status:' "$STATE_FILE" 2>/dev/null | awk '{print $2}' | tr -d '[:space:]' || true)"
+[ -z "$OLD_PREV_STATUS" ] && OLD_PREV_STATUS="null"
 
-# Map event → new status
+# Map event → new status. NEW_PREV is the prev_status to write back; null means clear.
+NEW_PREV="null"
 case "$EVENT" in
     BOOT_DONE)     NEW=PREPARE ;;
     PREPARE_DONE)  NEW=REFLECT ;;
     REFLECT_DONE)  NEW=EXECUTE_LOOP ;;
-    EXECUTE_EXIT)  NEW=REFLECT ;;
+    EXECUTE_EXIT)
+        # v2.4: EXECUTE_LOOP exits now always go through RECORDING (was REFLECT).
+        NEW=RECORDING
+        NEW_PREV="$OLD_STATUS"
+        ;;
+    NEED_RECORD)
+        # Mid-task detour into RECORDING from REFLECT or EXECUTE_LOOP.
+        if [ "$OLD_STATUS" != "REFLECT" ] && [ "$OLD_STATUS" != "EXECUTE_LOOP" ]; then
+            echo "transition.sh: NEED_RECORD only valid from REFLECT or EXECUTE_LOOP (current: $OLD_STATUS)" >&2
+            exit 2
+        fi
+        NEW=RECORDING
+        NEW_PREV="$OLD_STATUS"
+        ;;
+    RECORD_DONE)
+        if [ "$OLD_STATUS" != "RECORDING" ]; then
+            echo "transition.sh: RECORD_DONE only valid from RECORDING (current: $OLD_STATUS)" >&2
+            exit 2
+        fi
+        NEW=END
+        ;;
+    BACK_TO_LOOP)
+        if [ "$OLD_STATUS" != "RECORDING" ]; then
+            echo "transition.sh: BACK_TO_LOOP only valid from RECORDING (current: $OLD_STATUS)" >&2
+            exit 2
+        fi
+        if [ "$OLD_PREV_STATUS" = "null" ] || [ -z "$OLD_PREV_STATUS" ]; then
+            echo "transition.sh: BACK_TO_LOOP found no prev_status — falling back to EXECUTE_LOOP" >&2
+            NEW=EXECUTE_LOOP
+        else
+            NEW="$OLD_PREV_STATUS"
+        fi
+        ;;
     RESET_TO_BOOT) NEW=BOOT ;;
     *) echo "transition.sh: unknown event $EVENT" >&2; exit 2 ;;
 esac
@@ -51,9 +96,9 @@ esac
 SDIR="$(dirname "$STATE_FILE")"
 SID="$(basename "$SDIR")"
 
-python3 - "$STATE_FILE" "$NEW" "$EVENT" "$REASON" "$TS" <<'PY'
+python3 - "$STATE_FILE" "$NEW" "$EVENT" "$REASON" "$TS" "$NEW_PREV" <<'PY'
 import sys, re, pathlib
-path, new_status, event, reason, ts = sys.argv[1:]
+path, new_status, event, reason, ts, new_prev = sys.argv[1:]
 src = pathlib.Path(path).read_text()
 m = re.search(r"```yaml\n---YAML---\n(.*?)\n---YAML---\n```", src, re.S)
 if not m:
@@ -62,9 +107,13 @@ if not m:
 yaml_body = m.group(1)
 # Naive line-based rewrite to avoid yaml dep.
 out_lines = []
+saw_prev = False
 for line in yaml_body.splitlines():
     if line.startswith("current_status:"):
         out_lines.append(f"current_status: {new_status}")
+    elif line.startswith("prev_status:"):
+        out_lines.append(f"prev_status: {new_prev}")
+        saw_prev = True
     elif line.startswith("last_transition:"):
         out_lines.append(f"last_transition: {{event: {event}, at: {ts}, reason: \"{reason}\"}}")
     elif line.startswith("stage_history:"):
@@ -74,6 +123,14 @@ for line in yaml_body.splitlines():
         out_lines.append(f"  - {{event: {event}, to: {new_status}, at: {ts}, reason: \"{reason}\"}}")
     else:
         out_lines.append(line)
+# Back-compat: if state.md was created before prev_status existed, inject it after current_status.
+if not saw_prev:
+    patched = []
+    for line in out_lines:
+        patched.append(line)
+        if line.startswith("current_status:"):
+            patched.append(f"prev_status: {new_prev}")
+    out_lines = patched
 new_yaml = "\n".join(out_lines)
 new_src = src[:m.start(1)] + new_yaml + src[m.end(1):]
 pathlib.Path(path).write_text(new_src)
@@ -99,6 +156,7 @@ case "$NEW" in
     PREPARE)      STATE_DOC="prepare.md" ;;
     REFLECT)      STATE_DOC="reflect.md" ;;
     EXECUTE_LOOP) STATE_DOC="execute.md" ;;
+    RECORDING)    STATE_DOC="recording.md" ;;
     END)          STATE_DOC="end.md" ;;
     *)            STATE_DOC="" ;;
 esac

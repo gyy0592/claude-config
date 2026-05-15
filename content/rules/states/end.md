@@ -1,6 +1,6 @@
 # END — session close
 
-You are in END. Task complete or paused. Archive only — no new execution.
+You are in END. RECORDING already wrote all ledger entries. END's sole job is the final user-facing summary + closing markers.
 
 ## Pipeline (do these in order)
 
@@ -13,56 +13,33 @@ SendMessage with:
 
 Format: concise, evidence-backed (cite specific files / line numbers / metrics).
 
-### Step 2 — Update project ledgers (SHARED across tasks)
-
-Append to `$PWD/workspace/` (4 ledgers shared across all tasks in this repo; each new entry MUST carry `task: <name>` from `state.md` plus `tags:`):
-
-| ledger | when to write |
-|---|---|
-| `attempts_ledger.md` | new attempt made this session (ATT-N entry with what was tried) |
-| `successful_fixes.md` | a fix actually landed + verified (FIX-N entry with before/after) |
-| `bitter_lessons.md` | discovered a non-obvious project pitfall (config combo / lib incompat / hardware quirk) |
-| `rule_violations.md` | AI behavioral error caught this session (cache misjudgment, skipped record-before-op, etc.) |
-
-If nothing applies, write `[no new ledger entries]` to action.md.
-
-### Step 3 — Update global ledgers (when applicable)
-
-Write to **repo path** (not `~/.claude/rules/` directly — that triggers approval prompt):
-
-| ledger | content |
-|---|---|
-| `content/templates/global_rules/lessons.md` | L-N entry — cross-project AI behavior wisdom (e.g. "user prefers minimal-edits"), include `tags:` line |
-| `content/templates/global_rules/violation.md` | W-N entry — AI rule violation crossing projects, include `tags:` |
-
-User will `bash set_claude.sh` to sync to `~/.claude/rules/`.
-
-### Step 4 — Action log close
+### Step 2 — Action log close marker
 
 Append final marker to action.md:
 
 ```
-[END_DONE @ ts] complexity=<from BOOT_NOTE> deliverables=<N> ledgers_updated=<list>
+[END_DONE @ ts] complexity=<from BOOT_NOTE> deliverables=<N> ledgers_updated=<list-from-RECORDING>
 ```
+
+The `ledgers_updated=<list>` field should mirror what the RECORDING `[RECORDING_SELF_CHECK]` block decided (e.g. `bitter_lessons+attempts` or `none`).
 
 ## Allowed
 - Read / Bash(`ls`, `cat`, `head`, `tail`, `grep`)
-- Append (not overwrite) to shared ledgers under `workspace/` (each entry tagged with `task:`)
-- Write to global ledger via repo path `content/templates/global_rules/*.md`
 - SendMessage final summary to user
+- Append final `[END_DONE @ ts]` marker to action.md
 
 ## Forbidden
+- New ledger writes (RECORDING already did them; if you missed something there, transition back via `BACK_TO_LOOP` then re-enter RECORDING — don't write from END)
 - Starting new execution
-- Spawning execution agents
+- Spawning agents
 - Mutating project source files
-- Modifying `~/.claude/rules/*` directly (use repo path instead)
+- Modifying `~/.claude/rules/*` directly
 
 ## Closing criteria — ALL must be true
 
 - [ ] Final summary sent to user
-- [ ] Ledger entries written (or `[no new ledger entries]`)
+- [ ] `[END_DONE @ ts]` marker written to action.md
 - [ ] No half-finished work in action.md
-- [ ] `[END_DONE @ ts]` marker written
 
 ## Re-entry
 

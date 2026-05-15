@@ -85,9 +85,13 @@ A gives the AI the correct structure; B gives it priors specific to **this proje
 <img src="docs/img/bp_fsm_patches_en.png" alt="state machine + patches" width="100%"/>
 
 ```
-BOOT ──► PREPARE ──► REFLECT ──► EXECUTE_LOOP ──► END
-            ▲                          │
-            └──────── anomaly rollback ─┘
+BOOT ──► PREPARE ──► REFLECT ◄═══════► EXECUTE_LOOP
+                       │  ▲ NEED_RECORD     │
+                       ▼  │                 ▼ EXECUTE_EXIT (mandatory pass-through)
+                     RECORDING ◄────────────┘
+                       │ RECORD_DONE       ▲
+                       ▼                   │ BACK_TO_LOOP
+                      END                  └ (mid-task: record then resume)
 ```
 
 | State | Allowed tools | Required output | Exit condition |
@@ -95,8 +99,9 @@ BOOT ──► PREPARE ──► REFLECT ──► EXECUTE_LOOP ──► END
 | **BOOT** | Read / Glob / Grep / read-only Bash | Read `~/.claude/rules/`, the shared ledgers under `workspace/` (`bitter_lessons` / `successful_fixes` / `attempts_ledger` / `rule_violations`, filtered by `task:`), and `workspace/<task>/goal.md` | `transition.sh BOOT_DONE` |
 | **PREPARE** | above + repeated Read (using `state.md`'s `cache_hit_map` to skip re-reads) | Write a `[PLAN]` todo list | `PREPARE_DONE` |
 | **REFLECT** | `Agent(run_in_background=true)` | Spawn an independent sub-agent to perform rebuttal | sub-agent writes `[CONSENSUS_REACHED]`; default cap 3 rounds, configurable in `~/.claude/rules/workflow_config.yaml` |
-| **EXECUTE_LOOP** | all | one `[PLAN]` line before each tool call, one `[OBSERVE]` line after | `EXECUTE_EXIT`; within the same loop `execute_loop_audit.sh` scans `action.md` for anomaly keywords — 3 rebuttals force rollback to REFLECT |
-| **END** | Read / write to workspace only | Append distilled entries from this session to `bitter_lessons.md` / `successful_fixes.md` etc. | session end |
+| **EXECUTE_LOOP** | all | one `[PLAN]` line before each tool call, one `[OBSERVE]` line after | `EXECUTE_EXIT` → RECORDING; in-loop `execute_loop_audit.sh` scans `action.md` for anomaly keywords — 3 rebuttals also exit via `EXECUTE_EXIT` |
+| **RECORDING** | Read + append-only writes to `workspace/*.md` + global ledgers | 4-question self-check (bitter / fix / violation / cross-project) + ATT-N intent log | `RECORD_DONE` → END (session close) or `BACK_TO_LOOP` → prev state (mid-task resume) |
+| **END** | Read-only + final summary | Send deliverable list / caveats / follow-ups + `[END_DONE @ ts]` marker | session end |
 
 State transitions are **actively** initiated by the model after meeting the exit condition: it calls `bash ~/.claude/hooks/transition.sh <event>`. `transition.sh` is **not** a hook — it's a script the model invokes. It writes `state.md`; on the next `UserPromptSubmit`, `inject_router.sh` reads the new state and injects the corresponding router text.
 

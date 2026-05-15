@@ -111,9 +111,12 @@ Reports `[PLAN]` count vs `[OBSERVE]` count + anomaly count. Run before EXECUTE_
 bash ~/.claude/hooks/transition.sh EXECUTE_EXIT --reason=<completion|bug|anomaly|stuck>
 ```
 
-Reason routing:
-- `completion` → REFLECT (post-task verification)
-- `bug` / `anomaly` → REFLECT (on-anomaly rebuttal)
-- `stuck` → REFLECT (post-task) + surface to user
+All reasons route to **RECORDING** (v2.4 — was REFLECT pre-v2.4). From RECORDING, after writing any qualifying ledger entries, choose:
+- `RECORD_DONE` → END (final summary to user; default)
+- `BACK_TO_LOOP` → EXECUTE_LOOP (false alarm / want to keep working)
 
-→ Next state: REFLECT. The transition script will cat `states/reflect.md`.
+Reason field is just metadata — it does NOT change routing. Use `completion` / `bug` / `anomaly` / `stuck` for traceability.
+
+For mid-task ledger writes that don't require leaving EXECUTE_LOOP, use `NEED_RECORD` instead of `EXECUTE_EXIT` — that enters RECORDING with `prev_status: EXECUTE_LOOP`, and `BACK_TO_LOOP` returns here.
+
+→ Next state: RECORDING. The transition script will cat `states/recording.md`.

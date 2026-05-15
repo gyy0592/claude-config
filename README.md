@@ -85,9 +85,13 @@ A 给 AI 正确的结构；B 给 AI 关于**这个具体项目**的先验。两�
 <img src="docs/img/bp_fsm_patches.png" alt="state machine + patches" width="100%"/>
 
 ```
-BOOT ──► PREPARE ──► REFLECT ──► EXECUTE_LOOP ──► END
-            ▲                          │
-            └──────── 异常回退 ─────────┘
+BOOT ──► PREPARE ──► REFLECT ◄═══════► EXECUTE_LOOP
+                       │  ▲ NEED_RECORD     │
+                       ▼  │                 ▼ EXECUTE_EXIT (强制经过)
+                     RECORDING ◄────────────┘
+                       │ RECORD_DONE       ▲
+                       ▼                   │ BACK_TO_LOOP
+                      END                  └ (中途记账后回原状态)
 ```
 
 | 状态 | 允许工具 | 强制产出 | 离开条件 |
@@ -95,8 +99,9 @@ BOOT ──► PREPARE ──► REFLECT ──► EXECUTE_LOOP ──► END
 | **BOOT** | Read / Glob / Grep / 只读 Bash | 读完 `~/.claude/rules/`、`workspace/` 下的共享 ledger（`bitter_lessons` / `successful_fixes` / `attempts_ledger` / `rule_violations`，按 `task:` 过滤）、`workspace/<task>/goal.md` | `transition.sh BOOT_DONE` |
 | **PREPARE** | 上述 + 重复 Read（利用 `state.md` 中 `cache_hit_map` 避免重复读） | 写出 `[PLAN]` 待办清单 | `PREPARE_DONE` |
 | **REFLECT** | `Agent(run_in_background=true)` | 派出独立子 agent 做 rebuttal | 子 agent 写下 `[CONSENSUS_REACHED]`；默认上限 3 轮，可在 `~/.claude/rules/workflow_config.yaml` 调整 |
-| **EXECUTE_LOOP** | 全部 | 每个工具调用前一行 `[PLAN]`、之后一行 `[OBSERVE]` | `EXECUTE_EXIT`；同 loop 内 `execute_loop_audit.sh` 扫描 `action.md` 的异常关键词，3 次反驳则强制回退 REFLECT |
-| **END** | Read / 仅向 workspace 写 | 把本次会话提炼的条目追加到 `bitter_lessons.md` / `successful_fixes.md` 等 | session 结束 |
+| **EXECUTE_LOOP** | 全部 | 每个工具调用前一行 `[PLAN]`、之后一行 `[OBSERVE]` | `EXECUTE_EXIT` → RECORDING；同 loop 内 `execute_loop_audit.sh` 扫描 `action.md` 的异常关键词，3 次反驳则同样走 `EXECUTE_EXIT` 出口 |
+| **RECORDING** | Read + append-only writes 到 `workspace/*.md` + 全局 ledger | 4 题自检（bitter / fix / 违规 / 跨项目）+ ATT-N intent log | `RECORD_DONE` → END (会话收尾) 或 `BACK_TO_LOOP` → 原状态 (中途记账后接着干) |
+| **END** | Read 只读 + final summary | 向用户发送 deliverable list / caveats / follow-ups + `[END_DONE @ ts]` | session 结束 |
 
 状态切换由模型在满足离开条件后**主动**调用 `bash ~/.claude/hooks/transition.sh <事件名>`。`transition.sh` 本身不是 hook，是模型可调用的脚本；它写入 `state.md`，并在下一轮 `UserPromptSubmit` 时由 `inject_router.sh` 读取新状态、注入对应 router 文本。
 

@@ -3,6 +3,7 @@
 ```yaml
 ---YAML---
 current_status: BOOT
+prev_status: null
 session_id: __SID__
 created_at: __TS__
 stage_history: []
