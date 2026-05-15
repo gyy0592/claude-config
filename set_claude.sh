@@ -106,26 +106,28 @@ cp ~/.claude/CLAUDE.md ~/CLAUDE.md
 echo "[deploy] ✓ ~/.claude/CLAUDE.md (system-level master, source = content/CLAUDE.md)"
 echo "[deploy] ✓ ~/CLAUDE.md (home workspace version, identical to system-level — dual guarantee)"
 
-# ── 5. Deploy content/memory/ (single canonical directory strategy) ────────────────
-# Strategy: symlink ~/.claude/memory → content/memory (edit in one place, both tools see it)
-#           fall back to cp -r copy if symlink fails
+# ── 5. Deploy content/memory/ (legacy v1 — optional) ────────────────
+# Strategy: symlink ~/.claude/memory → content/memory if the dir exists.
+# v2.4+: content/memory/ is no longer shipped on main (v1 cosplay residue);
+# absent → skip silently. Branches that still carry it (e.g. v2 internal dev
+# work) keep deploying it.
 MEMORY_SRC="${CONTENT_DIR}/memory"
 MEMORY_DST="$HOME/.claude/memory"
 
 if [ ! -d "$MEMORY_SRC" ]; then
-    echo "[deploy] ✗ ${MEMORY_SRC} does not exist, cannot deploy memory"
-    exit 1
-fi
-
-# Remove old memory (whether symlink or directory)
-rm -rf "$MEMORY_DST"
-
-if [ "$SYMLINK_OK" -eq 1 ]; then
-    ln -s "$MEMORY_SRC" "$MEMORY_DST"
-    echo "[deploy] ✓ ~/.claude/memory → ${MEMORY_SRC} (symlink, single-source single-point editing)"
+    echo "[deploy] - ${MEMORY_SRC} absent, skipping memory deploy (not required since v2.4)"
+    # Also clean up any stale deployed memory symlink/dir to avoid dangling references.
+    [ -e "$MEMORY_DST" ] && rm -rf "$MEMORY_DST" && echo "[deploy] - removed stale ${MEMORY_DST}"
 else
-    cp -r "$MEMORY_SRC" "$MEMORY_DST"
-    echo "[deploy] ! ~/.claude/memory (cp copy fallback; rerun set_claude.sh to sync after editing)"
+    # Remove old memory (whether symlink or directory) before re-linking.
+    rm -rf "$MEMORY_DST"
+    if [ "$SYMLINK_OK" -eq 1 ]; then
+        ln -s "$MEMORY_SRC" "$MEMORY_DST"
+        echo "[deploy] ✓ ~/.claude/memory → ${MEMORY_SRC} (symlink, single-source single-point editing)"
+    else
+        cp -r "$MEMORY_SRC" "$MEMORY_DST"
+        echo "[deploy] ! ~/.claude/memory (cp copy fallback; rerun set_claude.sh to sync after editing)"
+    fi
 fi
 
 # ── 5b. Deploy ~/.claude/rules/ (v2-hook NEW: global auto-loaded violation.md + lessons.md) ──
