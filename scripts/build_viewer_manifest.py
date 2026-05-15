@@ -386,8 +386,47 @@ def main() -> None:
         "current_status": parsed.get("current_status") if parsed else None,
         "files": files,
     }
-    (sess_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
-    print(f"wrote {sess_dir / 'manifest.json'}")
+    manifest_path = sess_dir / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest, indent=2))
+    print(f"wrote {manifest_path}")
+
+    # 5. Update viewer/data/index.json to include this sid (prepend if missing).
+    index_path = REPO_ROOT / "viewer" / "data" / "index.json"
+    if index_path.exists():
+        try:
+            index_data = json.loads(index_path.read_text())
+        except Exception:
+            index_data = {"sessions": []}
+    else:
+        index_data = {"sessions": []}
+
+    sessions = index_data.get("sessions", [])
+    # Check if sid already present (by sid field or bare string)
+    already_present = any(
+        (e.get("sid") if isinstance(e, dict) else e) == sid
+        for e in sessions
+    )
+    if not already_present:
+        # Build label from current_status + created_at for context
+        label = sid
+        if parsed is not None:
+            cs = parsed.get("current_status") or ""
+            ca = parsed.get("created_at") or ""
+            if ca:
+                try:
+                    dt = datetime.fromisoformat(ca.replace("Z", "+00:00"))
+                    date_str = dt.strftime("%Y-%m-%d")
+                except Exception:
+                    date_str = ca[:10]
+                label = f"{cs} ({date_str})" if cs else date_str
+        new_entry = {"sid": sid, "label": label}
+        sessions.insert(0, new_entry)
+        index_data["sessions"] = sessions
+        # Atomic write via temp file
+        tmp = index_path.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(index_data, indent=2))
+        tmp.replace(index_path)
+        print(f"updated {index_path} with sid={sid}")
 
 
 if __name__ == "__main__":

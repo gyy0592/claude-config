@@ -55,6 +55,41 @@ case "${1:-}" in
         ;;
 esac
 
+# ── auto-ingest sessions from $PWD/.barry_workflow/ (if present) ─
+BARRY_DIR="$PWD/.barry_workflow"
+if [ -d "$BARRY_DIR" ]; then
+    # Find all <sid> subdirs containing state.md, sorted by state.md mtime (newest first)
+    while IFS= read -r STATE_FILE; do
+        SOURCE_DIR="$(dirname "$STATE_FILE")"
+        INGEST_SID="$(basename "$SOURCE_DIR")"
+        DEST_DIR="$VIEWER_DIR/data/$INGEST_SID"
+        MANIFEST="$DEST_DIR/manifest.json"
+
+        # Idempotence: skip if manifest is newer than both state.md and action.md
+        SOURCE_ACTION="$SOURCE_DIR/action.md"
+        SKIP=0
+        if [ -f "$MANIFEST" ]; then
+            NEWER=0
+            [ "$MANIFEST" -nt "$STATE_FILE" ] && NEWER=1
+            if [ -f "$SOURCE_ACTION" ]; then
+                [ "$MANIFEST" -nt "$SOURCE_ACTION" ] || NEWER=0
+            fi
+            [ "$NEWER" -eq 1 ] && SKIP=1
+        fi
+
+        if [ "$SKIP" -eq 0 ]; then
+            echo "[viewer] ingesting session $INGEST_SID ..."
+            python3 "$REPO_DIR/scripts/build_viewer_manifest.py" \
+                "$DEST_DIR" \
+                --source "$SOURCE_DIR" \
+                2>&1 | sed 's/^/[viewer]   /' || true
+        else
+            echo "[viewer] session $INGEST_SID up-to-date, skipping re-ingest"
+        fi
+    done < <(find "$BARRY_DIR" -mindepth 2 -maxdepth 2 -name "state.md" \
+                 -printf '%T@ %p\n' 2>/dev/null | sort -rn | awk '{print $2}')
+fi
+
 # ── stop any existing instance first (idempotent restart) ─
 if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
     OLD_PID="$(cat "$PID_FILE")"
