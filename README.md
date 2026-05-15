@@ -6,8 +6,8 @@
 
 <p align="center">
   一套 hook + 规则文件，把每次 Claude Code 会话约束成一个<br/>
-  五状态有限状态机（Finite State Machine, FSM）：<br/>
-  BOOT / PREPARE / REFLECT / EXECUTE_LOOP / END。<br/>
+  六状态有限状态机（Finite State Machine, FSM）：<br/>
+  BOOT / PREPARE / REFLECT / EXECUTE_LOOP / RECORDING / END。<br/>
   阻止模型跳过中间步骤直接交付「修好后的代码」。
 </p>
 

@@ -6,8 +6,8 @@
 
 <p align="center">
   A set of hooks + rule files that constrain every Claude Code session<br/>
-  into a five-state Finite State Machine (FSM):<br/>
-  BOOT / PREPARE / REFLECT / EXECUTE_LOOP / END.<br/>
+  into a six-state Finite State Machine (FSM):<br/>
+  BOOT / PREPARE / REFLECT / EXECUTE_LOOP / RECORDING / END.<br/>
   Prevents the model from skipping intermediate steps and delivering "fixed code" without verification.
 </p>
 
