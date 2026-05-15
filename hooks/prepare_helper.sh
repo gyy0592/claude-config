@@ -38,12 +38,20 @@ fi
 for f in "${CWD}/CLAUDE.md" "${CWD}/goal.md"; do
     [ -f "$f" ] && artifacts+=("$f")
 done
+# v2.4 F2: deployed global ledgers — router asks model to grep their tags: every turn
+for f in "$HOME/.claude/rules/violation.md" "$HOME/.claude/rules/lessons.md"; do
+    [ -f "$f" ] && artifacts+=("$f")
+done
 
 if [ "${#artifacts[@]}" -eq 0 ]; then
     echo "  # (no candidate artifacts found under workspace/ or .barry_workflow/)"
 else
     for f in "${artifacts[@]}"; do
-        rel="${f#${CWD}/}"
+        if [ "${f#${CWD}/}" != "$f" ]; then
+            rel="${f#${CWD}/}"
+        else
+            rel="${f/#$HOME/\~}"
+        fi
         sig="$(sha1sum "$f" 2>/dev/null | awk '{print substr($1,1,12)}')"
         echo "  ${rel}: {hit: UNKNOWN, sig: ${sig}, must_read_if_no: true}"
     done
