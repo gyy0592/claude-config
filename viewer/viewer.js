@@ -10,7 +10,13 @@ const state = {
   stateTab: "state",
   selectedReflection: null,
   fileCache: new Map(),
+  autoRefresh: localStorage.getItem("autoRefresh") !== "off",
+  refreshTimer: null,
+  lastLiveSnapshot: new Map(),  // path → text, to skip render when unchanged
 };
+
+const LIVE_PATH_RE = /\/(state|action)\.md(\?|$)/;
+const REFRESH_INTERVAL_MS = 5000;
 
 function $(id) { return document.getElementById(id); }
 function el(tag, attrs = {}, ...children) {
@@ -29,11 +35,13 @@ function el(tag, attrs = {}, ...children) {
 }
 
 async function fetchText(path) {
-  if (state.fileCache.has(path)) return state.fileCache.get(path);
-  const r = await fetch(path);
+  const live = LIVE_PATH_RE.test(path);
+  if (!live && state.fileCache.has(path)) return state.fileCache.get(path);
+  const url = live ? `${path}${path.includes("?") ? "&" : "?"}t=${Date.now()}` : path;
+  const r = await fetch(url, live ? { cache: "no-store" } : {});
   if (!r.ok) throw new Error(`fetch ${path}: ${r.status}`);
   const t = await r.text();
-  state.fileCache.set(path, t);
+  if (!live) state.fileCache.set(path, t);
   return t;
 }
 
@@ -474,5 +482,45 @@ function applyTranscriptFilters() {
 }
 
 function esc(s) { return String(s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+
+// v2.4 F1: auto-refresh — re-render state pane every 5 s if the live state.md /
+// action.md content (served via symlink) actually changed since last tick.
+async function liveRefreshTick() {
+  if (!state.autoRefresh || !state.sid || !state.manifest) return;
+  const m = state.manifest;
+  const sa = state.selectedAgent === "main" ? null : (m.subagents || []).find(s => s.aid === state.selectedAgent);
+  const statePath = sa ? sa.state_path : m.main?.state_path;
+  const actionPath = sa ? sa.action_path : m.main?.action_path;
+  let dirty = false;
+  for (const p of [statePath, actionPath]) {
+    if (!p) continue;
+    try {
+      const full = `data/${state.sid}/${p}`;
+      const text = await fetchText(full);
+      const prev = state.lastLiveSnapshot.get(full);
+      if (prev !== text) {
+        state.lastLiveSnapshot.set(full, text);
+        dirty = true;
+      }
+    } catch (_) { /* swallow — next tick retries */ }
+  }
+  if (dirty) renderStatePane();
+}
+
+function setAutoRefresh(on) {
+  state.autoRefresh = on;
+  localStorage.setItem("autoRefresh", on ? "on" : "off");
+  if (state.refreshTimer) { clearInterval(state.refreshTimer); state.refreshTimer = null; }
+  if (on) state.refreshTimer = setInterval(liveRefreshTick, REFRESH_INTERVAL_MS);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const cb = document.getElementById("auto-refresh");
+  if (cb) {
+    cb.checked = state.autoRefresh;
+    cb.addEventListener("change", e => setAutoRefresh(e.target.checked));
+  }
+  setAutoRefresh(state.autoRefresh);
+});
 
 loadSessionIndex();

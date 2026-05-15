@@ -231,12 +231,32 @@ def extract_transcript_to(jsonl: Path, out_path: Path) -> bool:
 
 
 def mirror_source(source: Path, dest: Path) -> None:
-    """Copy state.md / action.md / transitions.log / reflection_*.md / nudge_counters.json."""
+    """Mirror session files into viewer/data/<sid>/.
+
+    v2.4 F1: state.md / action.md become symlinks to the live source so the
+    viewer (which polls every 5 s) sees fresh content without a re-ingest. If
+    a pre-v2.4 snapshot (real file) is at the dest, it is removed first so
+    upgrades happen on next start_viewer.sh run with no manual cleanup.
+    """
     dest.mkdir(parents=True, exist_ok=True)
+    LIVE = {"state.md", "action.md"}
     for name in ("state.md", "action.md", "transitions.log", "nudge_counters.json"):
         f = source / name
-        if f.exists():
-            shutil.copy2(f, dest / name)
+        if not f.exists():
+            continue
+        target = dest / name
+        if name in LIVE:
+            if target.is_symlink() or target.exists():
+                try:
+                    target.unlink()
+                except OSError:
+                    pass
+            try:
+                os.symlink(f.resolve(), target)
+                continue
+            except OSError:
+                pass
+        shutil.copy2(f, target)
     for f in source.glob("reflection_*.md"):
         shutil.copy2(f, dest / f.name)
     # Also any agent_<aid>/ subdirs the workflow may have produced.
