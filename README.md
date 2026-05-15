@@ -84,16 +84,6 @@ A 给 AI 正确的结构；B 给 AI 关于**这个具体项目**的先验。两�
 
 <img src="docs/img/bp_fsm_patches.png" alt="state machine + patches" width="100%"/>
 
-```
-BOOT ──► PREPARE ──► REFLECT ◄═══════► EXECUTE_LOOP
-                       │  ▲ NEED_RECORD     │
-                       ▼  │                 ▼ EXECUTE_EXIT (强制经过)
-                     RECORDING ◄────────────┘
-                       │ RECORD_DONE       ▲
-                       ▼                   │ BACK_TO_LOOP
-                      END                  └ (中途记账后回原状态)
-```
-
 | 状态 | 允许工具 | 强制产出 | 离开条件 |
 |---|---|---|---|
 | **BOOT** | Read / Glob / Grep / 只读 Bash | 读完 `~/.claude/rules/`、`workspace/` 下的共享 ledger（`bitter_lessons` / `successful_fixes` / `attempts_ledger` / `rule_violations`，按 `task:` 过滤）、`workspace/<task>/goal.md` | `transition.sh BOOT_DONE` |

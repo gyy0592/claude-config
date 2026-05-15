@@ -84,16 +84,6 @@ A gives the AI the correct structure; B gives it priors specific to **this proje
 
 <img src="docs/img/bp_fsm_patches_en.png" alt="state machine + patches" width="100%"/>
 
-```
-BOOT ──► PREPARE ──► REFLECT ◄═══════► EXECUTE_LOOP
-                       │  ▲ NEED_RECORD     │
-                       ▼  │                 ▼ EXECUTE_EXIT (mandatory pass-through)
-                     RECORDING ◄────────────┘
-                       │ RECORD_DONE       ▲
-                       ▼                   │ BACK_TO_LOOP
-                      END                  └ (mid-task: record then resume)
-```
-
 | State | Allowed tools | Required output | Exit condition |
 |---|---|---|---|
 | **BOOT** | Read / Glob / Grep / read-only Bash | Read `~/.claude/rules/`, the shared ledgers under `workspace/` (`bitter_lessons` / `successful_fixes` / `attempts_ledger` / `rule_violations`, filtered by `task:`), and `workspace/<task>/goal.md` | `transition.sh BOOT_DONE` |
