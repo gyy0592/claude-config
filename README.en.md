@@ -5,10 +5,9 @@
 <h1 align="center">Barry's Workflow — Claude Code Edition</h1>
 
 <p align="center">
-  A set of hooks + rule files that constrain every Claude Code session<br/>
-  into a six-state Finite State Machine (FSM):<br/>
-  BOOT / PREPARE / REFLECT / EXECUTE_LOOP / RECORDING / END.<br/>
-  Prevents the model from skipping intermediate steps and delivering "fixed code" without verification.
+  A set of hooks + rule files that wrap every Claude Code session in two layers:<br/>
+  <b>① six-state FSM</b> (BOOT / PREPARE / REFLECT / EXECUTE_LOOP / RECORDING / END) —— prevents the model from skipping intermediate steps and delivering "fixed code" without verification;<br/>
+  <b>② self-evolving project ledgers</b> —— each session distills its pitfalls / verified fixes / rule violations into <code>workspace/*.md</code>, auto-loaded next session, so the workflow <b>evolves with the project</b>.
 </p>
 
 <p align="center">

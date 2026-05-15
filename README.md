@@ -5,10 +5,9 @@
 <h1 align="center">Barry's Workflow — Claude Code 版</h1>
 
 <p align="center">
-  一套 hook + 规则文件，把每次 Claude Code 会话约束成一个<br/>
-  六状态有限状态机（Finite State Machine, FSM）：<br/>
-  BOOT / PREPARE / REFLECT / EXECUTE_LOOP / RECORDING / END。<br/>
-  阻止模型跳过中间步骤直接交付「修好后的代码」。
+  一套 hook + 规则文件，给每次 Claude Code 会话装上两层约束：<br/>
+  <b>① 六状态 FSM</b>（BOOT / PREPARE / REFLECT / EXECUTE_LOOP / RECORDING / END）—— 阻止模型跳过中间步骤直接交付「修好后的代码」；<br/>
+  <b>② 自我进化的项目 ledger</b> —— 每次会话把踩过的坑 / 修好的 bug / 违反过的规则沉淀进 <code>workspace/*.md</code>，下次会话自动读取，让工作流随项目使用而<b>自我进化</b>。
 </p>
 
 <p align="center">
