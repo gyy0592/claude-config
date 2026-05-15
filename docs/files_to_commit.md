@@ -67,6 +67,7 @@ git branch -D merge-to-main
 
 | 日期 | main commit | v2 commit 范围 | 内容 |
 |---|---|---|---|
+| 2026-05-14 | `0d8f6e6` | `5917b29` | README FSM PNG regenerated for v2.4 (6-state, tight crop) |
 | 2026-05-14 | `820f07e` | `24e13dd..155e392` | v2.4: RECORDING + END states + viewer auto-ingest + FSM docs sync |
 | 2026-05-14 | `c57f253` | `2b79a7f..a27683e` | shared workspace ledgers + viewer metrics + RESET_TO_BOOT + archive/stop_self_audit |
 | 2026-05-13 | `461b94a` | 同期 | README quickstart: AI-conversational default; manual route optional |
