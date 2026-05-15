@@ -22,7 +22,7 @@
 **核心问题**：Claude Code 是一个强大但容易"跳步"的 AI——它会跳过分析直接改代码，跳过验证直接交付，出了 bug 也不知道怎么复盘。这套系统（barry-workflow）通过把 AI 锁进一个有限状态机（FSM）来解决这个问题：每次对话被划分成若干 **state**（状态），AI 在每个 state 只能做被允许的事，做完才能"升级"到下一个 state。
 
 **四个核心概念**：
-- **state**：AI 当前所处的工作阶段（BOOT / PREPARE / REFLECT / EXECUTE_LOOP / END），每个 state 有明确的允许/禁止工具清单。
+- **state**：AI 当前所处的工作阶段（BOOT / PREPARE / REFLECT / EXECUTE_LOOP / RECORDING / END），每个 state 有明确的允许/禁止工具清单。
 - **FSM**（有限状态机）：state 之间的流转规则，由 AI 主动调用 `transition.sh` 触发，不能自行跳转。
 - **rebuttal**（反驳协议）：AI 起草计划或完成执行后，强制派一个子 agent 来挑毛病，双方 N 轮对话后才算达成共识。
 - **ledger**（台账）：每个任务下的一组 markdown 文件，记录意图日志、已验证的修复、踩过的坑。
@@ -71,32 +71,45 @@
 **目的**：按计划做实际工作，每一步遵循 `[PLAN] → 工具调用 → [OBSERVE]` 三件套。  
 **允许**：所有工具，但每个修改/长 Bash 前必须先写 `[PLAN]`，完成后写 `[OBSERVE]`。  
 **禁止**：无工具限制，但违反 `[PLAN]`/`[OBSERVE]` 规范会被 hook 警告；连续 3 次失败必须停下来汇报。  
-**离开条件**：交付完成或遇到异常，调 `transition.sh EXECUTE_EXIT` → 回到 REFLECT 复核。
+**离开条件**：交付完成或遇到异常，调 `transition.sh EXECUTE_EXIT` → 进入 RECORDING 写台账（v2.4 强制经过，不直接回 REFLECT）。
 
 深入阅读：[router_EXECUTE_LOOP.md](../content/rules/router_EXECUTE_LOOP.md)（精简规则卡片）/ [states/execute.md](../content/rules/states/execute.md)（PLAN/OBSERVE 循环与 3 次失败停止规则）
 
 ---
 
-### END — 收尾归档
+### RECORDING — 台账写入（v2.4 新增）
 
-**目的**：记录本次任务结果，关闭 session，不再执行新工作。  
-**允许**：Read + 追加写 workspace 台账 + 发 SendMessage 最终汇报。  
-**禁止**：新执行、新 Agent spawn、项目源码修改。  
+**目的**：在任务完成（或中途）专注写台账，确保不漏记。  
+**允许**：Read + 追加写 workspace 台账（bitter_lessons / successful_fixes / attempts_ledger / rule_violations）+ global ledgers。  
+**禁止**：项目源码修改、新 Agent spawn、新执行工作。  
+**离开条件**：写完台账 → `RECORD_DONE` → END（session 收尾路径）；或 `BACK_TO_LOOP` → 恢复 `prev_status` 继续执行（中途路径）。
+
+深入阅读：[router_RECORDING.md](../content/rules/router_RECORDING.md)（精简规则卡片）/ [states/recording.md](../content/rules/states/recording.md)（4 问自查 + 出口决策）
+
+---
+
+### END — 最终汇报
+
+**目的**：发最终 user-facing 总结，关闭 session。台账写入已在 RECORDING 完成，END 不再写台账。  
+**允许**：Read + SendMessage 最终汇报。  
+**禁止**：新执行、新 Agent spawn、项目源码修改、台账写入（RECORDING 已做）。  
 **离开方式**：新的用户提示会开一个新 sid 从 BOOT 开始；同 session 切换任务用 `RESET_TO_BOOT`。
 
-深入阅读：[router_END.md](../content/rules/router_END.md)（精简规则卡片）/ [states/end.md](../content/rules/states/end.md)（最终汇报与台账收尾步骤）
+深入阅读：[router_END.md](../content/rules/router_END.md)（精简规则卡片）/ [states/end.md](../content/rules/states/end.md)（最终汇报步骤）
 
 ---
 
 ## §3 state 之间怎么跳转
 
 ```
-BOOT ──BOOT_DONE──▶ PREPARE ──PREPARE_DONE──▶ REFLECT ──REFLECT_DONE──▶ EXECUTE_LOOP
-  ▲                                               ▲                           │
-  │                                               │◀──────EXECUTE_EXIT────────┘
-  └──────────────────RESET_TO_BOOT───────────────────────────────────────────┘
-
-END（任意 state 均可 → END，通常由 EXECUTE_LOOP 正常完成触发）
+BOOT ──BOOT_DONE──▶ PREPARE ──PREPARE_DONE──▶ REFLECT ◄══════════► EXECUTE_LOOP
+  ▲                                               │  ▲ NEED_RECORD      │
+  │                                               ▼  │                  ▼ EXECUTE_EXIT (强制经过)
+  │                                            RECORDING ◄──────────────┘
+  │                                               │ RECORD_DONE        ▲
+  │                                               ▼                    │ BACK_TO_LOOP
+  │                                              END                   │
+  └──────────────────────────────RESET_TO_BOOT──────────────────────────┘
 ```
 
 | 事件 | 含义 |
@@ -104,7 +117,10 @@ END（任意 state 均可 → END，通常由 EXECUTE_LOOP 正常完成触发）
 | `BOOT_DONE` | BOOT 检查清单全部完成 |
 | `PREPARE_DONE` | 计划通过 rebuttal，准备执行 |
 | `REFLECT_DONE` | 反驳协议达成共识 |
-| `EXECUTE_EXIT` | 本轮执行结束（完成/异常/卡住）→ 回 REFLECT 复核 |
+| `EXECUTE_EXIT` | 本轮执行结束（完成/异常/卡住）→ **RECORDING**（v2.4 强制经过，不再直接回 REFLECT） |
+| `NEED_RECORD` | 中途需要写台账 → RECORDING（完成后 `BACK_TO_LOOP` 返回） |
+| `RECORD_DONE` | RECORDING 台账写完 → END |
+| `BACK_TO_LOOP` | RECORDING 中途完成 → 恢复 `prev_status` 继续工作 |
 | `RESET_TO_BOOT` | 用户换了任务或更新了 goal.md，重读输入 |
 
 跳转由 AI 主动调用 [`hooks/transition.sh`](../hooks/transition.sh) — 该脚本读取当前 state.md，修改 YAML 块中的 `current_status` 字段，原子写回，并将新状态 echo 到 stdout 供主线程确认。
@@ -128,7 +144,7 @@ END（任意 state 均可 → END，通常由 EXECUTE_LOOP 正常完成触发）
 - 离开条件与 transition.sh 调用示例
 - 结尾附 always-on footer（四条横切规则，见 §4.4）
 
-五个 router 文件：[router_BOOT.md](../content/rules/router_BOOT.md)、[router_PREPARE.md](../content/rules/router_PREPARE.md)、[router_REFLECT.md](../content/rules/router_REFLECT.md)、[router_EXECUTE_LOOP.md](../content/rules/router_EXECUTE_LOOP.md)、[router_END.md](../content/rules/router_END.md)。
+六个 router 文件：[router_BOOT.md](../content/rules/router_BOOT.md)、[router_PREPARE.md](../content/rules/router_PREPARE.md)、[router_REFLECT.md](../content/rules/router_REFLECT.md)、[router_EXECUTE_LOOP.md](../content/rules/router_EXECUTE_LOOP.md)、[router_RECORDING.md](../content/rules/router_RECORDING.md)、[router_END.md](../content/rules/router_END.md)。
 
 ---
 

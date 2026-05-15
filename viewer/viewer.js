@@ -1,7 +1,7 @@
 // Barry's Workflow — Session viewer
 // Loads viewer/data/<sid>/manifest.json then renders agent tree, state, transcript.
 
-const FSM_STATES = ["BOOT", "PREPARE", "REFLECT", "EXECUTE_LOOP", "END"];
+const FSM_STATES = ["BOOT", "PREPARE", "REFLECT", "EXECUTE_LOOP", "RECORDING", "END"];
 
 const state = {
   sid: null,

@@ -1,6 +1,6 @@
 # REFLECT state
 
-Entered from PREPARE (pre-task) or EXECUTE_LOOP (on-anomaly | post-task). A REFLECT cycle is a bounded dialectic between `main` and one rebuttal subagent. main drives via SendMessage; the subagent writes markdown and sleeps between rounds.
+Entered from PREPARE (pre-task). In v2.4, EXECUTE_EXIT no longer routes to REFLECT — it goes to RECORDING instead. The on-anomaly / post-task REFLECT sub-reasons still exist but are initiated from RECORDING (via BACK_TO_LOOP) or by main's own judgment, not as automatic EXECUTE_EXIT targets. A REFLECT cycle is a bounded dialectic between `main` and one rebuttal subagent. main drives via SendMessage; the subagent writes markdown and sleeps between rounds.
 
 ## File layout
 

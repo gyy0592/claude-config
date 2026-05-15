@@ -1,11 +1,16 @@
-# fsm — 4-status state machine (per session)
+# fsm — 6-status state machine (per session, v2.4)
 
 ```
-BOOT → PREPARE → REFLECT → EXECUTE_LOOP
-                   ↑              ↓ (anomaly / completion)
-                   └──────────────┘
-END
+BOOT → PREPARE → REFLECT ◄═══════► EXECUTE_LOOP
+                   │  ▲ NEED_RECORD     │
+                   ▼  │                 ▼ EXECUTE_EXIT (mandatory pass-through)
+                RECORDING ◄─────────────┘
+                   │ RECORD_DONE       ▲
+                   ▼                   │ BACK_TO_LOOP (mid-task: record + resume)
+                  END
 ```
+
+Key v2.4 changes: `EXECUTE_EXIT` now routes EXECUTE_LOOP → RECORDING (not REFLECT). Ledger writes happen in RECORDING, not END. New events: `NEED_RECORD`, `RECORD_DONE`, `BACK_TO_LOOP`. `state.md` has new `prev_status` field.
 
 State file: `$PWD/.barry_workflow/state_<sid>.md` (hybrid markdown + YAML block, see `content/templates/state_template.md`).
 
@@ -14,7 +19,8 @@ Per-state detail lives under `states/`:
 - `states/prepare.md` — goal read, cache_hit_map, prompt reinforcement
 - `states/reflect.md` — rebuttal protocol, N-round budget, subagent prompt template
 - `states/execute.md` — PLAN/OBSERVE loop, anomaly keywords, failure budget
-- `states/end.md` — terminal
+- `states/recording.md` — dedicated ledger-writing state (v2.4)
+- `states/end.md` — final user-facing summary only (ledger writes done in RECORDING)
 
 ## transition.sh
 

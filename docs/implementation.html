@@ -350,8 +350,8 @@ const SECTIONS = {
                   ▲ enforced by hooks
 ┌─────────────────────────────────────────────────┐
 │  Layer 1:  FSM 骨架  ← 不变量                    │
-│            BOOT → PREPARE → REFLECT ↔ EXECUTE   │
-│            → END                                │
+│  BOOT → PREPARE → REFLECT ↔ EXECUTE → RECORDING │
+│            → END  (v2.4: 6状态)                 │
 │  (PostToolUse state_enforce.sh 警告越界)         │
 └─────────────────────────────────────────────────┘</div>
     <h3>FSM 5 状态</h3>
@@ -360,7 +360,8 @@ const SECTIONS = {
       <li><b>PREPARE</b>：cache_hit_map、4 要素 checklist、估算资源</li>
       <li><b>REFLECT</b>：subagent rebuttal（pre-task / on-anomaly / post-task）— INFERENCE_GATE 也走 mini-REFLECT</li>
       <li><b>EXECUTE_LOOP</b>：执行 + 每步 [PLAN]/[OBSERVE]</li>
-      <li><b>END</b>：归档；<code>/goal</code> 评估器读 transcript 自动放行</li>
+      <li><b>RECORDING</b>（v2.4 新）：专用台账写入 state；EXECUTE_EXIT 强制经过此 state，不再直接回 REFLECT</li>
+      <li><b>END</b>：最终 user 汇报（台账已在 RECORDING 写完）</li>
     </ul>
     <h3>三道防线（对抗跳步病）</h3>
     <ol>
@@ -527,7 +528,7 @@ const SECTIONS = {
     <h3>P8 — end-to-end demo PASSED（commits 29cd4de + docs/p8_e2e_notes.md）</h3>
     <p>云端 awesome-gpu-name 部署 v2.1 后，跑一个真正的 <code>claude -p</code> session 让它把 <code>/home/Barry/github_repo/LLM_sampling_implement</code> 接入 v2 ledger 体系。结果：</p>
     <ul>
-      <li><b>FSM PASS</b>：5 entries in stage_history，BOOT_DONE → PREPARE_DONE → REFLECT_DONE(pre) → EXECUTE_EXIT → REFLECT_DONE(post)，AI 自己调 <code>transition.sh</code> 每一步</li>
+      <li><b>FSM PASS</b>：5 entries in stage_history，BOOT_DONE → PREPARE_DONE → REFLECT_DONE(pre) → EXECUTE_EXIT → REFLECT_DONE(post)，AI 自己调 <code>transition.sh</code> 每一步（※ 此测试在 v2.3；v2.4 后 EXECUTE_EXIT → RECORDING，不再回 REFLECT）</li>
       <li><b>router 注入 PASS</b>：transcript 含多次 [ROUTER] block，per-state router 文件按 state.md 自动切换</li>
       <li><b>subagent 派发 PASS</b>：2 次 <code>Agent(run_in_background=true)</code>：pre-task REFLECT 5 题 rebuttal + EXECUTE 阶段建 5 个 ledger</li>
       <li><b>session_boot PASS</b>：首轮 UserPromptSubmit 自动建 <code>.barry_workflow/&lt;sid&gt;/{state,action}.md</code></li>
@@ -648,16 +649,14 @@ const SECTIONS = {
   fsm: () => `
     <h2>fsm.md — 状态机 overview (v2.1)</h2>
     <p>v2.1 P11 把原 fsm.md 拆成 <code>states/{boot,prepare,reflect,execute,end}.md</code> 5 个，<code>fsm.md</code> 只保留 overview + 转换图。</p>
-    <pre><code>BOOT ──BOOT_DONE──&gt; PREPARE ──PREPARE_DONE──&gt; REFLECT
-                                                  │
-                       ┌──REFLECT_DONE────────────┘
-                       ▼
-                  EXECUTE_LOOP
-                       │  (--reason=anomaly → REFLECT)
-                       │  (--reason=done → REFLECT post-task → END)
-                       ▼
-                      END</code></pre>
-    <p>每条边由 <code>transition.sh &lt;EVENT&gt;</code> 触发，写入 state.md YAML。详细看每个 state 的子页。</p>
+    <pre><code>BOOT ──BOOT_DONE──&gt; PREPARE ──PREPARE_DONE──&gt; REFLECT ◄══════════► EXECUTE_LOOP
+                                                  │  ▲ NEED_RECORD      │
+                                                  ▼  │                  ▼ EXECUTE_EXIT (强制经过)
+                                               RECORDING ◄──────────────┘
+                                                  │ RECORD_DONE        ▲
+                                                  ▼                    │ BACK_TO_LOOP
+                                                 END</code></pre>
+    <p>（v2.4）EXECUTE_EXIT → RECORDING（不再直接 → REFLECT）。台账在 RECORDING 写，END 只汇报。每条边由 <code>transition.sh &lt;EVENT&gt;</code> 触发，写入 state.md YAML。</p>
   `,
 
   state_boot: () => `
@@ -716,7 +715,7 @@ const SECTIONS = {
     <h2>states/execute.md — EXECUTE_LOOP 状态 (v2.1 新)</h2>
     <div class="what-why-grid">
       <div class="cell what"><div class="label">Entry</div>REFLECT_DONE 后。</div>
-      <div class="cell why"><div class="label">Exit</div><code>transition.sh EXECUTE_EXIT --reason=done|anomaly</code>。</div>
+      <div class="cell why"><div class="label">Exit</div><code>transition.sh EXECUTE_EXIT --reason=done|anomaly</code> → <b>RECORDING</b>（v2.4：不再直接 → REFLECT）。</div>
     </div>
     <h3>内循环（每次工具调用 = 1 iteration）</h3>
     <ol>
@@ -726,17 +725,28 @@ const SECTIONS = {
       <li>判：continue / anomaly+1 / done</li>
     </ol>
     <h3>失败预算</h3>
-    <p>anomaly 累计 3 → 强制 transition.sh EXECUTE_EXIT --reason=anomaly → REFLECT on-anomaly。常量 <code>workflow_config.yaml execute_loop.failure_budget</code>。<br>结合 <code>failure_stop.md</code> M6：3 次自治尝试都失败 → 上报 user。</p>
+    <p>anomaly 累计 3 → 强制 transition.sh EXECUTE_EXIT --reason=anomaly → RECORDING（v2.4；原为 → REFLECT on-anomaly）。常量 <code>workflow_config.yaml execute_loop.failure_budget</code>。<br>结合 <code>failure_stop.md</code> M6：3 次自治尝试都失败 → 上报 user。</p>
     <h3>anomaly 关键字 (regex)</h3>
     <p>11 个关键字白名单（OOM / NaN / KeyError / Exception / Traceback / failed / ...）— <code>execute_loop_audit.sh</code> 用同一份 regex。</p>
   `,
 
+  state_recording: () => `
+    <h2>states/recording.md — RECORDING 状态 (v2.4 新)</h2>
+    <p>专用台账写入 state。EXECUTE_EXIT 强制经过此 state（不再直接 → REFLECT）。台账写完 → RECORD_DONE → END；或中途 BACK_TO_LOOP 返回继续工作。</p>
+    <h3>main 在 RECORDING 干啥</h3>
+    <ul>
+      <li>4 问自查（[RECORDING_SELF_CHECK]）：项目技术坑 / 已验证 fix / AI 行为违规 / 跨项目 wisdom</li>
+      <li>追加 attempts_ledger / successful_fixes / bitter_lessons / rule_violations 条目</li>
+      <li>判断出口：RECORD_DONE（session 收尾）or BACK_TO_LOOP（中途继续）</li>
+    </ul>
+  `,
+
   state_end: () => `
     <h2>states/end.md — END 状态 (v2.1 新)</h2>
-    <p>Terminal status。进入条件：EXECUTE_LOOP --reason=done 且无后续任务，或 user 显式收尾。</p>
+    <p>Terminal status。台账写入已在 RECORDING 完成；END 只做最终 user-facing 汇报。进入条件：RECORD_DONE（来自 RECORDING）。</p>
     <h3>main 在 END 干啥</h3>
     <ul>
-      <li>追加 attempts_ledger / successful_fixes / bitter_lessons 条目（按 recording.md 分类）</li>
+      <li>发最终 SendMessage 汇报（不再追加台账——RECORDING 已做）</li>
       <li>写 [END @ ts] 到 action.md</li>
       <li><code>/goal</code> Claude Code 评估器读 transcript，满足 goal.md 判据 → 自动放行</li>
       <li>归档：可选 <code>tar czf archive_&lt;sid&gt;.tar.gz .barry_workflow/&lt;sid&gt;/</code></li>
@@ -1178,7 +1188,7 @@ bash scripts/switch_hooks.sh status   # 看当前哪些 hook 活着</code></pre>
     <p>v2.1 后是 6 个文件：</p>
     <ul>
       <li><code>content/rules/router.md</code> — fallback（无 state 时）</li>
-      <li><code>content/rules/router_BOOT.md</code> / <code>router_PREPARE.md</code> / <code>router_REFLECT.md</code> / <code>router_EXECUTE_LOOP.md</code> / <code>router_END.md</code></li>
+      <li><code>content/rules/router_BOOT.md</code> / <code>router_PREPARE.md</code> / <code>router_REFLECT.md</code> / <code>router_EXECUTE_LOOP.md</code> / <code>router_RECORDING.md</code> / <code>router_END.md</code></li>
     </ul>
     <p>改 router 文字工作流：编辑 → <code>bash set_claude.sh</code> → 下一 turn 生效。</p>
 

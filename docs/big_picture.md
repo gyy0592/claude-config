@@ -7,8 +7,10 @@
 状态机骨架（FSM）= 不变量。
 
 ```
-BOOT → PREPARE → REFLECT ↔ EXECUTE_LOOP → END
+BOOT → PREPARE → REFLECT ↔ EXECUTE_LOOP → RECORDING → END
 ```
+
+（v2.4：EXECUTE_EXIT 强制经过 RECORDING 写台账，不再直接回 REFLECT；END 只做最终汇报。）
 
 骨架不解决"具体怎么干"，只解决"现在该处于哪个阶段、不许跳出"。
 

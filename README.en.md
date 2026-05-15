@@ -82,6 +82,7 @@ A gives the AI the correct structure; B gives it priors specific to **this proje
 
 ## 3. The state machine
 
+<!-- TODO(v2.4 stale PNG): bp_fsm_patches_en.png shows v2.3 4-state FSM. Needs redraw: add RECORDING node, change EXECUTE_EXIT arrow to point at RECORDING not REFLECT. -->
 <img src="docs/img/bp_fsm_patches_en.png" alt="state machine + patches" width="100%"/>
 
 ```

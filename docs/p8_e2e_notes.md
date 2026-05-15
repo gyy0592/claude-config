@@ -42,7 +42,7 @@ Invocation: `claude --dangerously-skip-permissions --output-format stream-json -
 
 | check | result | evidence |
 |---|---|---|
-| FSM transitions (state.md `current_status` cycles through BOOT→PREPARE→REFLECT→EXECUTE_LOOP, `stage_history` non-empty) | **PASS** | 5 entries in `stage_history` (BOOT_DONE 07:19:46 → PREPARE_DONE 07:20:22 → REFLECT_DONE 07:22:40 → EXECUTE_EXIT 07:32:01 → REFLECT_DONE 07:33:32). All 4 transition.sh events fired by cloud claude. |
+| FSM transitions (state.md `current_status` cycles through BOOT→PREPARE→REFLECT→EXECUTE_LOOP, `stage_history` non-empty) | **PASS** | 5 entries in `stage_history` (BOOT_DONE 07:19:46 → PREPARE_DONE 07:20:22 → REFLECT_DONE 07:22:40 → EXECUTE_EXIT 07:32:01 → REFLECT_DONE 07:33:32). All 4 transition.sh events fired by cloud claude. *(Note: this test ran under v2.3; in v2.4 EXECUTE_EXIT → RECORDING, not REFLECT)* |
 | router injection (each turn has `[ROUTER · state=X]`) | **PASS** | Confirmed via extracted JSONL: 3+ ROUTER occurrences in stream; per-state router file `router_<STATE>.md` swapped automatically as state.md advanced. |
 | subagent dispatch works (`Agent(run_in_background=true)`) | **PASS** | 2 Agent dispatches observed in transcript: id=1sVjs9Ux (pre-task REFLECT rebuttal, 5 questions) + id=SQTZRL33 (EXECUTE: create 5 ledger files). Both went out fine. |
 | session_boot creates `.barry_workflow/<sid>/{state,action}.md` | **PASS** | On first UserPromptSubmit in this repo (which has `CLAUDE.md` at root), `session_boot.sh` auto-created `.barry_workflow/b68e44cd-…/{state,action}.md` from templates with YAML preamble + sid + created_at. |

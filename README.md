@@ -82,6 +82,7 @@ A 给 AI 正确的结构；B 给 AI 关于**这个具体项目**的先验。两�
 
 ## 3. 状态机
 
+<!-- TODO(v2.4 stale PNG): bp_fsm_patches.png shows v2.3 4-state FSM. Needs redraw: add RECORDING node, change EXECUTE_EXIT arrow to point at RECORDING not REFLECT. -->
 <img src="docs/img/bp_fsm_patches.png" alt="state machine + patches" width="100%"/>
 
 ```

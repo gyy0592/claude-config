@@ -196,6 +196,13 @@
   <h1>barry-workflow v4 — FSM 状态机</h1>
   <div class="sub">点击状态查看内部子流程 · 多分支可切换 · 11 commits · P8 demo 待用户监督</div>
 </header>
+<!-- TODO(v2.4 stale): The SVG diagram below reflects v2.3 (4-state FSM). In v2.4 the FSM gained RECORDING state:
+     EXECUTE_EXIT now routes → RECORDING (not → REFLECT); RECORDING exits via RECORD_DONE → END or BACK_TO_LOOP → prev_status.
+     The EXECUTE_EXIT edges in the SVG still point to REFLECT — these need to be redrawn.
+     New events: NEED_RECORD, RECORD_DONE, BACK_TO_LOOP. New state node: RECORDING. -->
+<div style="background:#fff8c5;border:1px solid #d4a72c;padding:8px 12px;font-size:13px;margin:8px 16px;border-radius:4px;">
+  ⚠️ <b>Diagram stale (v2.3)</b>: v2.4 added RECORDING state. EXECUTE_EXIT → <b>RECORDING</b> (not REFLECT). Ledger writes happen in RECORDING, not END. PNG/SVG diagram needs redraw.
+</div>
 
 <main>
   <div id="fsm">
@@ -351,8 +358,8 @@ function reflectDiagram(reason, axisText, entryText, entryClass) {
 </svg>`;
 }
 const REFLECT_PRE_TASK   = reflectDiagram("pre-task",   "plan 完整性 / observables / 成功条件",       "PREPARE_DONE → REFLECT (pre-task)",   "start");
-const REFLECT_ON_ANOMALY = reflectDiagram("on-anomaly", "假设 vs 证据 / 替代根因 / 治标 vs 治本",      "EXECUTE_EXIT --reason=bug → REFLECT", "end-bad");
-const REFLECT_POST_TASK  = reflectDiagram("post-task",  "deliverable vs goal.md / ledger 收尾",       "EXECUTE_EXIT --reason=done → REFLECT", "end-ok");
+const REFLECT_ON_ANOMALY = reflectDiagram("on-anomaly", "假设 vs 证据 / 替代根因 / 治标 vs 治本",      "EXECUTE_EXIT --reason=bug → RECORDING (v2.4)", "end-bad");
+const REFLECT_POST_TASK  = reflectDiagram("post-task",  "deliverable vs goal.md / ledger 收尾",       "EXECUTE_EXIT --reason=done → RECORDING (v2.4)", "end-ok");
 
 const EXEC_CONTINUE = `
 <svg viewBox="0 0 460 280">
@@ -381,7 +388,7 @@ const EXEC_ANOMALY = `
   <path class="sd-edge" d="M 170,235 L 90,255"/>
   <path class="sd-edge" d="M 290,235 L 370,255"/>
   <g><rect class="sd-node end-ok" x="20" y="245" width="140" height="30" rx="6"/><text class="sd-text" x="90" y="263">否: 继续迭代</text></g>
-  <g><rect class="sd-node end-bad" x="300" y="245" width="140" height="30" rx="6"/><text class="sd-text" x="370" y="263">是: EXIT bug → REFLECT</text></g>
+  <g><rect class="sd-node end-bad" x="300" y="245" width="140" height="30" rx="6"/><text class="sd-text" x="370" y="263">是: EXIT bug → RECORDING</text></g>
 </svg>`;
 
 const EXEC_DONE = `
@@ -532,7 +539,7 @@ const DETAILS = {
       "异常 → bug": {
         diagram: EXEC_ANOMALY,
         notes: `
-          <p><b>设计意图</b>：连续 3 个反驳 → EXIT bug → REFLECT (on-anomaly)。</p>
+          <p><b>设计意图</b>：连续 3 个反驳 → EXIT bug → RECORDING (v2.4；原为 REFLECT on-anomaly)。</p>
           <p><b>实际会发生</b>：</p>
           <ul>
             <li>⚠ <b>关键 bug</b>：<code>execute_loop_audit.sh</code> 用 grep <code>"refuted|anomaly|fail"</code> 关键字识别 anomaly。但 main 写 [OBSERVE] 时大概率<b>不会用这些精确字</b> — 比如 "step 卡 1200 没变化"、"返回 None"、"exit code 2" 都不匹配 → <b>失败预算永远计数为 0</b></li>
@@ -544,7 +551,7 @@ const DETAILS = {
       "完成 → done": {
         diagram: EXEC_DONE,
         notes: `
-          <p><b>设计意图</b>：AI 自判 deliverable 齐全 → EXIT done → REFLECT (post-task)。</p>
+          <p><b>设计意图</b>：AI 自判 deliverable 齐全 → EXIT done → RECORDING (v2.4；原为 REFLECT post-task)。</p>
           <p><b>实际会发生</b>：</p>
           <ul>
             <li>⚠ <b>AI 强烈倾向宣称 done</b>：测试还没全跑就敢说"修好了"，文档还没补就说"完成了"</li>
