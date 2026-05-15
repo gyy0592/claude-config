@@ -116,8 +116,11 @@ MEMORY_DST="$HOME/.claude/memory"
 
 if [ ! -d "$MEMORY_SRC" ]; then
     echo "[deploy] - ${MEMORY_SRC} absent, skipping memory deploy (not required since v2.4)"
-    # Also clean up any stale deployed memory symlink/dir to avoid dangling references.
-    [ -e "$MEMORY_DST" ] && rm -rf "$MEMORY_DST" && echo "[deploy] - removed stale ${MEMORY_DST}"
+    # Clean up any stale deployed memory (incl. broken symlink — -e dereferences, so check -L too).
+    if [ -e "$MEMORY_DST" ] || [ -L "$MEMORY_DST" ]; then
+        rm -rf "$MEMORY_DST"
+        echo "[deploy] - removed stale ${MEMORY_DST}"
+    fi
 else
     # Remove old memory (whether symlink or directory) before re-linking.
     rm -rf "$MEMORY_DST"
