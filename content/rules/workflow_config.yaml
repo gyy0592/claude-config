@@ -18,6 +18,12 @@ pretool_nudge:
   read_threshold: 3         # hooks/pretooluse_short_nudge.sh — Read/Grep/Glob count → nudge dispatch
   max_chars: 100            # hooks/pretooluse_short_nudge.sh — nudge() truncates message to this length
 
+cache_refresh:
+  # v2.4 F3: hooks/cache_refresh_check.sh emits a banner instructing the model
+  # to re-verify cache_hit_map + re-grep ledgers once cumulative input_tokens
+  # for this session crosses this threshold since the last refresh.
+  threshold_input_tokens: 200000
+
 prompt_reinforce:
   required_elements:        # hooks/prepare_helper.sh + states/prepare.md "4-element check"
     - observable

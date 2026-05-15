@@ -243,7 +243,7 @@ fi
 
 mkdir -p "$HOOKS_DST"
 
-for f in _session_lib.sh inject_router.sh session_boot.sh transition.sh prepare_helper.sh execute_loop_audit.sh pretooluse_short_nudge.sh state_enforce.sh; do
+for f in _session_lib.sh inject_router.sh session_boot.sh transition.sh prepare_helper.sh execute_loop_audit.sh pretooluse_short_nudge.sh state_enforce.sh cache_refresh_check.sh; do
     src="${HOOKS_SRC}/${f}"
     dst="${HOOKS_DST}/${f}"
     if [ ! -f "$src" ]; then
@@ -402,6 +402,10 @@ ensure_hook("UserPromptSubmit", None, f"bash {ROUTER_SCRIPT}")
 # v4 P3: BOOT hook — creates per-session state + action files under $PWD/.barry_workflow/
 BOOT_SCRIPT = os.path.expanduser("~/.claude/hooks/session_boot.sh")
 ensure_hook("UserPromptSubmit", None, f"bash {BOOT_SCRIPT}")
+
+# v2.4 F3: cumulative-token cache_hit_map + ledger refresh banner
+CACHE_REFRESH_SCRIPT = os.path.expanduser("~/.claude/hooks/cache_refresh_check.sh")
+ensure_hook("UserPromptSubmit", None, f"bash {CACHE_REFRESH_SCRIPT}")
 
 # v4 P7: PreToolUse short nudge (≤100-char allow-with-reason)
 NUDGE_SCRIPT = os.path.expanduser("~/.claude/hooks/pretooluse_short_nudge.sh")
