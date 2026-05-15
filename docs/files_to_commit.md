@@ -67,6 +67,7 @@ git branch -D merge-to-main
 
 | 日期 | main commit | v2 commit 范围 | 内容 |
 |---|---|---|---|
+| 2026-05-15 | `a45c6b4` | `a7bb5ab..0650df4` (skip 36901c0) | v2.4 F1+F2+F3: viewer symlink+5s polling, prepare_helper global ledgers, 200k-token cache+ledger refresh banner hook. DEVELOPER.md imported + cache_hit_map section. v2.4_plan.md kept v2-only (internal). |
 | 2026-05-14 | `f52697b` | `23e1e11..2ce811e` | set_claude.sh: content/memory deploy optional + broken-symlink cleanup (unblocks fresh main deploys) |
 | 2026-05-14 | `0d8f6e6` | `5917b29` | README FSM PNG regenerated for v2.4 (6-state, tight crop) |
 | 2026-05-14 | `820f07e` | `24e13dd..155e392` | v2.4: RECORDING + END states + viewer auto-ingest + FSM docs sync |
