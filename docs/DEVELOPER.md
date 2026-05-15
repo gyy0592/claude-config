@@ -127,7 +127,30 @@
   - JSONL 每行 schema：`{message: {usage: {input_tokens, output_tokens, cache_read_input_tokens, ...}}, timestamp, ...}`
 - **改这里小心**：JSONL schema 是反向工程结果，Claude Code 版本升级可能变。
 
-### 2.10 Skills
+### 2.10 cache_hit_map（PREPARE 自报 + 跨 session 继承）
+
+**做什么**：让模型在 PREPARE 显式声明「这些 artifact 已经在我 KV cache 里，不用 Read」——把隐式的 cache 复用变成可审计的声明。viewer 里以 collapsible 块展示。
+
+- **实现**：
+  - [`hooks/prepare_helper.sh`](../hooks/prepare_helper.sh)：枚举 `workspace/*.md` + `workspace/<task>/goal.md` + `.barry_workflow/<sid>/{state,action}.md` + `CLAUDE.md` + `goal.md`，每条 emit `<path>: {sha1: <hash>, hit: UNKNOWN}` 行作为 stub
+  - 模型在 PREPARE 把每行 `UNKNOWN` 改成 `YES`（已在 KV 缓存）或 `NO`（必须本轮 Read），粘回 `state.md` 的 `cache_hit_map:` 块
+  - [`hooks/session_boot.sh`](../hooks/session_boot.sh) P17 段：新 session 启动时 regex 抽上一个 sid 的 `cache_hit_map:` 块整体复制进新 `state.md`（key inherit）——实现「跨 session 上下文复用」
+  - [`viewer/viewer.js`](../viewer/viewer.js) `parseState()` 抓 raw block，渲染成左栏 `<details>cache_hit_map</details>`
+- **记录什么**：
+  - artifact 绝对路径（项目内相对路径）
+  - sha1（防止 stale 自报——sha1 变了说明文件本身已变）
+  - `YES` / `NO` / `UNKNOWN` 三态
+  - 误判（声称 YES 实则 NO）= AI behavioral error → 后续发现写 `workspace/rule_violations.md`
+- **依赖 Claude Code**：
+  - 无内置 KV cache 接口——纯靠模型自省 + 文档约束。Claude Code 不暴露 cache hit 信号给 hook
+  - `~/.claude/projects/<encoded>/<sid>.jsonl` 的 `cache_read_input_tokens` 字段（viewer 也用）是事后唯一可观测的 cache 信号，但不细到 per-artifact
+  - 跨 session 继承靠 `.barry_workflow/<sid>/` 目录结构（hook 自定义），不依赖 Claude Code 任何 session 链路
+- **改这里小心**：
+  - prepare_helper 的 artifact 枚举范围改了 → session_boot.sh inherit regex 可能漏字段
+  - cache_hit_map YAML 结构改了（比如改 nested map）→ viewer.js `parseState()` 的 `cache_hit_map_raw` regex 要跟着改
+  - **没人验证 YES 是否真的 cache hit**——这是设计妥协，不是 bug；移植到 Codex 时若有原生 cache 信号可以替换为强校验
+
+### 2.11 Skills
 
 **做什么**：30+ 独立技能，按 SKILL.md 的 frontmatter `description` 自动召回。
 
@@ -160,6 +183,7 @@
 | `Skill` 自动召回 | SKILL.md frontmatter | skills/ | Codex 不支持自动召回——退化为手动 prompt |
 | `settings.json hooks` 字段 | 注册 4 个 hook | set_claude.sh | Codex 用 `~/.codex/config.toml` |
 | `~/.claude/CLAUDE.md` 自动加载 | 全局指令 | content/CLAUDE.md → 部署 | Codex 用 `AGENTS.md` |
+| jsonl `cache_read_input_tokens` 字段 | cache_hit_map 事后审计的唯一观测 | viewer + PREPARE 自报 | Codex 需检查 session 是否暴露 cache 统计 |
 
 **详细映射**：[`content/rules/codex_adapter.md`](../content/rules/codex_adapter.md)。
 
