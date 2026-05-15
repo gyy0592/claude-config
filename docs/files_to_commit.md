@@ -57,7 +57,7 @@ git branch -D merge-to-main
 
 | 日期 | v2 commit | 文件 | 说明 |
 |---|---|---|---|
-| 2026-05-14 | (本次) | hooks/transition.sh, content/CLAUDE.md, content/rules/router_*.md (含新 router_RECORDING.md), content/rules/states/*.md (含新 recording.md), content/templates/state_template.md, content/templates/action_template.md, README.md, README.en.md | v2.4: 引入 RECORDING + END state；EXECUTE_EXIT → RECORDING 强制经过；NEED_RECORD/BACK_TO_LOOP/RECORD_DONE 三个新事件；state.md 加 prev_status 字段 |
+| — | — | — | (全部已推；最近一次 main commit `820f07e`) |
 
 > Append 新条目时格式：`| YYYY-MM-DD | <short-hash> | path/to/file.md | 一句话改动说明 |`
 
@@ -67,6 +67,7 @@ git branch -D merge-to-main
 
 | 日期 | main commit | v2 commit 范围 | 内容 |
 |---|---|---|---|
+| 2026-05-14 | `820f07e` | `24e13dd..155e392` | v2.4: RECORDING + END states + viewer auto-ingest + FSM docs sync |
 | 2026-05-14 | `c57f253` | `2b79a7f..a27683e` | shared workspace ledgers + viewer metrics + RESET_TO_BOOT + archive/stop_self_audit |
 | 2026-05-13 | `461b94a` | 同期 | README quickstart: AI-conversational default; manual route optional |
 | 2026-05-13 | `6a1e8ee` | 同期 | scripts/new_task.sh + CLAUDE.md pointer |
