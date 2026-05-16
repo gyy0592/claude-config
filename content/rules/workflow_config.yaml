@@ -18,6 +18,12 @@ pretool_nudge:
   read_threshold: 3         # hooks/pretooluse_short_nudge.sh — Read/Grep/Glob count → nudge dispatch
   max_chars: 100            # hooks/pretooluse_short_nudge.sh — nudge() truncates message to this length
 
+# v2.5.4: Stop hook (hooks/stop_bg_aware.sh) settled-bg threshold.
+# Bg task is "fresh" if its /tmp/.../tasks/<id>.output mtime is within this
+# many minutes. Older = treat as not pending → consult haiku-judge gate.
+stop_gate:
+  bg_stale_minutes: 30
+
 cache_refresh:
   # v2.4 F3 / v2.5: hooks/cache_refresh_check.sh — PostToolUse now (v2.5 moved from
   # UserPromptSubmit so long autonomous tasks still trigger). Emits a banner

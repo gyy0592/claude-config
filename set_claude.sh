@@ -243,7 +243,7 @@ fi
 
 mkdir -p "$HOOKS_DST"
 
-for f in _session_lib.sh inject_router.sh session_boot.sh transition.sh prepare_helper.sh execute_loop_audit.sh pretooluse_short_nudge.sh state_enforce.sh cache_refresh_check.sh posttool_state_reinforce.sh pretool_reflect_nag.sh pretool_ledger_guard.sh state_keepalive.sh; do
+for f in _session_lib.sh inject_router.sh session_boot.sh transition.sh prepare_helper.sh execute_loop_audit.sh pretooluse_short_nudge.sh state_enforce.sh cache_refresh_check.sh posttool_state_reinforce.sh pretool_reflect_nag.sh pretool_ledger_guard.sh state_keepalive.sh stop_bg_aware.sh; do
     src="${HOOKS_SRC}/${f}"
     dst="${HOOKS_DST}/${f}"
     if [ ! -f "$src" ]; then
@@ -442,6 +442,13 @@ ensure_hook("PreToolUse", None, f"bash {LEDGER_GUARD_SCRIPT}")
 STATE_KEEPALIVE_SCRIPT = os.path.expanduser("~/.claude/hooks/state_keepalive.sh")
 ensure_hook("PreToolUse", None, f"bash {STATE_KEEPALIVE_SCRIPT}")
 ensure_hook("PostToolUse", None, f"bash {STATE_KEEPALIVE_SCRIPT}")
+
+# v2.5.4: Stop hook. Gates session stop on (a) bg-settled (no pending task
+# fresher than yaml stop_gate.bg_stale_minutes) AND (b) a haiku-judge
+# decision in .barry_workflow/<sid>/stop_decision.json. If decision absent,
+# hook blocks and emits prompt teaching main to spawn a haiku judge subagent.
+STOP_BG_SCRIPT = os.path.expanduser("~/.claude/hooks/stop_bg_aware.sh")
+ensure_hook("Stop", None, f"bash {STOP_BG_SCRIPT}")
 
 # v2.1 P16: PostToolUse state-enforce (informational stderr warning when
 # tool conflicts with current FSM state).
