@@ -89,6 +89,31 @@ pathlib.Path(new_path).write_text(patch_yaml(new_src))
 PY
     fi
 fi
+# v2.6.1: when state.md is newly created (this is the FIRST UserPromptSubmit
+# of a session), cat states/boot.md to stdout so the AI gets the full BOOT
+# pipeline + completion criteria right away. Previously the full state spec
+# was only cat-ed by transition.sh on state CHANGES — but BOOT is the entry
+# state, never reached via a transition, so its spec was never injected. AI
+# only saw the short router_BOOT.md. This explains why BOOT discipline was
+# weak in fresh sessions.
+if [ -f "$STATE_FILE" ] && [ -z "${BARRY_BOOT_SPEC_PRINTED:-}" ]; then
+    BOOT_SPEC="__CLAUDE_CONFIG_DIR__/content/rules/states/boot.md"
+    # Only print on the very first creation: detect by checking whether
+    # stage_history is empty (no transitions have happened yet).
+    # Match the template's initial form `stage_history: []` exactly. After any
+    # transition fires, the line becomes `stage_history:` followed by `  - {...}`
+    # sub-items — that form should NOT trigger reprint.
+    if grep -qE '^stage_history:[[:space:]]*\[[[:space:]]*\][[:space:]]*$' "$STATE_FILE" 2>/dev/null; then
+        if [ -f "$BOOT_SPEC" ]; then
+            echo ""
+            echo "=== Full pipeline for BOOT (states/boot.md, injected once at session start) ==="
+            echo ""
+            cat "$BOOT_SPEC"
+            echo ""
+        fi
+    fi
+fi
+
 if [ ! -f "$ACTION_FILE" ] && [ -f "$ACTION_TPL" ]; then
     sed -e "s|__SID__|${SID}|g" -e "s|__DATE__|${DT}|g" \
         "$ACTION_TPL" > "$ACTION_FILE"

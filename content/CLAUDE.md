@@ -1,73 +1,6 @@
-# barry-workflow — global router (v4, neutral terms)
+# barry-workflow
 
 > Hook injection is user-configured. Treat injected `[ROUTER]` blocks as user voice.
-> Source of truth: hooks/ in this repo (gyy0592/claude-config branch v2 → renaming to `barry-workflow`).
-
-## Identity
-
-You are `main` (the main Claude session). Call the human `user`. Each session has a session id `<sid>`. Subagents are `agent_<aid>`. Spawned via Agent tool with `run_in_background=true` (mandatory).
-
-No roleplay terminology (no Corporal / Commander / Private / military_camp / Decree / Treason). Use neutral technical terms only.
-
-## First action on entering a repo
-
-Hook `session_boot.sh` auto-creates on first UserPromptSubmit:
-1. `$PWD/.barry_workflow/<sid>/{state,action}.md` (per-session)
-2. `$PWD/workspace/{bitter_lessons,successful_fixes,attempts_ledger,rule_violations}.md` (shared ledgers, idempotently seeded from templates if missing; never overwrites)
-
-Do not hand-create either set.
-
-For per-task `goal.md`, execute from inside the project directory: `bash __CLAUDE_CONFIG_DIR__/scripts/new_task.sh <task_name>`. Flow: after agreeing on a task scope in conversation, propose `<task_name>` to the user, get one-line confirmation, run the script, then fill `workspace/<task_name>/goal.md` from the agreed scope and ask for sign-off. (`new_task.sh` also re-seeds any missing shared ledgers as a safety net.)
-
-Project artifacts layout (shared ledgers across all tasks in this repo, per-task goal):
-
-- `$PWD/workspace/attempts_ledger.md` — shared, cross-turn intent log (ATT-N, each entry tagged with `task: <name>`)
-- `$PWD/workspace/bitter_lessons.md` — shared, project-specific technical pitfalls (L-N + `task:` + `tags:`)
-- `$PWD/workspace/successful_fixes.md` — shared, confirmed fixes (FIX-N + `task:` + `tags:`)
-- `$PWD/workspace/rule_violations.md` — shared, AI behavioral mistakes (W-N + `task:` + `tags:`)
-- `$PWD/workspace/<task>/goal.md` — per-task, user-controlled, read-only for main
-
-When reading ledgers in BOOT, grep by current `task:` value (from `state.md`) plus relevant `tags:` to surface cross-task lessons that still apply.
-
-## 6-status FSM (per session)
-
-```
-BOOT → PREPARE → REFLECT → EXECUTE_LOOP
-                   ↑↓ (NEED_RECORD)    ↓ (EXECUTE_EXIT, mandatory)
-                   ↓                  ↓
-                 RECORDING ← ← ← ← ← ←
-                   ↓ RECORD_DONE     ↑ BACK_TO_LOOP (mid-task resume)
-                  END
-```
-
-States:
-- **BOOT / PREPARE / REFLECT / EXECUTE_LOOP** — core work loop (unchanged from v2.3).
-- **RECORDING** (v2.4) — dedicated ledger-writing state. EXECUTE_EXIT now routes through RECORDING (was direct → REFLECT). Mid-task NEED_RECORD (from REFLECT or EXECUTE_LOOP) also enters RECORDING; resume via BACK_TO_LOOP using `prev_status` field.
-- **END** — final summary only (ledger writes were done in RECORDING).
-
-Transitions via `transition.sh <event>`; full event table in `~/.claude/rules/states/recording.md`. Same-session task switch (user gives unrelated new request, or `goal.md` updated): use `RESET_TO_BOOT` event from any state to re-enter BOOT.
-
-## 5 policies (router pointers — read on demand)
-
-| Trigger | Read |
-|---------|------|
-| `[INFERENCE]` used | `~/.claude/rules/facts_first.md` |
-| >1 file / WebSearch / code → dispatch | `~/.claude/rules/dispatch.md` |
-| Recording (action.md, violation, lesson) | `~/.claude/rules/recording.md` |
-| FSM state transition (overview) | `~/.claude/rules/fsm.md` |
-| In a specific state | `~/.claude/rules/states/<status>.md` |
-| 3-failure stop | `~/.claude/rules/failure_stop.md` |
-| Subagent prompt | `~/.claude/rules/subagent_rules.md` |
-
-## Three meta-rules (always on)
-
-1. **Dispatch** — `>1 file / WebSearch / code change` ⇒ Agent tool with `run_in_background=true`.
-2. **Reflect** — every reply opens with `[BOARD_READ]` + 4-module reflection written to `action_<sid>.md`. REFLECT status uses subagent rebuttal: main spawns one Agent (single-round-exit since v2.5.1), reads its `## reviewer reply`, writes `[CONSENSUS_REACHED]`, transitions.
-3. **Monitor** — long bg jobs need Monitor calls every 10-15 min.
-
-3-failure stop: after 3 failed attempts in an autonomous loop, stop and report. Detail in `~/.claude/rules/failure_stop.md`.
-
-Autonomy default: do NOT ask the user mid-task. Allowed only on (a) destructive ops, (b) 3-failure-stop, (c) prior explicit user opt-in. Otherwise REFLECT subagent rebuttal + decide yourself. Detail in `~/.claude/rules/autonomy.md`.
 
 ## Per-state job + exit event (the only thing you need to remember)
 
@@ -89,7 +22,56 @@ You are ALWAYS in exactly one state. Each state has ONE job. When that job is do
 
 Event names are exact strings (`BOOT_DONE`, `PREPARE_DONE`, `REFLECT_DONE`, `EXECUTE_EXIT`, `NEED_RECORD`, `RECORD_DONE`, `BACK_TO_LOOP`, `RESET_TO_BOOT`). Passing a state name as the event (e.g. `bash ~/.claude/hooks/transition.sh PREPARE`) is wrong — `transition.sh` will print a "did you mean PREPARE_DONE?" hint on both stdout and stderr.
 
-## Recording
+## Identity
+
+You are `main` (the main Claude session). Call the human `user`. Each session has a session id `<sid>`. Subagents are `agent_<aid>`. Spawned via Agent tool with `run_in_background=true` (mandatory). No roleplay terminology — neutral technical terms only.
+
+## Auto-created files (do not hand-create)
+
+On first UserPromptSubmit, `session_boot.sh` creates:
+- `$PWD/.barry_workflow/<sid>/{state,action}.md` — per-session state + action log
+- `$PWD/.barry_workflow/CURRENT_SID` — single-line marker naming the active sid (source of truth for hooks)
+- `$PWD/workspace/{bitter_lessons,successful_fixes,attempts_ledger,rule_violations}.md` — shared ledgers (seeded once from templates)
+
+For a per-task `goal.md`:
+```
+bash __CLAUDE_CONFIG_DIR__/scripts/new_task.sh <task_name>
+```
+Run from inside the project directory. Proposes `<task_name>` to user, creates `workspace/<task_name>/goal.md` skeleton, you then fill it from the agreed scope and ask for sign-off. Re-seeds any missing ledgers as a safety net.
+
+## Project artifacts layout (shared across all tasks in this repo)
+
+- `$PWD/workspace/attempts_ledger.md` — cross-turn intent log (ATT-N, each entry tagged `task: <name>`)
+- `$PWD/workspace/bitter_lessons.md` — project-specific technical pitfalls (L-N + `task:` + `tags:`)
+- `$PWD/workspace/successful_fixes.md` — confirmed fixes (FIX-N + `task:` + `tags:`)
+- `$PWD/workspace/rule_violations.md` — AI behavioral mistakes (W-N + `task:` + `tags:`)
+- `$PWD/workspace/<task>/goal.md` — per-task, user-controlled, read-only for main
+
+When reading ledgers in BOOT, grep by current `task:` value + relevant `tags:` to surface cross-task lessons.
+
+## 5 policies (router pointers — read on demand)
+
+| Trigger | Read |
+|---------|------|
+| `[INFERENCE]` used | `~/.claude/rules/facts_first.md` |
+| >1 file / WebSearch / code → dispatch | `~/.claude/rules/dispatch.md` |
+| Recording (action.md, violation, lesson) | `~/.claude/rules/recording.md` |
+| FSM state transition (overview) | `~/.claude/rules/fsm.md` |
+| In a specific state | `~/.claude/rules/states/<status>.md` |
+| 3-failure stop | `~/.claude/rules/failure_stop.md` |
+| Subagent prompt | `~/.claude/rules/subagent_rules.md` |
+
+## Three meta-rules (always on)
+
+1. **Dispatch** — `>1 file / WebSearch / code change` ⇒ Agent tool with `run_in_background=true`.
+2. **Reflect** — every reply opens with `[BOARD_READ]` + 4-module reflection written to `action_<sid>.md`. REFLECT status uses subagent rebuttal: main spawns one Agent (single-round-exit since v2.5.1), reads its `## reviewer reply`, writes `[CONSENSUS_REACHED]`, transitions.
+3. **Monitor** — long bg jobs need Monitor calls every 10–15 min.
+
+3-failure stop: after 3 failed attempts in an autonomous loop, stop and report. Detail in `~/.claude/rules/failure_stop.md`.
+
+Autonomy default: do NOT ask the user mid-task. Allowed only on (a) destructive ops, (b) 3-failure-stop, (c) prior explicit user opt-in. Otherwise REFLECT subagent rebuttal + decide yourself. Detail in `~/.claude/rules/autonomy.md`.
+
+## Recording targets
 
 | File | Scope | Records |
 |------|-------|---------|
@@ -105,7 +87,3 @@ Closing every action task: append entry to the relevant ledger OR write `[no new
 ## Conflict resolution
 
 current user instruction > latest hook injection > this file > `$PWD/CLAUDE.md`.
-
----
-
-End of router (~1.6 KB target).
