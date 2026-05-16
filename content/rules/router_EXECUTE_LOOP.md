@@ -11,14 +11,14 @@ Quick rules: all tools allowed. Required = [PLAN] before / [OBSERVE] after every
 
 Scenario patches (read on demand, applies_to filter): patches/long_monitor.md / bug_debug.md / perf_debug.md / simple_fast.md / exploration.md.
 
-Recording reminder (always-on in EXECUTE_LOOP):
-  本轮有无任何记账值得做? — 项目技术坑 / 成功 fix / AI 自身违规 / 跨项目智慧
-  → 有 → `bash ~/.claude/hooks/transition.sh NEED_RECORD --reason="<one-line>"` 进 RECORDING (then BACK_TO_LOOP back here)
-  → 无 → 在 action.md 写 `[no new ledger entries this turn]` 显式声明
+Recording rule (MUST, always-on in EXECUTE_LOOP):
+  **In EXECUTE_LOOP, Edit/Write to any ledger path is denied by a PreToolUse hook** (paths listed under `recording.guarded_paths` in workflow_config.yaml).
+  To record ⇒ MUST `bash ~/.claude/hooks/transition.sh NEED_RECORD --reason="<one-line>"` to RECORDING, write there, then `BACK_TO_LOOP` back here.
+  No ledger entry this turn ⇒ write `[no new ledger entries this turn]` in action.md explicitly.
 
 Always-on (every state):
   - facts_first.md — gate every [INFERENCE]; INFERENCE_GATE rebuttal required.
-  - dispatch.md — >1 file / WebSearch / code change ⇒ Agent(run_in_background=true).
+  - dispatch.md — >1 file / WebSearch / code change ⇒ background subagent dispatch.
   - recording.md — every reply opens with [BOARD_READ] + 4-module reflection.
   - lessons.md grep — before replying to user OR writing deliverables, grep ~/.claude/rules/lessons.md `tags:` for matches (minimal-edits / brevity / language / scope-creep / etc.) and comply.
-  - autonomy.md — **never stop, only ask-while-working**. Ship artifacts this turn (or transition.sh to next state if BOOT); ask in parallel if must. Stop only on destructive / 3-failure / explicit opt-in.
+  - autonomy.md — do NOT ask the user. Allowed only on (a) destructive ops, (b) 3-failure-stop, (c) prior explicit user opt-in. Otherwise REFLECT subagent rebuttal + decide yourself.

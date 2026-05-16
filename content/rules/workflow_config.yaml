@@ -47,6 +47,19 @@ ledger_paths:
   project_successful_fixes: "workspace/successful_fixes.md"
   project_attempts_ledger: "workspace/attempts_ledger.md"
 
+# v2.5.1 (F3 fix): pretool_ledger_guard.sh hook denies Edit/Write/NotebookEdit
+# on these path globs when current_status ≠ RECORDING. Adding a new ledger here
+# extends the guard without touching hook code (general / robust per user
+# L249 — never hardcode file names in hook scripts).
+recording:
+  guarded_paths:
+    - "workspace/bitter_lessons.md"
+    - "workspace/successful_fixes.md"
+    - "workspace/rule_violations.md"
+    - "workspace/attempts_ledger.md"
+    - "content/templates/global_rules/lessons.md"
+    - "content/templates/global_rules/violation.md"
+
 prompt_reinforce:
   required_elements:        # hooks/prepare_helper.sh + states/prepare.md "4-element check"
     - observable

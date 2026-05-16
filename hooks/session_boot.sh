@@ -14,8 +14,8 @@ CWD="$(printf '%s' "$INPUT" | jq -r '.cwd // empty' 2>/dev/null || true)"
 [ -z "$CWD" ] && CWD="${PWD:-$(pwd)}"
 [ -z "$SID" ] && SID="$(date +%s)-noidshort"
 
-# Heuristic: only create if .git or CLAUDE.md or workspace/ exists at $CWD.
-if [ ! -d "${CWD}/.git" ] && [ ! -f "${CWD}/CLAUDE.md" ] && [ ! -d "${CWD}/workspace" ]; then
+# Heuristic: only create if .git or CLAUDE.md/AGENTS.md or workspace/ exists at $CWD.
+if [ ! -d "${CWD}/.git" ] && [ ! -f "${CWD}/CLAUDE.md" ] && [ ! -f "${CWD}/AGENTS.md" ] && [ ! -d "${CWD}/workspace" ]; then
     exit 0
 fi
 
@@ -42,6 +42,14 @@ if [ "${BARRY_FRESH_SESSION:-0}" != "1" ] && [ -d "$(barry_root "$CWD")" ] && [ 
 fi
 
 mkdir -p "$SDIR"
+
+# v2.5.1 (F4 fix): write CURRENT_SID single-source-of-truth marker.
+# All hooks + transition.sh prefer this over mtime-based latest_state_file
+# selection, because transition.sh's own write bumps state.md mtime and
+# creates a self-reinforcing wrong-session drift when multiple <sid> dirs
+# coexist. Pattern adapted from humanize/hooks/lib/loop-common.sh which
+# stores session_id in state.md frontmatter and filters by it explicitly.
+printf '%s\n' "$SID" > "$(barry_root "$CWD")/CURRENT_SID" 2>/dev/null || true
 
 TEMPLATE_ROOT="__CLAUDE_CONFIG_DIR__/content/templates"
 STATE_TPL="${TEMPLATE_ROOT}/state_template.md"

@@ -66,13 +66,47 @@ latest_session_dir() {
     printf '%s' "${d%/}"
 }
 
-# latest_state_file <cwd> → echoes path to newest state.md across all <sid> subdirs.
-# Falls back to legacy flat $cwd/.barry_workflow/state_*.md if no subdir layout found.
+# current_sid <cwd> → echoes the session id this workflow turn belongs to.
+# v2.5.1 (F4 fix): read from $cwd/.barry_workflow/CURRENT_SID (single line),
+# written by session_boot.sh on every UserPromptSubmit. Falls back to the
+# mtime-newest subdir name only if CURRENT_SID is missing (legacy / first run).
+# Pattern adopted from humanize/hooks/lib/loop-common.sh (FIELD_SESSION_ID).
+current_sid() {
+    local cwd="$1"
+    local root
+    root="$(barry_root "$cwd")"
+    local marker="${root}/CURRENT_SID"
+    if [ -f "$marker" ]; then
+        local sid
+        sid="$(head -c 200 "$marker" 2>/dev/null | tr -d '[:space:]')"
+        if [ -n "$sid" ] && [ -d "${root}/${sid}" ]; then
+            printf '%s' "$sid"
+            return 0
+        fi
+    fi
+    # Fallback: mtime-newest subdir (old behaviour, kept for safety).
+    local d
+    d="$(ls -1dt "$root"/*/ 2>/dev/null | head -1 || true)"
+    [ -z "$d" ] && return 0
+    d="${d%/}"
+    printf '%s' "$(basename "$d")"
+}
+
+# latest_state_file <cwd> → echoes path to current state.md.
+# v2.5.1 (F4 fix): prefer CURRENT_SID marker over mtime selection; mtime was
+# self-reinforcing because transition.sh's own write bumps state.md mtime.
 latest_state_file() {
     local cwd="$1"
     local root
     root="$(barry_root "$cwd")"
     [ -d "$root" ] || return 0
+    local sid
+    sid="$(current_sid "$cwd")"
+    if [ -n "$sid" ] && [ -f "${root}/${sid}/state.md" ]; then
+        printf '%s' "${root}/${sid}/state.md"
+        return 0
+    fi
+    # Fallbacks for legacy / first-run.
     local f
     f="$(ls -1t "$root"/*/state.md 2>/dev/null | head -1 || true)"
     if [ -z "$f" ]; then
@@ -81,12 +115,19 @@ latest_state_file() {
     [ -n "$f" ] && printf '%s' "$f"
 }
 
-# latest_action_file <cwd> → echoes path to newest action.md.
+# latest_action_file <cwd> → echoes path to current action.md.
+# v2.5.1 (F4 fix): same CURRENT_SID-first logic as latest_state_file.
 latest_action_file() {
     local cwd="$1"
     local root
     root="$(barry_root "$cwd")"
     [ -d "$root" ] || return 0
+    local sid
+    sid="$(current_sid "$cwd")"
+    if [ -n "$sid" ] && [ -f "${root}/${sid}/action.md" ]; then
+        printf '%s' "${root}/${sid}/action.md"
+        return 0
+    fi
     local f
     f="$(ls -1t "$root"/*/action.md 2>/dev/null | head -1 || true)"
     if [ -z "$f" ]; then

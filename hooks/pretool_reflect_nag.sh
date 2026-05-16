@@ -39,9 +39,10 @@ fi
 TOOL="$(printf '%s' "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || true)"
 SID="$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)"
 CWD="$(printf '%s' "$INPUT" | jq -r '.cwd // empty' 2>/dev/null || true)"
+TRANSCRIPT="$(printf '%s' "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null || true)"
 [ -z "$CWD" ] && CWD="${PWD:-$(pwd)}"
 
-# If the model is about to call Agent or SendMessage right now, no nag needed.
+# If the model is about to call Agent / Task / SendMessage right now, no nag.
 case "$TOOL" in
     Agent|SendMessage|Task) exit 0 ;;
 esac
@@ -53,22 +54,38 @@ STATE_FILE="$(latest_state_file "$CWD" 2>/dev/null || true)"
 STATUS="$(grep -m1 -E '^current_status:' "$STATE_FILE" 2>/dev/null | awk '{print $2}' | tr -d '\r')"
 [ "$STATUS" = "REFLECT" ] || exit 0
 
-# Check action.md history — has Agent/SendMessage/Task already fired?
-ACTION_FILE="$(latest_action_file "$CWD" 2>/dev/null || true)"
-if [ -n "$ACTION_FILE" ] && [ -f "$ACTION_FILE" ]; then
-    if grep -qE 'tool_use.*"(Agent|SendMessage|Task)"|\[(SPAWN|REBUTTAL|AGENT)\]' "$ACTION_FILE" 2>/dev/null; then
+# v2.5.1 (F2 fix per user L114): the previous "any reflection_*.md exists" proxy
+# was a false-positive minefield (empty placeholder files, leftover INFERENCE_GATE
+# files, stale rounds from prior tasks all muted the nag). Correct test: read the
+# transcript JSONL directly and count tool_use events whose name is Agent / Task /
+# SendMessage. Suppress nag iff ≥1 such event was issued THIS turn or earlier in
+# the same session. Direct evidence, no proxy.
+if [ -n "$TRANSCRIPT" ] && [ -f "$TRANSCRIPT" ]; then
+    if python3 - "$TRANSCRIPT" <<'PY' 2>/dev/null
+import sys, json, pathlib
+p = pathlib.Path(sys.argv[1])
+try:
+    for line in p.read_text(errors='ignore').splitlines():
+        if not line.strip(): continue
+        try: obj = json.loads(line)
+        except Exception: continue
+        msg = obj.get("message") or {}
+        content = msg.get("content") or []
+        if not isinstance(content, list): continue
+        for c in content:
+            if not isinstance(c, dict): continue
+            if c.get("type") == "tool_use" and c.get("name") in ("Agent", "Task", "SendMessage"):
+                sys.exit(0)  # found one -> hook will skip the nag
+except Exception:
+    pass
+sys.exit(1)  # nothing found -> hook will emit the nag
+PY
+    then
         exit 0
     fi
 fi
 
-# Also check for any reflection_*.md under the session dir (sign that a
-# rebuttal subagent already wrote something).
-SDIR="$(dirname "$STATE_FILE")"
-if ls "$SDIR"/reflection_*.md >/dev/null 2>&1; then
-    exit 0
-fi
-
-MSG="REFLECT 状态：还没 spawn rebuttal subagent。除非正准备 spawn 或刚 Read reflect.md，否则下一步应当 Agent(run_in_background=true, subagent_type=general-purpose) 跑 rebuttal，不是写文件/读杂项。详见 ~/.claude/rules/states/reflect.md"
+MSG="REFLECT state: no rebuttal subagent spawned yet this session (checked transcript tool_use events). Next action MUST be Agent(run_in_background=true, subagent_type=general-purpose, ...) — see ~/.claude/rules/states/reflect.md."
 # Truncate to MAX_CHARS.
 if [ "${#MSG}" -gt "$MAX_CHARS" ]; then
     MSG="${MSG:0:$((MAX_CHARS-3))}..."

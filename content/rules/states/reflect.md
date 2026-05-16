@@ -6,15 +6,14 @@ Entered from PREPARE (pre-task). In v2.4, EXECUTE_EXIT no longer routes to REFLE
 
 `.barry_workflow/reflection_<round_id>.md` — shared markdown view. main creates it from `content/templates/reflection_template.md` interpolating session id, reason, and round id (e.g. `r1-on-anomaly-2026-05-13T05:08Z`).
 
-## Sequence
+## Sequence (v2.5.1 — single-round-exit by default)
 
 1. main fills `## main's questions` with 3–7 specific questions (concrete file paths / log lines / observables).
 2. main spawns the rebuttal agent via `Agent(run_in_background=true)` with the prompt template below. The prompt names the `reflection_<round_id>.md` path.
-3. Agent reads the file, fills `## reviewer reply` (round 1), then sleeps in a loop waiting for SendMessage.
-4. main reads the file; if more rounds needed, sends a SendMessage to the agent ("round 2: I disagree with X because…").
-5. Agent wakes, appends `### round N` to `## reviewer reply`, sleeps again.
-6. Loop until either (a) main sends a SendMessage containing `[CONSENSUS_REACHED]` + agreed action list, or (b) N rounds elapsed.
-7. main writes the consensus block, calls `transition.sh REFLECT_DONE`, and shuts down the agent (TaskStop or KillBash).
+3. Agent reads the file, fills `## reviewer reply` (round 1), and **exits**. No sleep-loop, no waiting for SendMessage.
+4. main reads `## reviewer reply`. If the reply is sufficient, main writes `[CONSENSUS_REACHED]` + agreed action list under `## consensus`, calls `transition.sh REFLECT_DONE`, done.
+5. If more rounds are genuinely needed, main spawns a **new** rebuttal agent with a fresh round file path (e.g. `reflection_r2-...md`) and passes the prior round's file as additional context in the prompt. Each round = one fresh `Agent(...)` spawn that exits after writing its reply.
+6. Round budget N (default 5) caps the number of fresh spawns, not the lifetime of one agent.
 
 ## N (round budget)
 
@@ -81,12 +80,10 @@ Step 3: Append your analysis under `## reviewer reply` (round 1). Concrete
         diff suggestions only (location + before + after). If you think
         the proposal is fine on a question, say so explicitly with a
         one-sentence reason. Don't pad.
-Step 4: Sleep in a loop waiting for SendMessage. Sleep pattern:
-            while true; do sleep 30; done
-        You will be woken when SendMessage arrives.
-Step 5: On each SendMessage, append `### round N` under `## reviewer reply`
-        with your follow-up. Repeat until SendMessage contains
-        `[CONSENSUS_REACHED]` (then exit) or __N__ rounds elapse.
+Step 4: Exit immediately after writing the reply. Do not sleep, do not
+        wait for SendMessage. If main wants a follow-up round, it will
+        spawn a NEW rebuttal agent with a fresh round file — your job
+        is done after one round.
 
 Constraints:
 - Neutral technical terms only (no roleplay).

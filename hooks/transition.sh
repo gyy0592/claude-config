@@ -22,19 +22,29 @@ set -euo pipefail
 EVENT="${1:-}"
 REASON=""
 shift || true
+SID_ARG=""
 for arg in "$@"; do
     case "$arg" in
         --reason=*) REASON="${arg#--reason=}" ;;
+        --sid=*)    SID_ARG="${arg#--sid=}" ;;
     esac
 done
 
 if [ -z "$EVENT" ]; then
-    echo "usage: transition.sh <BOOT_DONE|PREPARE_DONE|REFLECT_DONE|EXECUTE_EXIT|NEED_RECORD|RECORD_DONE|BACK_TO_LOOP|RESET_TO_BOOT> [--reason=...]" >&2
+    echo "usage: transition.sh <BOOT_DONE|PREPARE_DONE|REFLECT_DONE|EXECUTE_EXIT|NEED_RECORD|RECORD_DONE|BACK_TO_LOOP|RESET_TO_BOOT> [--sid=<session-id>] [--reason=...]" >&2
     exit 2
 fi
 
 CWD="${PWD}"
-STATE_FILE="$(latest_state_file "$CWD" || true)"
+# v2.5.1 (F4 fix): SID resolution order:
+#   1. --sid=<X> CLI arg (explicit)
+#   2. $PWD/.barry_workflow/CURRENT_SID file (written by session_boot.sh)
+#   3. mtime-newest <sid>/state.md (legacy fallback — self-reinforcing wrong-pick bug, kept only for first-run / pre-v2.5.1 sessions)
+if [ -n "$SID_ARG" ] && [ -f "$CWD/.barry_workflow/$SID_ARG/state.md" ]; then
+    STATE_FILE="$CWD/.barry_workflow/$SID_ARG/state.md"
+else
+    STATE_FILE="$(latest_state_file "$CWD" || true)"
+fi
 if [ -z "$STATE_FILE" ]; then
     echo "transition.sh: no state file under $(barry_root "$CWD")" >&2
     exit 1
@@ -136,6 +146,12 @@ new_src = src[:m.start(1)] + new_yaml + src[m.end(1):]
 pathlib.Path(path).write_text(new_src)
 print(f"{event} → {new_status}")
 PY
+
+# v2.5.1 (F4 belt-and-braces): reset state.md mtime to 1970 so that any legacy
+# code path still calling mtime-newest selection doesn't latch onto the file we
+# just wrote (the self-reinforcing drift root). CURRENT_SID is the real source
+# of truth post-v2.5.1, this is just extra protection during the migration window.
+touch -t 197001010000 "$STATE_FILE" 2>/dev/null || true
 
 # v2.1 P30: append transition log entry (non-fatal on failure).
 # Helper lives in repo's scripts/ and is reached via __CLAUDE_CONFIG_DIR__
