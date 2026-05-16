@@ -19,10 +19,33 @@ pretool_nudge:
   max_chars: 100            # hooks/pretooluse_short_nudge.sh — nudge() truncates message to this length
 
 cache_refresh:
-  # v2.4 F3: hooks/cache_refresh_check.sh emits a banner instructing the model
-  # to re-verify cache_hit_map + re-grep ledgers once cumulative input_tokens
-  # for this session crosses this threshold since the last refresh.
+  # v2.4 F3 / v2.5: hooks/cache_refresh_check.sh — PostToolUse now (v2.5 moved from
+  # UserPromptSubmit so long autonomous tasks still trigger). Emits a banner
+  # listing the full ledger self-check.
   threshold_input_tokens: 200000
+
+# v2.5: state-aware reinforcement — every ~10k input_tokens, PostToolUse hook
+# re-injects a ≤400-char summary of the current router_<STATE>.md so long
+# autonomous loops don't drift from the state's allowed/forbidden + autonomy.
+state_reinforce:
+  threshold_input_tokens: 10000
+  max_chars: 400
+
+# v2.5: REFLECT-state rebuttal nag — PreToolUse hook fires every tool call
+# while current_status==REFLECT AND no Agent / SendMessage call has been
+# recorded yet in this session.
+reflect_nag:
+  enabled: true
+  max_chars: 200
+
+# v2.5: ledger paths cited in cache_refresh banner.
+ledger_paths:
+  global_lessons: "~/.claude/rules/lessons.md"
+  global_violations: "~/.claude/rules/violation.md"
+  project_bitter_lessons: "workspace/bitter_lessons.md"
+  project_rule_violations: "workspace/rule_violations.md"
+  project_successful_fixes: "workspace/successful_fixes.md"
+  project_attempts_ledger: "workspace/attempts_ledger.md"
 
 prompt_reinforce:
   required_elements:        # hooks/prepare_helper.sh + states/prepare.md "4-element check"

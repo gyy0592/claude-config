@@ -14,6 +14,7 @@
 | precedent / past wisdom | lessons.md (auto-loaded) |
 
 Three meta-rules (always on):
+0. **Never stop, only ask-while-working.** Non-destructive turn ⇒ ship artifacts (files / commands / agent dispatched) this turn; ask in parallel if you must, pick a default per repo context. Stopping only on destructive / 3-failure / explicit opt-in.
 1. Dispatch — >1 file / WebSearch / code change ⇒ Agent(run_in_background=true).
 2. Reflect — every reply opens with [BOARD_READ] + 4-module reflection in action_<sid>.md.
 3. Monitor — long bg jobs need Monitor() every 10–15 min.

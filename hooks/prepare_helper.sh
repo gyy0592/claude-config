@@ -35,11 +35,13 @@ if [ -n "$LATEST_SDIR" ]; then
         [ -f "$f" ] && artifacts+=("$f")
     done
 fi
-for f in "${CWD}/CLAUDE.md" "${CWD}/goal.md"; do
+for f in "${CWD}/CLAUDE.md" "${CWD}/AGENTS.md" "${CWD}/goal.md"; do
     [ -f "$f" ] && artifacts+=("$f")
 done
 # v2.4 F2: deployed global ledgers — router asks model to grep their tags: every turn
-for f in "$HOME/.claude/rules/violation.md" "$HOME/.claude/rules/lessons.md"; do
+# Check Claude home first, then Codex home (both may coexist when porting)
+for f in "$HOME/.claude/rules/violation.md" "$HOME/.claude/rules/lessons.md" \
+         "$HOME/.codex/rules/violation.md"  "$HOME/.codex/rules/lessons.md"; do
     [ -f "$f" ] && artifacts+=("$f")
 done
 
@@ -58,13 +60,34 @@ else
 fi
 
 echo ""
-# v2.1 P23 / P36: emit the prompt-reinforcement checklist from a maintainable .md
-# file in the repo (not ~/.claude/rules/messages — that dir is no longer deployed).
+# v2.1 P23 / P36 / v2.5: emit prompt-reinforcement checklist.
+# Prefer the maintainable .md (richer wording); fall back to dynamically
+# building it from workflow_config.yaml's prompt_reinforce.required_elements
+# so the yaml actually drives behavior when the .md is missing.
 MSG_DIR="__CLAUDE_CONFIG_DIR__/content/rules/messages"
 CHECKLIST="$MSG_DIR/prepare_checklist.md"
 if [ -f "$CHECKLIST" ]; then
     cat "$CHECKLIST"
 else
-    echo "## prompt-reinforcement check (4 elements)"
-    echo "(prepare_checklist.md missing under $MSG_DIR — rerun set_claude.sh)"
+    _YAML="__CLAUDE_CONFIG_DIR__/content/rules/workflow_config.yaml"
+    echo "## prompt-reinforcement check"
+    if [ -f "$_YAML" ] && declare -F read_config >/dev/null 2>&1; then
+        # YAML list parse: pull every `  - <item>` line in the
+        # prompt_reinforce.required_elements block.
+        python3 - "$_YAML" <<'PY'
+import sys, yaml
+try:
+    cfg = yaml.safe_load(open(sys.argv[1]))
+    elems = cfg.get("prompt_reinforce", {}).get("required_elements", [])
+    if elems:
+        for e in elems:
+            print(f"- [ ] {e}: present in the user prompt?")
+    else:
+        print("(workflow_config.yaml has no prompt_reinforce.required_elements)")
+except Exception as e:
+    print(f"(yaml parse failed: {e})")
+PY
+    else
+        echo "(prepare_checklist.md missing under $MSG_DIR and workflow_config.yaml unreadable — rerun set_claude.sh)"
+    fi
 fi
