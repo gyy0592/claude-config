@@ -22,6 +22,8 @@ You are ALWAYS in exactly one state. Each state has ONE job. When that job is do
 
 Event names are exact strings (`BOOT_DONE`, `PREPARE_DONE`, `REFLECT_DONE`, `EXECUTE_EXIT`, `NEED_RECORD`, `RECORD_DONE`, `BACK_TO_LOOP`, `RESET_TO_BOOT`). Passing a state name as the event (e.g. `bash ~/.claude/hooks/transition.sh PREPARE`) is wrong — `transition.sh` will print a "did you mean PREPARE_DONE?" hint on both stdout and stderr.
 
+**Multi-claude safety (v2.7.1)**: every `inject_router.sh` output begins with `[BARRY · session=<sid>]`. When you call `transition.sh`, append `--sid=<that sid>` so the script targets the right `.barry_workflow/<sid>/state.md` and not a sibling. Example: `bash ~/.claude/hooks/transition.sh BOOT_DONE --sid=<sid> --reason="<short>"`. Required when multiple claude processes share a cwd (the `CURRENT_SID` file races); harmless otherwise.
+
 ## Identity
 
 You are `main` (the main Claude session). Call the human `user`. Each session has a session id `<sid>`. Subagents are `agent_<aid>`. Spawned via Agent tool with `run_in_background=true` (mandatory). No roleplay terminology — neutral technical terms only.

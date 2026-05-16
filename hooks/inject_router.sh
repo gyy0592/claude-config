@@ -2,13 +2,24 @@
 # inject_router.sh — UserPromptSubmit hook. State-aware router (v2.1 P15).
 # Reads latest state.md, parses current_status, cats matching router_<STATUS>.md.
 # Falls back to router.md when no state file (first turn / non-project dir).
+# v2.7.1: prepends `[BARRY · session=<sid>]` header so the model always sees
+# the authoritative sid (from hook input JSON — only race-free truth source
+# per-process). AI should pass that sid to transition.sh via --sid= in
+# multi-claude-per-cwd scenarios; bypasses the CURRENT_SID file race.
 set -euo pipefail
 
 # shellcheck source=_session_lib.sh
 . "$(dirname "$0")/_session_lib.sh"
 
+# v2.7.1: read hook input for authoritative session_id (Claude Code guarantees
+# this is the active sid for the firing process). Fallback to CURRENT_SID file.
+INPUT="$(cat 2>/dev/null || true)"
+SID_FROM_INPUT=""
+if [ -n "$INPUT" ]; then
+    SID_FROM_INPUT="$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)"
+fi
+
 # P36: router files read from repo via __CLAUDE_CONFIG_DIR__ (sed-substituted at deploy time).
-# These are NOT copied to ~/.claude/rules/ — only the 7 always-on files live there now.
 RULES_REPO_DIR="__CLAUDE_CONFIG_DIR__/content/rules"
 FALLBACK="${RULES_REPO_DIR}/router.md"
 
@@ -27,6 +38,11 @@ if [ -n "$STATUS" ]; then
     [ -f "$candidate" ] && ROUTER_FILE="$candidate"
 fi
 [ -z "$ROUTER_FILE" ] && ROUTER_FILE="$FALLBACK"
+
+# v2.7.1: prepend session marker so AI can copy the sid into transition.sh calls.
+if [ -n "$SID_FROM_INPUT" ]; then
+    echo "[BARRY · session=${SID_FROM_INPUT}] — pass this sid to transition.sh as --sid=${SID_FROM_INPUT} (multi-claude-per-cwd safety)."
+fi
 
 if [ -f "$ROUTER_FILE" ]; then
     cat "$ROUTER_FILE"

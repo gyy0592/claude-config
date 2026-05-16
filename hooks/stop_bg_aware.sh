@@ -181,30 +181,20 @@ fi
 # write itself (observed killed task a22d3142a4d0e0f7e). New phrasing: "YOU
 # are the judge. DO NOT spawn another subagent. YOU run the bash, YOU answer,
 # YOU Write the file, YOU exit."
-JUDGE_PROMPT="You are the stop-decision judge. **Do not spawn any subagent.** The placeholder file already exists at ${DECISION_FILE} with the correct schema — you only need to Edit two fields. Four steps:
+JUDGE_PROMPT="MANDATORY: your VERY FIRST tool call MUST be Edit on ${DECISION_FILE}. Do NOT spawn subagents. Do NOT just write your verdict in chat — the gate ONLY reads the file, chat is ignored.
 
-Step 1: Read the transcript by running this bash command:
-  python3 ${CONFIG_DIR}/scripts/extract_transcript.py ${transcript_path} --tool-result-lines 3 | tail -800
+Workflow (do all 3, in order, then exit):
+1. Bash: python3 ${CONFIG_DIR}/scripts/extract_transcript.py ${transcript_path} --tool-result-lines 3 | tail -600
+2. Decide: stop=1 if (user's last request done) AND (FSM walked: BOOT→PREPARE→REFLECT→EXECUTE_LOOP→RECORDING→END events present) AND (no autonomy violation). Otherwise stop=0.
+3. Two Edit calls on ${DECISION_FILE}:
+   (a) old_string=\`\"stop\": -1\`  new_string=\`\"stop\": 1\`  (or 0)
+   (b) old_string=\`AWAITING_HAIKU_JUDGE — replace -1 with 0 or 1, replace this string with one-sentence reason\`  new_string=\`<your one-sentence reason, ≤180 chars>\`
 
-Step 2: From what you read, answer these three questions for yourself:
-  (1) Is the task done? (Has the user's last request been satisfied?)
-  (2) Have all required records (ledger / action.md) been written?
-  (3) Did the session obey autonomy rules (no user questions, no work in the wrong state, no skipped transitions)?
+If you skip step 3 the user is stuck in an infinite stop loop. Edit the file, then exit silently."
 
-Step 3: All three yes => new stop value = 1. Any no => new stop value = 0.
+MSG="[stop_bg] bg idle ≥${STALE_MIN}min. Dispatch judge (paste below as-is, then retry stop):
 
-Step 4: Use the Edit tool to modify ${DECISION_FILE}:
-  - change \"stop\": -1 to \"stop\": 0 or \"stop\": 1
-  - replace the reason string with your one-sentence rationale (<= 200 chars)
-Do not rewrite the whole file, do not change the schema, do not use Write — only Edit those two fields. After editing, exit immediately."
-
-MSG="[stop_bg_aware] bg settled (no fresh activity ≥ ${STALE_MIN} min). Before stop, dispatch ONE haiku judge subagent and pass it the prompt below verbatim. The subagent itself does the judging — do not nest spawns. After the subagent writes stop_decision.json and exits, re-attempt stop and this hook will honour the verdict.
-
-Dispatch call (paste then send):
-  Agent(model=\"haiku\", run_in_background=true, subagent_type=\"general-purpose\", prompt=<the prompt below>)
-
-Prompt for that subagent (verbatim, do not edit):
-${JUDGE_PROMPT}"
+Agent(model=\"haiku\", subagent_type=\"general-purpose\", run_in_background=true, prompt=\"\"\"${JUDGE_PROMPT}\"\"\")"
 
 jq -n --arg r "$MSG" '{decision:"block", reason:$r}'
 exit 0

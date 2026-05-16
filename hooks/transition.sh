@@ -58,13 +58,20 @@ if [ -z "$EVENT" ]; then
 fi
 
 CWD="${PWD}"
-# v2.5.1 (F4 fix): SID resolution order:
-#   1. --sid=<X> CLI arg (explicit)
-#   2. $PWD/.barry_workflow/CURRENT_SID file (written by session_boot.sh)
-#   3. mtime-newest <sid>/state.md (legacy fallback — self-reinforcing wrong-pick bug, kept only for first-run / pre-v2.5.1 sessions)
+# v2.5.1 (F4 fix) / v2.7.1 (multi-claude warn): SID resolution order:
+#   1. --sid=<X> CLI arg (explicit — race-free)
+#   2. $PWD/.barry_workflow/CURRENT_SID file (written by session_boot.sh —
+#      races between multiple claude processes in the same cwd; warn if so)
+#   3. mtime-newest <sid>/state.md (legacy fallback)
 if [ -n "$SID_ARG" ] && [ -f "$CWD/.barry_workflow/$SID_ARG/state.md" ]; then
     STATE_FILE="$CWD/.barry_workflow/$SID_ARG/state.md"
 else
+    # v2.7.1: warn when SID_ARG missing AND ≥2 session dirs coexist (race risk).
+    # Don't abort — legacy sessions and single-claude usage still work.
+    SDIR_COUNT="$(ls -1d "$CWD"/.barry_workflow/*/ 2>/dev/null | wc -l)"
+    if [ -z "$SID_ARG" ] && [ "${SDIR_COUNT:-0}" -ge 2 ]; then
+        err_both "transition.sh: WARNING — --sid not passed and ${SDIR_COUNT} session dirs coexist under $(barry_root "$CWD")/. CURRENT_SID is race-prone with multiple claude processes. Copy the sid from the [BARRY · session=<sid>] router header and re-run with --sid=<sid>. Falling back to fuzzy lookup for now."
+    fi
     STATE_FILE="$(latest_state_file "$CWD" || true)"
 fi
 if [ -z "$STATE_FILE" ]; then

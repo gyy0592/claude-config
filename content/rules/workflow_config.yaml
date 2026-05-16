@@ -32,8 +32,8 @@ pretool_nudge:
 #   mtime is within this many minutes. Older → treat as not pending and
 #   consult the haiku-judge gate.
 stop_gate:
-  enabled: false
-  bg_stale_minutes: 30
+  enabled: true
+  bg_stale_minutes: 1
 
 cache_refresh:
   # v2.4 F3 / v2.5: hooks/cache_refresh_check.sh — PostToolUse now (v2.5 moved from
@@ -87,7 +87,10 @@ recording:
 # Empty/missing entry = no restriction. State names match FSM exactly.
 state_tool_policy:
   BOOT:
-    deny_tools: [Agent, Task, Edit, Write, NotebookEdit]
+    # v2.7.1: Agent/Task removed — large repos sometimes legitimately need
+    # a subagent during orientation. state_enforce.sh's soft reminder is
+    # enough; Edit/Write/NotebookEdit stay denied (BOOT is read-only).
+    deny_tools: [Edit, Write, NotebookEdit]
   # PREPARE/REFLECT/EXECUTE_LOOP/RECORDING/END not listed = no extra tool
   # restrictions beyond existing hooks (ledger guard / reflect nag).
 
