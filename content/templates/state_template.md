@@ -7,6 +7,7 @@ prev_status: null
 session_id: __SID__
 created_at: __TS__
 stage_history: []
+current_goal: ""
 cache_hit_map: {}
 reflection_history: []
 fork_decisions: []

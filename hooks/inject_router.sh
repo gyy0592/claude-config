@@ -44,6 +44,24 @@ if [ -n "$SID_FROM_INPUT" ]; then
     echo "[BARRY · session=${SID_FROM_INPUT}] — pass this sid to transition.sh as --sid=${SID_FROM_INPUT} (multi-claude-per-cwd safety)."
 fi
 
+# v2.8.0: inject current_goal from state.md into banner
+CURRENT_GOAL=""
+if [ -n "$STATE_FILE" ] && [ -f "$STATE_FILE" ]; then
+    CURRENT_GOAL="$(grep -m1 '^current_goal:' "$STATE_FILE" 2>/dev/null | sed 's/^current_goal:[[:space:]]*//' | tr -d '"' | tr -d '\n' || true)"
+fi
+# v2.7.10: also check that the goal file actually exists on disk — stale paths
+# (e.g. after a smoke-test workspace dir was deleted) should fall through to
+# [GOAL NOT SET] instead of showing a broken banner.
+if [ -n "$CURRENT_GOAL" ] && [ "$CURRENT_GOAL" != '""' ] && [ -f "${CWD}/${CURRENT_GOAL}" ]; then
+    echo "[GOAL · ${CURRENT_GOAL}] still matches user's current intent? if not, run scripts/new_task.sh to write a new goal before continuing. if yes, Read goal.md again to confirm constraints still hold."
+else
+    if [ -n "$CURRENT_GOAL" ] && [ "$CURRENT_GOAL" != '""' ]; then
+        echo "[GOAL NOT SET] (stale path ${CURRENT_GOAL} — file missing) — run: bash __CLAUDE_CONFIG_DIR__/scripts/new_task.sh --name <task_name> --goal \"...\" --constraint \"...\""
+    else
+        echo "[GOAL NOT SET] — run: bash __CLAUDE_CONFIG_DIR__/scripts/new_task.sh --name <task_name> --goal \"...\" --constraint \"...\""
+    fi
+fi
+
 if [ -f "$ROUTER_FILE" ]; then
     cat "$ROUTER_FILE"
 else

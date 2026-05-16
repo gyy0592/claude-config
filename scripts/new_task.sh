@@ -37,13 +37,26 @@ if ! declare -F err_both >/dev/null 2>&1; then
   err_both() { printf '%s\n' "$*" >&2; printf '%s\n' "$*"; }
 fi
 
-if [[ $# -lt 1 ]]; then
-  err_both "usage: bash ${BASH_SOURCE[0]} <task_name>"
-  err_both "  example: bash ${BASH_SOURCE[0]} v4_audit"
+TASK_NAME=""
+GOAL_TEXT=""
+CONSTRAINT_TEXT=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --name)       TASK_NAME="$2"; shift 2 ;;
+    --goal)       GOAL_TEXT="$2"; shift 2 ;;
+    --constraint) CONSTRAINT_TEXT="$2"; shift 2 ;;
+    -*)           err_both "unknown flag $1"; exit 2 ;;
+    *)            TASK_NAME="$1"; shift ;;   # backward-compat positional
+  esac
+done
+
+if [[ -z "$TASK_NAME" ]]; then
+  err_both "usage: bash ${BASH_SOURCE[0]} --name <task_name> [--goal \"...\"] [--constraint \"...\"]"
+  err_both "  compat: bash ${BASH_SOURCE[0]} <task_name>"
   exit 2
 fi
 
-TASK_NAME="$1"
 if ! [[ "$TASK_NAME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
   err_both "[new_task] error: task name must be [a-zA-Z0-9_-]+, got '$TASK_NAME'"
   exit 2
@@ -67,6 +80,27 @@ else
   : > "${TASK_DIR}/goal.md"
 fi
 
+# If --goal or --constraint provided, fill them into goal.md
+if [[ -n "$GOAL_TEXT" || -n "$CONSTRAINT_TEXT" ]]; then
+  GOAL_FILL="${GOAL_TEXT:-"(no goal provided)"}"
+  CONSTRAINT_FILL="${CONSTRAINT_TEXT:-"(no constraints provided)"}"
+  cat > "${TASK_DIR}/goal.md" << GOALEOF
+# Current Goal
+
+## Goal
+
+${GOAL_FILL}
+
+## Constraints
+
+${CONSTRAINT_FILL}
+
+## Success Criteria
+
+(fill in observable success criteria)
+GOALEOF
+fi
+
 # 2. Shared ledgers (only if absent — idempotent across tasks)
 seeded=()
 for f in bitter_lessons.md successful_fixes.md attempts_ledger.md; do
@@ -86,6 +120,17 @@ done
 if [[ ! -f "${WS}/rule_violations.md" ]]; then
   : > "${WS}/rule_violations.md"
   seeded+=("rule_violations.md")
+fi
+
+# Update current_goal: in active state.md (best-effort, only if session active)
+if declare -F latest_state_file >/dev/null 2>&1; then
+  ACTIVE_STATE="$(latest_state_file "$PWD" 2>/dev/null || true)"
+  if [[ -n "$ACTIVE_STATE" && -f "$ACTIVE_STATE" ]]; then
+    # Strip newlines from task name for single-line YAML value
+    SAFE_TASK_NAME="${TASK_NAME//[$'\n\r']/}"
+    sed -i "s|^current_goal:.*|current_goal: \"workspace/${SAFE_TASK_NAME}/goal.md\"|" "$ACTIVE_STATE" 2>/dev/null || true
+    echo "[new_task] ✓ updated current_goal in ${ACTIVE_STATE}"
+  fi
 fi
 
 echo "[new_task] ✓ task dir: ${TASK_DIR}"

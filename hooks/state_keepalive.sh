@@ -49,6 +49,16 @@ esac
 
 MSG="[STATE=$STATUS] right state for this tool? if work for $STATUS is done, run transition.sh $NEXT."
 
+# v2.7.13: same always-on nudge for goal. Read current_goal from state.md and
+# append a goal-check line to the message so every tool call also reminds the
+# model to confirm the active goal still matches user intent.
+GOAL_FROM_STATE="$(grep -m1 '^current_goal:' "$STATE_FILE" 2>/dev/null | sed 's/^current_goal:[[:space:]]*//' | tr -d '"' | tr -d '\n' || true)"
+if [ -n "$GOAL_FROM_STATE" ] && [ "$GOAL_FROM_STATE" != '""' ] && [ -f "${CWD}/${GOAL_FROM_STATE}" ]; then
+    MSG="$MSG [GOAL=$GOAL_FROM_STATE] still matches user's current intent? if not, run new_task.sh to write a new goal before proceeding."
+else
+    MSG="$MSG [GOAL=NOT_SET] no active goal — run scripts/new_task.sh --name <task> --goal \"...\" --constraint \"...\" before doing more work."
+fi
+
 # v2.7 fix: use additionalContext, NOT permissionDecisionReason. The latter
 # is only shown to the model when permissionDecision is "deny" or "ask";
 # on "allow" it goes only to the debug log, so the AI never sees it. Cost
