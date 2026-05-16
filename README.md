@@ -162,14 +162,16 @@ bash set_claude.sh
 
 `set_claude.sh` 的动作：
 
-1. 将 8 个脚本从 `hooks/` 复制到 `~/.claude/hooks/`，sed 替换占位符 `__CLAUDE_CONFIG_DIR__` 为仓库实际路径：
-   `inject_router.sh` · `session_boot.sh` · `pretooluse_short_nudge.sh` · `state_enforce.sh` · `transition.sh` · `prepare_helper.sh` · `execute_loop_audit.sh` · `_session_lib.sh`（被其他 hook `source` 的工具库）
+1. 将 hook 脚本（v2.5 起 10 个）从 `hooks/` 复制到 `~/.claude/hooks/`，sed 替换占位符 `__CLAUDE_CONFIG_DIR__` 为仓库实际路径：
+   `inject_router.sh` · `session_boot.sh` · `pretooluse_short_nudge.sh` · `pretool_reflect_nag.sh` [v2.5] · `state_enforce.sh` · `cache_refresh_check.sh` · `posttool_state_reinforce.sh` [v2.5] · `transition.sh` · `prepare_helper.sh` · `execute_loop_audit.sh` · `_session_lib.sh`（被其他 hook `source` 的工具库）
 2. 同步 `content/rules/` 到 `~/.claude/rules/`
-3. 在 `~/.claude/settings.json` 的 `hooks` 字段注册 4 个 hook 回调，分布在 3 种触发点：
+3. 在 `~/.claude/settings.json` 的 `hooks` 字段注册 hook 回调，分布在 3 种触发点（v2.5 起）：
    - `UserPromptSubmit` × 2：`session_boot.sh` + `inject_router.sh`
-   - `PreToolUse` × 1：`state_enforce.sh`（含 `pretooluse_short_nudge` 子分支）
-   - `PostToolUse` × 1：`execute_loop_audit.sh`
+   - `PreToolUse` × 2：`pretooluse_short_nudge.sh` + `pretool_reflect_nag.sh` [v2.5 新增]
+   - `PostToolUse` × 3：`state_enforce.sh` + `cache_refresh_check.sh` [v2.5: 从 UserPromptSubmit 搬过来] + `posttool_state_reinforce.sh` [v2.5 新增]
 4. 对已存在的 `violation.md` / `lessons.md` 做 diff，冲突时交互询问（管道运行默认采用仓库版本）
+
+> **v2.5 改动概览**：长自主任务（用户发完消息走开，AI 跑 50+ 工具调用）期间 UserPromptSubmit 一次都不 fire。v2.5 把 cache_refresh 从 UserPromptSubmit 搬到 PostToolUse，新增 `posttool_state_reinforce.sh`（每 10k token 重注入当前 router_<STATE>.md 摘要）和 `pretool_reflect_nag.sh`（REFLECT 内还没派 rebuttal subagent 前每次工具调用提醒）；同时把 router footer 的 autonomy 行从"do NOT ask"重写成"**never stop, only ask-while-working**"。详见 [`docs/v2.5_plan.md`](docs/v2.5_plan.md) 与 [`docs/instruction_following.md`](docs/instruction_following.md)。
 
 幂等。升级：`git pull && bash set_claude.sh`。
 
@@ -181,13 +183,25 @@ bash scripts/switch_hooks.sh on
 bash scripts/switch_hooks.sh status
 ```
 
+### 可选功能开关（`content/rules/workflow_config.yaml`）
+
+部分激进 hook 默认关闭，按需开启：
+
+| yaml key | 默认 | 干啥 |
+|---|---|---|
+| `stop_gate.enabled` | `false` | Stop 事件 hook（`stop_bg_aware.sh`）：在后台无活动且 haiku-judge 未盖章时阻挡 stop。开启时，第一次 stop 会创建 `stop_decision.json` 占位 + 提示 main 派一个 haiku judge subagent；subagent Edit 两个字段（`stop: 0|1` + `reason`）；下一次 stop 读决定放行或继续 block。详见 hook 注释。 |
+| `stop_gate.bg_stale_minutes` | `30` | 后台任务 mtime 超过这么多分钟视为 stale，从 pending 列剔除。 |
+| `reflect.enforce_min_rounds` | `false` | `transition.sh REFLECT_DONE` 硬卡：transcript 里 Agent/Task spawn < 1 或 SendMessage < `rounds_default - 1` 时拒绝离开 REFLECT，给出具体计数。 |
+| `state_tool_policy.BOOT.deny_tools` | `[Agent, Task, Edit, Write, NotebookEdit]` | BOOT 状态硬挡这些工具（PreToolUse deny）。要在 BOOT 用 Agent，要么先 `BOOT_DONE` 切 PREPARE，要么改 yaml。 |
+| `reflect_nag.enabled` | `true` | REFLECT 状态下 transcript 没出现过 Agent/Task/SendMessage 时，每次工具调用前注一条短提示。 |
+
 完全卸载：
 
 ```bash
 bash scripts/switch_hooks.sh off
-rm ~/.claude/hooks/{inject_router,session_boot,pretooluse_short_nudge,state_enforce,transition,prepare_helper,execute_loop_audit,_session_lib}.sh
+rm ~/.claude/hooks/{inject_router,session_boot,pretooluse_short_nudge,pretool_reflect_nag,pretool_ledger_guard,pretool_state_tool_guard,state_enforce,state_keepalive,cache_refresh_check,posttool_state_reinforce,stop_bg_aware,transition,prepare_helper,execute_loop_audit,_session_lib}.sh
 rm -rf ~/.claude/rules/{router*.md,states,patches,messages}
-rm ~/.claude/rules/{facts_first,dispatch,recording,subagent_rules,failure_stop,fsm,prompt_enhancement,codex_adapter}.md
+rm ~/.claude/rules/{facts_first,dispatch,recording,subagent_rules,failure_stop,fsm,prompt_enhancement,codex_adapter,autonomy}.md
 rm ~/.claude/rules/workflow_config.yaml
 ```
 

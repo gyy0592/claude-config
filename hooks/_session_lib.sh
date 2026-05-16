@@ -28,17 +28,21 @@ read_config() {
     local yaml="$1" key="$2"
     [ -f "$yaml" ] || return 1
     local top="${key%%.*}"
-    local sub="${key#*.}"
+    local subkey="${key#*.}"
     if [ "$top" = "$key" ]; then
         # single-level key
         sed -n "s/^${key}:[[:space:]]*\(.*\)$/\1/p" "$yaml" | head -1 | tr -d "'\"" | tr -d '[:space:]'
     else
-        # two-level: find "top:" block, then find "sub:" inside it
-        awk -v top="$top" -v sub="$sub" '
+        # two-level: find "top:" block, then find "subkey:" inside it.
+        # v2.5.5 fix: awk variable was named `sub` which clashed with the
+        # awk built-in function sub() — gawk rejects this with "type clash
+        # or keyword" so every two-level key silently returned empty.
+        # Renamed the awk var (and matching gsub patterns) to `subk`.
+        awk -v top="$top" -v subk="$subkey" '
             $0 ~ ("^"top":") { in_top=1; next }
             in_top && /^[a-zA-Z_]/ { in_top=0 }
-            in_top && $0 ~ ("^[[:space:]]+"sub":") {
-                sub("^[[:space:]]+"sub":[[:space:]]*", "")
+            in_top && $0 ~ ("^[[:space:]]+"subk":") {
+                sub("^[[:space:]]+"subk":[[:space:]]*", "")
                 gsub(/["\047]/, "")
                 gsub(/[[:space:]]/, "")
                 print

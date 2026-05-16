@@ -81,6 +81,61 @@ OLD_STATUS="$(grep '^current_status:' "$STATE_FILE" | awk '{print $2}' | tr -d '
 OLD_PREV_STATUS="$(grep '^prev_status:' "$STATE_FILE" 2>/dev/null | awk '{print $2}' | tr -d '[:space:]' || true)"
 [ -z "$OLD_PREV_STATUS" ] && OLD_PREV_STATUS="null"
 
+# v2.5.5 (REFLECT round-count guard): when AI tries to exit REFLECT, count the
+# Agent / Task / SendMessage tool_use events recorded in the session transcript.
+# If they don't meet the minimum implied by yaml `reflect.rounds_default` (= at
+# least 1 Agent/Task spawn AND at least rounds-1 SendMessages), block the exit.
+# Rationale: failures observed in remote sessions e25384d9 and d5413e83 had AI
+# pass straight through REFLECT_DONE without ever spawning a rebuttal subagent.
+# yaml `reflect.enforce_min_rounds: true` toggles this; default off so it
+# doesn't break sessions migrating in.
+if [ "$EVENT" = "REFLECT_DONE" ]; then
+    YAML="__CLAUDE_CONFIG_DIR__/content/rules/workflow_config.yaml"
+    ENFORCE="false"
+    REQ_ROUNDS=2
+    if [ -f "$YAML" ] && declare -F read_config >/dev/null 2>&1; then
+        v="$(read_config "$YAML" reflect.enforce_min_rounds 2>/dev/null || true)"
+        [ -n "${v:-}" ] && ENFORCE="$v"
+        v="$(read_config "$YAML" reflect.rounds_default 2>/dev/null || true)"
+        [ -n "${v:-}" ] && REQ_ROUNDS="$v"
+    fi
+    if [ "$ENFORCE" = "true" ] && [ "$OLD_STATUS" = "REFLECT" ]; then
+        # Discover the transcript path from session_id + cwd encoding.
+        SID_FOR_TRANSCRIPT="$(basename "$(dirname "$STATE_FILE")")"
+        ENCODED_CWD="$(echo "$CWD" | sed 's|/|-|g')"
+        TRANSCRIPT="$HOME/.claude/projects/${ENCODED_CWD}/${SID_FOR_TRANSCRIPT}.jsonl"
+        if [ -f "$TRANSCRIPT" ]; then
+            COUNTS="$(REQ="$REQ_ROUNDS" python3 - "$TRANSCRIPT" <<'PY' 2>/dev/null
+import sys, json
+agent=task=sendmsg=0
+try:
+    with open(sys.argv[1]) as f:
+        for line in f:
+            if not line.strip(): continue
+            try: d=json.loads(line)
+            except: continue
+            for c in (d.get("message") or {}).get("content") or []:
+                if not isinstance(c, dict): continue
+                if c.get("type") == "tool_use":
+                    n = c.get("name","")
+                    if n == "Agent": agent += 1
+                    elif n == "Task": task += 1
+                    elif n == "SendMessage": sendmsg += 1
+except Exception: pass
+print(f"{agent} {task} {sendmsg}")
+PY
+)"
+            read -r AGENT_N TASK_N SENDMSG_N <<<"$COUNTS"
+            SPAWN_TOTAL=$((AGENT_N + TASK_N))
+            REQUIRED_SENDMSG=$((REQ_ROUNDS - 1))
+            if [ "$SPAWN_TOTAL" -lt 1 ] || [ "$SENDMSG_N" -lt "$REQUIRED_SENDMSG" ]; then
+                err_both "transition.sh: REFLECT_DONE blocked. Round budget = ${REQ_ROUNDS}; need ≥1 Agent/Task spawn AND ≥${REQUIRED_SENDMSG} SendMessage. This session has: Agent=${AGENT_N}, Task=${TASK_N}, SendMessage=${SENDMSG_N}. Spawn the rebuttal subagent (Agent(run_in_background=true,...)) and complete the rounds, then retry. To bypass set reflect.enforce_min_rounds=false in workflow_config.yaml."
+                exit 2
+            fi
+        fi
+    fi
+fi
+
 # Map event → new status. NEW_PREV is the prev_status to write back; null means clear.
 NEW_PREV="null"
 case "$EVENT" in

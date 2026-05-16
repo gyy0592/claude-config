@@ -9,6 +9,12 @@ reflect:
   rounds_default: 5         # states/reflect.md "N (round budget)"
   rounds_fallback: 10       # states/reflect.md "N=5 hits → re-spawn at N=10"
   max_round_minutes: 15     # cap a single rebuttal round; exceeded → log + escalate
+  # v2.5.5: count-based hard guard on REFLECT_DONE. When true, transition.sh
+  # counts tool_use events of type Agent/Task/SendMessage in the session
+  # transcript and refuses REFLECT_DONE unless: ≥1 Agent or Task spawn AND
+  # ≥(rounds_default - 1) SendMessage. Default off so existing sessions don't
+  # break; opt in once your team is ready.
+  enforce_min_rounds: false
 
 execute_loop:
   failure_budget: 3         # states/execute.md + hooks/execute_loop_audit.sh anomaly threshold
@@ -18,10 +24,15 @@ pretool_nudge:
   read_threshold: 3         # hooks/pretooluse_short_nudge.sh — Read/Grep/Glob count → nudge dispatch
   max_chars: 100            # hooks/pretooluse_short_nudge.sh — nudge() truncates message to this length
 
-# v2.5.4: Stop hook (hooks/stop_bg_aware.sh) settled-bg threshold.
-# Bg task is "fresh" if its /tmp/.../tasks/<id>.output mtime is within this
-# many minutes. Older = treat as not pending → consult haiku-judge gate.
+# v2.5.4 / v2.5.5: Stop hook (hooks/stop_bg_aware.sh) gating.
+# enabled — master kill-switch. Default false → hook is a no-op (silent allow)
+#   for everyone who hasn't explicitly opted in. Set true to turn the
+#   haiku-judge gate on for this repo. See docs/stop_gate.md for details.
+# bg_stale_minutes — a bg task is "fresh" if its /tmp/.../tasks/<id>.output
+#   mtime is within this many minutes. Older → treat as not pending and
+#   consult the haiku-judge gate.
 stop_gate:
+  enabled: false
   bg_stale_minutes: 30
 
 cache_refresh:
@@ -43,7 +54,7 @@ state_reinforce:
 # while current_status==REFLECT AND no Agent / SendMessage call has been
 # recorded yet in this session.
 reflect_nag:
-  enabled: true
+  enabled: false
   max_chars: 200
 
 # v2.5: ledger paths cited in cache_refresh banner.
@@ -67,6 +78,18 @@ recording:
     - "workspace/attempts_ledger.md"
     - "content/templates/global_rules/lessons.md"
     - "content/templates/global_rules/violation.md"
+
+# v2.5.5: per-state tool deny list. PreToolUse hook pretool_state_tool_guard.sh
+# reads this table — when current_status matches a key here AND the tool being
+# called is in that state's deny_tools list, the call is denied with a
+# permissionDecisionReason hint. Soft mechanism (PreToolUse permissionDecision)
+# not a kill — AI sees the reason and decides whether to transition first.
+# Empty/missing entry = no restriction. State names match FSM exactly.
+state_tool_policy:
+  BOOT:
+    deny_tools: [Agent, Task, Edit, Write, NotebookEdit]
+  # PREPARE/REFLECT/EXECUTE_LOOP/RECORDING/END not listed = no extra tool
+  # restrictions beyond existing hooks (ledger guard / reflect nag).
 
 prompt_reinforce:
   required_elements:        # hooks/prepare_helper.sh + states/prepare.md "4-element check"

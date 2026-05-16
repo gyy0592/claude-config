@@ -38,9 +38,20 @@ if [ "$stop_hook_active" = "true" ]; then
     exit 0
 fi
 
+# v2.5.5: master kill-switch. yaml stop_gate.enabled defaults to false; users
+# opt in by setting it true in workflow_config.yaml. When false, this hook is
+# a no-op (silent allow), matching the pre-v2.5.4 behaviour for everyone who
+# hasn't explicitly turned it on.
+ENABLED="false"
+YAML="$CONFIG_DIR/content/rules/workflow_config.yaml"
+if [ -f "$YAML" ] && declare -F read_config >/dev/null 2>&1; then
+    v="$(read_config "$YAML" "stop_gate.enabled" 2>/dev/null || true)"
+    [ -n "${v:-}" ] && ENABLED="$v"
+fi
+[ "$ENABLED" != "true" ] && exit 0
+
 # Resolve stale-minutes threshold from yaml (default 30).
 STALE_MIN=30
-YAML="$CONFIG_DIR/content/rules/workflow_config.yaml"
 if [ -f "$YAML" ] && declare -F read_config >/dev/null 2>&1; then
     v="$(read_config "$YAML" "stop_gate.bg_stale_minutes" 2>/dev/null || true)"
     [ -n "${v:-}" ] && STALE_MIN="$v"
@@ -126,27 +137,74 @@ SDIR="${cwd}/.barry_workflow/${session_id}"
 DECISION_FILE="${SDIR}/stop_decision.json"
 
 if [ -f "$DECISION_FILE" ]; then
-    STOP_VAL=$(jq -r '.stop // 0' "$DECISION_FILE" 2>/dev/null)
+    STOP_VAL=$(jq -r '.stop // -1' "$DECISION_FILE" 2>/dev/null)
     REASON=$(jq -r '.reason // ""' "$DECISION_FILE" 2>/dev/null)
-    # Consume the file regardless of value (one-shot decision).
-    rm -f "$DECISION_FILE"
-    if [ "$STOP_VAL" = "1" ]; then
-        exit 0
-    else
-        MSG="[stop_bg_aware] Haiku judge says NOT yet done — reason: ${REASON}. Continue working; another stop attempt will re-run the judge."
-        jq -n --arg r "$MSG" '{decision:"block", reason:$r}'
-        exit 0
-    fi
+
+    # v2.5.5: tri-state. -1 = haiku hasn't filled it in yet (placeholder this
+    # hook created on the previous fire). 0/1 = haiku's verdict. We only
+    # consume on 0/1, not on -1, so the prompt re-fires until haiku acts.
+    case "$STOP_VAL" in
+        1)
+            rm -f "$DECISION_FILE"
+            exit 0
+            ;;
+        0)
+            rm -f "$DECISION_FILE"
+            MSG="[stop_bg_aware] Haiku judge says NOT yet done — reason: ${REASON}. Continue working; another stop attempt will re-run the judge."
+            jq -n --arg r "$MSG" '{decision:"block", reason:$r}'
+            exit 0
+            ;;
+        *)
+            # -1 (or any other unexpected value) — placeholder still there,
+            # haiku hasn't edited it. Re-emit the prompt; do NOT delete.
+            ;;
+    esac
 fi
 
-# No decision file yet → block + ask main to dispatch a haiku judge subagent.
-# The reason is the prompt: it tells main exactly what to do (one Agent call,
-# fixed prompt template) so this can't ambiguously expand into more work.
-JUDGE_PROMPT="读取 ${transcript_path} 的最后 200 行（可用：\`python3 ${CONFIG_DIR}/scripts/extract_transcript.py ${transcript_path} --tool-result-lines 3 | tail -800\`），判断本会话是否真正完成可以停止。判定 3 个问题：(1) 任务完成了吗？(2) 所有需要记录的东西（ledger/action.md）记录了吗？(3) 是否遵守自主执行规则（不问用户、不在错的 state 干活、不跳过 transition）？三问都 yes 写 stop=1，任何一项 no 写 stop=0。把结论写到 ${SDIR}/stop_decision.json，schema: {\"stop\": 0|1, \"reason\": \"<one-sentence>\"}。写完立刻 exit。"
+# No usable decision yet → ensure placeholder exists with schema haiku can Edit,
+# then block + ask main to dispatch a haiku judge subagent.
+# v2.5.5: hook now creates the placeholder so haiku only needs to Edit two
+# fields (stop, reason), not Write a full new JSON. Reduces error surface.
+mkdir -p "$SDIR" 2>/dev/null || true
+if [ ! -f "$DECISION_FILE" ]; then
+    cat > "$DECISION_FILE" <<'JSON'
+{
+  "stop": -1,
+  "reason": "AWAITING_HAIKU_JUDGE — replace -1 with 0 or 1, replace this string with one-sentence reason"
+}
+JSON
+fi
+# v2.5.5: JUDGE_PROMPT must be FIRST-PERSON imperative addressed to the
+# subagent itself. Earlier versions said "dispatch a haiku judge subagent..."
+# which caused the receiving subagent to misread its own role as dispatcher,
+# spawn a sub-sub-agent, then sit waiting for the file it was supposed to
+# write itself (observed killed task a22d3142a4d0e0f7e). New phrasing: "YOU
+# are the judge. DO NOT spawn another subagent. YOU run the bash, YOU answer,
+# YOU Write the file, YOU exit."
+JUDGE_PROMPT="You are the stop-decision judge. **Do not spawn any subagent.** The placeholder file already exists at ${DECISION_FILE} with the correct schema — you only need to Edit two fields. Four steps:
 
-MSG="[stop_bg_aware] bg settled (no fresh activity ≥ ${STALE_MIN} min). Before stop, dispatch a haiku judge subagent: Agent(model=\"haiku\", run_in_background=true, subagent_type=\"general-purpose\", prompt=<see below>). After it writes stop_decision.json, re-attempt stop and this hook will honour the verdict.
+Step 1: Read the transcript by running this bash command:
+  python3 ${CONFIG_DIR}/scripts/extract_transcript.py ${transcript_path} --tool-result-lines 3 | tail -800
 
-Judge prompt: ${JUDGE_PROMPT}"
+Step 2: From what you read, answer these three questions for yourself:
+  (1) Is the task done? (Has the user's last request been satisfied?)
+  (2) Have all required records (ledger / action.md) been written?
+  (3) Did the session obey autonomy rules (no user questions, no work in the wrong state, no skipped transitions)?
+
+Step 3: All three yes => new stop value = 1. Any no => new stop value = 0.
+
+Step 4: Use the Edit tool to modify ${DECISION_FILE}:
+  - change \"stop\": -1 to \"stop\": 0 or \"stop\": 1
+  - replace the reason string with your one-sentence rationale (<= 200 chars)
+Do not rewrite the whole file, do not change the schema, do not use Write — only Edit those two fields. After editing, exit immediately."
+
+MSG="[stop_bg_aware] bg settled (no fresh activity ≥ ${STALE_MIN} min). Before stop, dispatch ONE haiku judge subagent and pass it the prompt below verbatim. The subagent itself does the judging — do not nest spawns. After the subagent writes stop_decision.json and exits, re-attempt stop and this hook will honour the verdict.
+
+Dispatch call (paste then send):
+  Agent(model=\"haiku\", run_in_background=true, subagent_type=\"general-purpose\", prompt=<the prompt below>)
+
+Prompt for that subagent (verbatim, do not edit):
+${JUDGE_PROMPT}"
 
 jq -n --arg r "$MSG" '{decision:"block", reason:$r}'
 exit 0
