@@ -25,22 +25,34 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 TPL_DIR="${REPO_ROOT}/content/templates"
 
+# v2.5.2 F6 fix: source _session_lib.sh for err_both (dual-channel error).
+# Self-contained fallback in case lib is missing (e.g. running from a partial
+# checkout) — keeps the script usable even if the hook layer isn't deployed.
+LIB="${REPO_ROOT}/hooks/_session_lib.sh"
+if [[ -f "$LIB" ]]; then
+  # shellcheck disable=SC1090
+  . "$LIB"
+fi
+if ! declare -F err_both >/dev/null 2>&1; then
+  err_both() { printf '%s\n' "$*" >&2; printf '%s\n' "$*"; }
+fi
+
 if [[ $# -lt 1 ]]; then
-  echo "usage: bash ${BASH_SOURCE[0]} <task_name>" >&2
-  echo "  example: bash ${BASH_SOURCE[0]} v4_audit" >&2
+  err_both "usage: bash ${BASH_SOURCE[0]} <task_name>"
+  err_both "  example: bash ${BASH_SOURCE[0]} v4_audit"
   exit 2
 fi
 
 TASK_NAME="$1"
 if ! [[ "$TASK_NAME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-  echo "[new_task] error: task name must be [a-zA-Z0-9_-]+, got '$TASK_NAME'" >&2
+  err_both "[new_task] error: task name must be [a-zA-Z0-9_-]+, got '$TASK_NAME'"
   exit 2
 fi
 
 WS="$PWD/workspace"
 TASK_DIR="${WS}/${TASK_NAME}"
 if [[ -d "$TASK_DIR" ]]; then
-  echo "[new_task] error: ${TASK_DIR} already exists — refusing to overwrite" >&2
+  err_both "[new_task] error: ${TASK_DIR} already exists — refusing to overwrite"
   exit 1
 fi
 
@@ -51,7 +63,7 @@ gsrc="${TPL_DIR}/goal.md"
 if [[ -f "$gsrc" ]]; then
   cp "$gsrc" "${TASK_DIR}/goal.md"
 else
-  echo "[new_task] warn: template ${gsrc} missing, creating empty goal.md" >&2
+  err_both "[new_task] warn: template ${gsrc} missing, creating empty goal.md"
   : > "${TASK_DIR}/goal.md"
 fi
 
@@ -64,7 +76,7 @@ for f in bitter_lessons.md successful_fixes.md attempts_ledger.md; do
     continue
   fi
   if [[ ! -f "$src" ]]; then
-    echo "[new_task] warn: template ${src} missing, skip" >&2
+    err_both "[new_task] warn: template ${src} missing, skip"
     continue
   fi
   cp "$src" "$dst"

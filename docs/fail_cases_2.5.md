@@ -278,6 +278,15 @@
 - 出处：L217 inline。
 - 改：`content/rules/states/reflect.md:84-86` subagent prompt template 删 `Step 4: Sleep in a loop` + `Step 5: 每次 SendMessage 唤醒` 两步，换成 `Step 4: 写完 reply 立即 exit`。`content/rules/subagent_rules.md` F 项同步改。需要多轮辩论时 main 重新 `Agent(...)` 派新 subagent，把上一轮 reflection 文件作为上下文传给它。没 dangling 后台进程，main 不用 KillBash。
 
+**9) F6 `transition.sh` 把状态名当事件名调用 + stderr-only 错误信息被 `2>/dev/null` 吞掉（v2.5.2 修）**
+- 出处：远端 awesome-gpu-name session `e25384d9-...` transcript 直接复现。
+- 症状：AI 写 `bash transition.sh PREPARE --reason="..." 2>/dev/null; echo "OK"`。`transition.sh` 不认 `PREPARE` 这个名字（合法事件名是 `PREPARE_DONE`），脚本 `exit 2` 并把错误写到 **stderr**——被 `2>/dev/null` 吞掉。`echo "OK"` 然后打出假成功信号。state.md 实际没动。AI 误以为已切到 PREPARE，继续往下做事，整个 session 状态机视角全程停在 BOOT，stage_history 是 `[]`，transitions.log 不存在。
+- 这与 F4 是不同的 bug：F4 是写错了 session 的 state.md；F6 是根本没写 state.md（因为 event 解析就失败）。
+- 改（用户钦定方案 1+2，方案 3 PostToolUse exit-code 监控被否决——不通用，属于补丁）：
+  - `hooks/transition.sh`：所有错误路径 `echo ... >&2` 改成新加的 `err_both()` helper，同时往 stdout 和 stderr 写。这样任何 `2>/dev/null` 都吞不掉错误。
+  - `hooks/transition.sh`：unknown-event 分支加 `event_for_state()` 映射——把每个 state 名映射到"离开这个 state 的合法事件名"，作为 "did you mean ..." hint：`BOOT → BOOT_DONE`, `PREPARE → PREPARE_DONE`, `REFLECT → REFLECT_DONE`, `EXECUTE_LOOP → EXECUTE_EXIT`, `RECORDING → RECORD_DONE`, `END → (terminal, use RESET_TO_BOOT)`。这是 FSM 拓扑层面的事实，**不是补丁**——加新 state 时这张表自然扩展，没硬编码具体调用方。
+- 验：跑 5 个 case 全过（state name as event / unknown event / EXECUTE_LOOP / 空 event / `2>/dev/null; echo OK` 真实模式）——AI 即使用 defensive 重定向也能从 stdout 看到 hint。
+
 ### 7.2 我（main）理解错的 / 用户否决的——不用修
 
 **1) Section 3 cache-eviction "注入太多挤掉真正重要的"（用户 L239 否决）**

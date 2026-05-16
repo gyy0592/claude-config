@@ -1,4 +1,13 @@
 # _session_lib.sh — shared helpers for Barry's workflow session files.
+#
+# v2.5.2: err_both() — write a message to BOTH stderr and stdout. Use for any
+# error or warning that an AI caller might suppress via `2>/dev/null` (which
+# is a common defensive bash idiom). Anything sent only to stderr is at risk
+# of being silently swallowed; doubling the channel guarantees the AI sees it.
+err_both() {
+    printf '%s\n' "$*" >&2
+    printf '%s\n' "$*"
+}
 # Sourced by session_boot.sh / transition.sh / prepare_helper.sh /
 # execute_loop_audit.sh / pretooluse_short_nudge.sh.
 #

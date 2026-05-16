@@ -14,14 +14,15 @@ set -euo pipefail
 _YAML="__CLAUDE_CONFIG_DIR__/content/rules/workflow_config.yaml"
 FAIL_BUDGET="$(read_config "$_YAML" execute_loop.failure_budget 2>/dev/null || true)"
 if [ -z "$FAIL_BUDGET" ]; then
-    echo "[hook] config read failed for execute_loop.failure_budget, using default=3" >&2
+    # v2.5.2 F6: dual-channel so AI's `2>/dev/null` can't fully swallow this.
+    err_both "[hook] config read failed for execute_loop.failure_budget, using default=3"
     FAIL_BUDGET=3
 fi
 
 CWD="${PWD}"
 ACTION_FILE="$(latest_action_file "$CWD" || true)"
 if [ -z "$ACTION_FILE" ]; then
-    echo "no action.md under $(barry_root "$CWD")" >&2
+    err_both "no action.md under $(barry_root "$CWD")"
     exit 1
 fi
 

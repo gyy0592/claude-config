@@ -30,8 +30,30 @@ for arg in "$@"; do
     esac
 done
 
+# v2.5.2 (F6 fix): err_both() now lives in _session_lib.sh (already sourced above)
+# so every AI-invoked script can use it. See lib for rationale.
+
+# v2.5.2 (F6 fix — did-you-mean for state-name vs event-name confusion).
+# The valid events end in _DONE / _EXIT / _RECORD / etc; AI frequently passes
+# the bare state name (e.g. "PREPARE" instead of "PREPARE_DONE"). This maps
+# every state name → the canonical event that leaves that state, so the error
+# message names the exact event the caller almost certainly intended.
+event_for_state() {
+    case "$1" in
+        BOOT)         echo "BOOT_DONE" ;;
+        PREPARE)      echo "PREPARE_DONE" ;;
+        REFLECT)      echo "REFLECT_DONE" ;;
+        EXECUTE_LOOP|EXECUTE) echo "EXECUTE_EXIT" ;;
+        RECORDING)    echo "RECORD_DONE   (or BACK_TO_LOOP / NEED_RECORD depending on intent)" ;;
+        END)          echo "(none — END is terminal; use RESET_TO_BOOT for a new task)" ;;
+        *)            echo "" ;;
+    esac
+}
+
+VALID_EVENTS="BOOT_DONE|PREPARE_DONE|REFLECT_DONE|EXECUTE_EXIT|NEED_RECORD|RECORD_DONE|BACK_TO_LOOP|RESET_TO_BOOT"
+
 if [ -z "$EVENT" ]; then
-    echo "usage: transition.sh <BOOT_DONE|PREPARE_DONE|REFLECT_DONE|EXECUTE_EXIT|NEED_RECORD|RECORD_DONE|BACK_TO_LOOP|RESET_TO_BOOT> [--sid=<session-id>] [--reason=...]" >&2
+    err_both "usage: transition.sh <${VALID_EVENTS}> [--sid=<session-id>] [--reason=...]"
     exit 2
 fi
 
@@ -73,7 +95,7 @@ case "$EVENT" in
     NEED_RECORD)
         # Mid-task detour into RECORDING from REFLECT or EXECUTE_LOOP.
         if [ "$OLD_STATUS" != "REFLECT" ] && [ "$OLD_STATUS" != "EXECUTE_LOOP" ]; then
-            echo "transition.sh: NEED_RECORD only valid from REFLECT or EXECUTE_LOOP (current: $OLD_STATUS)" >&2
+            err_both "transition.sh: NEED_RECORD only valid from REFLECT or EXECUTE_LOOP (current: $OLD_STATUS)"
             exit 2
         fi
         NEW=RECORDING
@@ -81,14 +103,14 @@ case "$EVENT" in
         ;;
     RECORD_DONE)
         if [ "$OLD_STATUS" != "RECORDING" ]; then
-            echo "transition.sh: RECORD_DONE only valid from RECORDING (current: $OLD_STATUS)" >&2
+            err_both "transition.sh: RECORD_DONE only valid from RECORDING (current: $OLD_STATUS)"
             exit 2
         fi
         NEW=END
         ;;
     BACK_TO_LOOP)
         if [ "$OLD_STATUS" != "RECORDING" ]; then
-            echo "transition.sh: BACK_TO_LOOP only valid from RECORDING (current: $OLD_STATUS)" >&2
+            err_both "transition.sh: BACK_TO_LOOP only valid from RECORDING (current: $OLD_STATUS)"
             exit 2
         fi
         if [ "$OLD_PREV_STATUS" = "null" ] || [ -z "$OLD_PREV_STATUS" ]; then
@@ -99,7 +121,18 @@ case "$EVENT" in
         fi
         ;;
     RESET_TO_BOOT) NEW=BOOT ;;
-    *) echo "transition.sh: unknown event $EVENT" >&2; exit 2 ;;
+    *)
+        # v2.5.2 (F6 fix): output to BOTH stdout and stderr (survives 2>/dev/null)
+        # and include a did-you-mean hint if the caller passed a state name instead
+        # of an event name (the dominant failure mode observed in transcripts).
+        SUGGEST="$(event_for_state "$EVENT")"
+        if [ -n "$SUGGEST" ]; then
+            err_both "transition.sh: '$EVENT' is a STATE name, not an EVENT name. Did you mean: $SUGGEST"
+        else
+            err_both "transition.sh: unknown event '$EVENT'. Valid events: $VALID_EVENTS"
+        fi
+        exit 2
+        ;;
 esac
 
 # Derive session dir and SID from state file path (layout: .barry_workflow/<sid>/state.md)
