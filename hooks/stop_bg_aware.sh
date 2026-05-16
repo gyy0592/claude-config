@@ -160,7 +160,19 @@ if [ -f "$DECISION_FILE" ]; then
             exit 0
             ;;
         *)
-            # -1 or invalid — placeholder still pending. Re-emit instructions.
+            # -1 or invalid — check wait_seconds cooldown before requiring self-reflect.
+            WAIT_SEC=$(jq -r '.wait_seconds // 0' "$DECISION_FILE" 2>/dev/null)
+            SETTLED_AT=$(jq -r '.settled_at // 0' "$DECISION_FILE" 2>/dev/null)
+            NOW=$(date +%s)
+            MAX_WAIT=3600
+            # Clamp wait_seconds to max 3600s to prevent indefinite escape.
+            if [ "${WAIT_SEC:-0}" -gt "$MAX_WAIT" ] 2>/dev/null; then WAIT_SEC="$MAX_WAIT"; fi
+            ELAPSED=$(( NOW - ${SETTLED_AT:-0} ))
+            if [ "${WAIT_SEC:-0}" -gt 0 ] && [ "$ELAPSED" -lt "${WAIT_SEC:-0}" ] 2>/dev/null; then
+                # Still in cooldown window — allow stop (Claude is legitimately waiting).
+                exit 0
+            fi
+            # Cooldown expired or wait_seconds=0 — fall through to self-reflect gate.
             ;;
     esac
 fi
@@ -168,19 +180,20 @@ fi
 # No usable decision yet → create placeholder + block + ask main to self-reflect.
 mkdir -p "$SDIR" 2>/dev/null || true
 if [ ! -f "$DECISION_FILE" ]; then
-    cat > "$DECISION_FILE" <<'JSON'
+    INIT_TS=$(date +%s)
+    cat > "$DECISION_FILE" << JSON
 {
   "stop": -1,
+  "wait_seconds": 0,
+  "settled_at": ${INIT_TS},
   "reflect_rounds": 0,
   "all_constraints_met": "no",
   "all_goals_met": "no",
-  "reason": "AWAITING_SELF_REFLECT — main must fill all fields before retrying stop"
+  "reason": "AWAITING — set wait_seconds if you need to wait, then fill all fields after reflecting"
 }
 JSON
 fi
 
-GOAL_PATH="${cwd}/workspace/$(basename "${cwd}")/goal.md"
-# Try common task dir patterns
 GOAL_HINT=""
 if [ -d "${cwd}/workspace" ]; then
     FOUND_GOAL=$(find "${cwd}/workspace" -name "goal.md" -maxdepth 3 2>/dev/null | head -1)
@@ -188,9 +201,13 @@ if [ -d "${cwd}/workspace" ]; then
 fi
 [ -z "$GOAL_HINT" ] && GOAL_HINT="No goal.md found — reconstruct goal from session context."
 
-MSG="[stop_gate] bg settled. Before stopping, YOU must self-reflect and fill ${DECISION_FILE}.
+MSG="[stop_gate] bg settled. Before stopping, YOU must either wait or self-reflect.
 
-MANDATORY steps (do all, then retry stop):
+OPTION A — If you need to wait (bg job still running, not frozen):
+  Edit ${DECISION_FILE}: set \"wait_seconds\" to your expected wait time (e.g. 600 = 10 min, max 3600).
+  Do NOT fill the 5 goal-assessment fields yet. Retry stop — hook will allow stop during the wait window.
+
+OPTION B — If work is done and you are ready to assess:
 1. ${GOAL_HINT}
 2. Run 5 rebuttal rounds (spawn Agent(run_in_background=true) once per round, read reply, repeat).
    Each round: ask 'did we fully achieve the goal? any constraint violated?'
