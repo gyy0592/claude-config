@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# stop_state_audit.sh — v2.6 hard FSM completion check.
+# stop_state_audit.sh — v2.7.8 hard FSM completion check.
 #
-# ALWAYS ON. No yaml toggle. The point is to make the FSM spine non-optional:
+# Kill-switch: set state_audit.enabled=true in workflow_config.yaml to activate.
+# Default false → hook is a no-op (silent allow). Intended for testing only.
+# Original design intent (kept as comment): ALWAYS ON. No yaml toggle. The point is to make the FSM spine non-optional:
 # every session must pass through BOOT_DONE, PREPARE_DONE, REFLECT_DONE,
 # EXECUTE_EXIT, RECORD_DONE at least once, and end with current_status=END.
 # Mid-task NEED_RECORD/BACK_TO_LOOP detours are allowed (don't break the
@@ -24,6 +26,16 @@ LIB="$(dirname "$0")/_session_lib.sh"
 
 INPUT="$(cat 2>/dev/null || true)"
 [ -z "$INPUT" ] && exit 0
+
+# v2.7.8: yaml kill-switch — default false (no-op). Must set state_audit.enabled=true to activate.
+CONFIG_DIR="${CLAUDE_CONFIG_DIR:-__CLAUDE_CONFIG_DIR__}"
+YAML="$CONFIG_DIR/content/rules/workflow_config.yaml"
+ENABLED="false"
+if [ -f "$YAML" ] && declare -F read_config >/dev/null 2>&1; then
+    v="$(read_config "$YAML" "state_audit.enabled" 2>/dev/null || true)"
+    [ -n "${v:-}" ] && ENABLED="$v"
+fi
+[ "$ENABLED" != "true" ] && exit 0
 
 cwd=$(echo "$INPUT" | jq -r '.cwd // ""' 2>/dev/null)
 transcript_path=$(echo "$INPUT" | jq -r '.transcript_path // ""' 2>/dev/null)

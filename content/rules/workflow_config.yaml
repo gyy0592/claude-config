@@ -35,6 +35,13 @@ stop_gate:
   enabled: true
   bg_stale_minutes: 1
 
+# v2.7.8: FSM spine audit (hooks/stop_state_audit.sh).
+# enabled: false → hook is a no-op (silent allow). Set true to enforce hard FSM
+# completion gate (requires BOOT_DONE→PREPARE_DONE→REFLECT_DONE→EXECUTE_EXIT→RECORD_DONE
+# in stage_history before stop is allowed). Default false so normal sessions aren't blocked.
+state_audit:
+  enabled: false
+
 cache_refresh:
   # v2.4 F3 / v2.5: hooks/cache_refresh_check.sh — PostToolUse now (v2.5 moved from
   # UserPromptSubmit so long autonomous tasks still trigger). Emits a banner

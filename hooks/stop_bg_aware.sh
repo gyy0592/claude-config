@@ -152,8 +152,10 @@ if [ -f "$DECISION_FILE" ]; then
             exit 0
             ;;
         0)
-            rm -f "$DECISION_FILE"
-            MSG="[stop_gate] Self-reflect verdict: NOT done — reason: ${REASON}. Continue working."
+            # Do NOT delete the file — keep stop=0 so next stop attempt blocks immediately
+            # without re-triggering a new self-reflect cycle. Claude must Edit this file
+            # with stop=1 + reflect_rounds=5 when work is genuinely complete, then retry stop.
+            MSG="[stop_gate] Self-reflect verdict: NOT done — reason: ${REASON}. Complete the remaining work, then Edit ${DECISION_FILE} with stop=1/reflect_rounds=5/all fields, and retry stop."
             jq -n --arg r "$MSG" '{decision:"block", reason:$r}'
             exit 0
             ;;
