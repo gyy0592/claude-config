@@ -22,7 +22,16 @@ STATUS="$(grep -m1 -E '^current_status:' "$STATE_FILE" 2>/dev/null | awk '{print
 [ -z "$STATUS" ] && exit 0
 
 warn() {
-    printf '[state_enforce] %s state — %s\n' "$STATUS" "$1" >&2
+    # Emit to BOTH stdout AND stderr.
+    # - Claude PostToolUse: stderr → model context (informational warning).
+    # - Codex PostToolUse:  stdout → additionalContext (informational warning).
+    # Either host picks up the same message; the other channel is ignored harmlessly.
+    # v2.5.3: append a soft reflexive question — does NOT block, just nudges
+    # the model to self-check whether it should be in this state at all.
+    # No suggestion of the "right" answer; AI decides.
+    msg="[state_enforce] $STATUS state — $1 — Are you sure you're in the right state for this? If not, consider 'bash hooks/transition.sh <event>' before retrying."
+    printf '%s\n' "$msg"
+    printf '%s\n' "$msg" >&2
 }
 
 # Bash command is a "mutator" if it touches files.
@@ -73,6 +82,36 @@ case "$STATUS" in
                 warn "$TOOL not allowed in BOOT; only Read/Glob/Grep + transition.sh/ls/cat."
                 ;;
         esac
+        ;;
+    RECORDING)
+        # Ledger writes / action.md append allowed; arbitrary code/source mutations discouraged.
+        case "$TOOL" in
+            Edit|Write|NotebookEdit)
+                case "$(printf '%s' "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null)" in
+                    */workspace/*|*/.barry_workflow/*|*/action_*.md) ;;
+                    *) warn "$TOOL on non-ledger file in RECORDING — only workspace/*.md or .barry_workflow/action*.md expected." ;;
+                esac
+                ;;
+        esac
+        ;;
+    END)
+        # Read-only summary state.
+        case "$TOOL" in
+            Read|Glob|Grep) ;;
+            Bash)
+                case "$CMD" in
+                    *transition.sh*|ls*|cat*|grep*|pwd*) ;;
+                    *) warn "Bash '$(printf '%s' "$CMD" | head -c 60)' — END allows only Read/Bash(ls|cat|grep)." ;;
+                esac
+                ;;
+            *)
+                warn "$TOOL not allowed in END; session is closing (read-only summary)."
+                ;;
+        esac
+        ;;
+    EXECUTE_LOOP)
+        # All tools allowed; no warnings here (intentional).
+        :
         ;;
 esac
 

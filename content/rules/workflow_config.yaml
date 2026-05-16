@@ -24,12 +24,14 @@ cache_refresh:
   # listing the full ledger self-check.
   threshold_input_tokens: 200000
 
-# v2.5: state-aware reinforcement — every ~10k input_tokens, PostToolUse hook
-# re-injects a ≤400-char summary of the current router_<STATE>.md so long
-# autonomous loops don't drift from the state's allowed/forbidden + autonomy.
+# v2.5 / v2.5.3: state-aware reinforcement — every ~10k input_tokens, PostToolUse
+# hook re-injects the FULL router_<STATE>.md so long autonomous loops don't drift
+# from the state's allowed/forbidden + autonomy. v2.5.3 removed the 400-char cap
+# because it was cutting off the always-on footer (autonomy etc.) — the exact
+# part AI most needed. max_chars is now informational only (hook ignores it).
 state_reinforce:
   threshold_input_tokens: 10000
-  max_chars: 400
+  max_chars: 0   # 0 = no cap; hook injects full router file
 
 # v2.5: REFLECT-state rebuttal nag — PreToolUse hook fires every tool call
 # while current_status==REFLECT AND no Agent / SendMessage call has been

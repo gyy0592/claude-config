@@ -106,20 +106,19 @@ STATE_CHANGED=0
 
 # Fire if token delta crossed threshold OR state changed since last fire.
 if [ "$DELTA" -ge "$THRESHOLD" ] || [ "$STATE_CHANGED" = "1" ]; then
-    # Take the first MAX_CHARS chars of router_<STATE>.md (head summary +
-    # always-on block usually fits). Strip blank lines for density.
-    SUMMARY="$(python3 - "$ROUTER_FILE" "$MAX_CHARS" <<'PY' 2>/dev/null
-import sys, pathlib
-p = pathlib.Path(sys.argv[1]); cap = int(sys.argv[2])
-text = p.read_text(errors="ignore")
-# Compact: collapse 2+ blank lines, keep \n.
-import re
-text = re.sub(r'\n{2,}', '\n', text).strip()
-print(text[:cap])
+    # v2.5.3: no more MAX_CHARS truncation — re-inject the FULL router_<STATE>.md.
+    # 6 routers are 1.2–2.4 KB; even the longest is < 600 tokens, smaller than
+    # cache_refresh's banner. Truncation was discarding the always-on footer
+    # (autonomy / dispatch / recording / lessons / facts_first) plus all
+    # transition exit commands — exactly the parts AI most needed to remember.
+    SUMMARY="$(python3 - "$ROUTER_FILE" <<'PY' 2>/dev/null
+import sys, pathlib, re
+text = pathlib.Path(sys.argv[1]).read_text(errors="ignore")
+print(re.sub(r'\n{2,}', '\n', text).strip())
 PY
 )"
     cat >&2 <<BANNER
-[STATE_REINFORCE · state=${STATUS} · +${DELTA}/${THRESHOLD} tokens]
+[STATE_REINFORCE · state=${STATUS} · +${DELTA}/${THRESHOLD} tokens · full router]
 ${SUMMARY}
 BANNER
     python3 - "$SF_REINF" "$CURRENT_TOTAL" "$STATUS" <<'PY' 2>/dev/null || true

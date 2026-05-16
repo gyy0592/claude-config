@@ -243,7 +243,7 @@ fi
 
 mkdir -p "$HOOKS_DST"
 
-for f in _session_lib.sh inject_router.sh session_boot.sh transition.sh prepare_helper.sh execute_loop_audit.sh pretooluse_short_nudge.sh state_enforce.sh cache_refresh_check.sh posttool_state_reinforce.sh pretool_reflect_nag.sh pretool_ledger_guard.sh; do
+for f in _session_lib.sh inject_router.sh session_boot.sh transition.sh prepare_helper.sh execute_loop_audit.sh pretooluse_short_nudge.sh state_enforce.sh cache_refresh_check.sh posttool_state_reinforce.sh pretool_reflect_nag.sh pretool_ledger_guard.sh state_keepalive.sh; do
     src="${HOOKS_SRC}/${f}"
     dst="${HOOKS_DST}/${f}"
     if [ ! -f "$src" ]; then
@@ -433,6 +433,15 @@ ensure_hook("PreToolUse", None, f"bash {REFLECT_NAG_SCRIPT}")
 # matching recording.guarded_paths (workflow_config.yaml) when state ≠ RECORDING.
 LEDGER_GUARD_SCRIPT = os.path.expanduser("~/.claude/hooks/pretool_ledger_guard.sh")
 ensure_hook("PreToolUse", None, f"bash {LEDGER_GUARD_SCRIPT}")
+
+# v2.5.3: state keep-alive. Fires on EVERY tool call (pre + post) and emits
+# one short reminder "[STATE=<X>] right state for this? if done, transition.sh <event>".
+# Does not enforce — just keeps the FSM concept in rolling context so the AI
+# doesn't forget that state transitions exist. Mounted on both PreToolUse AND
+# PostToolUse to maximise visibility.
+STATE_KEEPALIVE_SCRIPT = os.path.expanduser("~/.claude/hooks/state_keepalive.sh")
+ensure_hook("PreToolUse", None, f"bash {STATE_KEEPALIVE_SCRIPT}")
+ensure_hook("PostToolUse", None, f"bash {STATE_KEEPALIVE_SCRIPT}")
 
 # v2.1 P16: PostToolUse state-enforce (informational stderr warning when
 # tool conflicts with current FSM state).
