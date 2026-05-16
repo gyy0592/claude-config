@@ -75,19 +75,19 @@ You are ALWAYS in exactly one state. Each state has ONE job. When that job is do
 
 | state | sole job | exit event → next |
 |---|---|---|
-| **BOOT** | read CLAUDE.md + goal.md + ledgers + cache_hit_map; classify task complexity; **READ-ONLY** (only write allowed = append `[BOOT_NOTE complexity=<class>]` to action.md). | `transition.sh BOOT_DONE` → PREPARE |
-| **PREPARE** | write the plan into action.md (inputs, expected outputs, success criteria, applicable patch); WebSearch allowed; no Edit on project source, no Agent for real work. | `transition.sh PREPARE_DONE` → REFLECT |
-| **REFLECT** | spawn ONE rebuttal subagent via `Agent(run_in_background=true)`; read its `## reviewer reply`; write `[CONSENSUS_REACHED]`; no other action this state. | `transition.sh REFLECT_DONE` → EXECUTE_LOOP |
-| **EXECUTE_LOOP** | do the actual work, one `[PLAN] → tool → [OBSERVE]` per iteration. Ledger writes are NOT done here — `transition.sh NEED_RECORD` to RECORDING, write, `BACK_TO_LOOP` back. | `transition.sh EXECUTE_EXIT --reason=<completion\|bug\|anomaly\|stuck>` → RECORDING |
-| **RECORDING** | answer the 4 self-check questions (`bitter_lessons` / `successful_fixes` / `rule_violations` / global lessons); append one ATT-N to `attempts_ledger.md`; no project source mutation. | `transition.sh RECORD_DONE` → END (session close) **OR** `BACK_TO_LOOP` → resume prior state |
+| **BOOT** | read CLAUDE.md + goal.md + ledgers + cache_hit_map; classify task complexity; **READ-ONLY** (only write allowed = append `[BOOT_NOTE complexity=<class>]` to action.md). | `bash ~/.claude/hooks/transition.sh BOOT_DONE` → PREPARE |
+| **PREPARE** | write the plan into action.md (inputs, expected outputs, success criteria, applicable patch); WebSearch allowed; no Edit on project source, no Agent for real work. | `bash ~/.claude/hooks/transition.sh PREPARE_DONE` → REFLECT |
+| **REFLECT** | spawn ONE rebuttal subagent via `Agent(run_in_background=true)`; read its `## reviewer reply`; write `[CONSENSUS_REACHED]`; no other action this state. | `bash ~/.claude/hooks/transition.sh REFLECT_DONE` → EXECUTE_LOOP |
+| **EXECUTE_LOOP** | do the actual work, one `[PLAN] → tool → [OBSERVE]` per iteration. Ledger writes are NOT done here — `bash ~/.claude/hooks/transition.sh NEED_RECORD` to RECORDING, write, `BACK_TO_LOOP` back. | `bash ~/.claude/hooks/transition.sh EXECUTE_EXIT --reason=<completion\|bug\|anomaly\|stuck>` → RECORDING |
+| **RECORDING** | answer the 4 self-check questions (`bitter_lessons` / `successful_fixes` / `rule_violations` / global lessons); append one ATT-N to `attempts_ledger.md`; no project source mutation. | `bash ~/.claude/hooks/transition.sh RECORD_DONE` → END (session close) **OR** `BACK_TO_LOOP` → resume prior state |
 | **END** | one final summary to user + `[END_DONE @ ts]` marker to action.md. No new ledgers, no new work. Re-entry is a new user prompt (new sid) or `RESET_TO_BOOT` (same sid). | (terminal) |
 
 **Three triggers that must always cause a transition** — not optional:
-1. About to write a project-level ledger file (`workspace/{bitter_lessons,successful_fixes,rule_violations,attempts_ledger}.md` or `content/templates/global_rules/*.md`)? You are not in RECORDING → run `transition.sh NEED_RECORD` first.
-2. User gave you an unrelated new task in the middle of a session? Run `transition.sh RESET_TO_BOOT --reason=task-switch`.
-3. EXECUTE_LOOP deliverable finished? Run `transition.sh EXECUTE_EXIT --reason=completion`. Do not give the final user summary from EXECUTE_LOOP — that's END's job.
+1. About to write a project-level ledger file (`workspace/{bitter_lessons,successful_fixes,rule_violations,attempts_ledger}.md` or `content/templates/global_rules/*.md`)? You are not in RECORDING → run `bash ~/.claude/hooks/transition.sh NEED_RECORD` first.
+2. User gave you an unrelated new task in the middle of a session? Run `bash ~/.claude/hooks/transition.sh RESET_TO_BOOT --reason=task-switch`.
+3. EXECUTE_LOOP deliverable finished? Run `bash ~/.claude/hooks/transition.sh EXECUTE_EXIT --reason=completion`. Do not give the final user summary from EXECUTE_LOOP — that's END's job.
 
-Event names are exact strings (`BOOT_DONE`, `PREPARE_DONE`, `REFLECT_DONE`, `EXECUTE_EXIT`, `NEED_RECORD`, `RECORD_DONE`, `BACK_TO_LOOP`, `RESET_TO_BOOT`). Passing a state name as the event (e.g. `transition.sh PREPARE`) is wrong — `transition.sh` will print a "did you mean PREPARE_DONE?" hint on both stdout and stderr.
+Event names are exact strings (`BOOT_DONE`, `PREPARE_DONE`, `REFLECT_DONE`, `EXECUTE_EXIT`, `NEED_RECORD`, `RECORD_DONE`, `BACK_TO_LOOP`, `RESET_TO_BOOT`). Passing a state name as the event (e.g. `bash ~/.claude/hooks/transition.sh PREPARE`) is wrong — `transition.sh` will print a "did you mean PREPARE_DONE?" hint on both stdout and stderr.
 
 ## Recording
 
