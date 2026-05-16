@@ -12,7 +12,7 @@ Recording targets:
 | `$PWD/workspace/bitter_lessons.md` | project (shared) | Project-technical pitfalls (config combos, lib incompat, hardware quirks); `task:` + `tags:`. |
 | `$PWD/workspace/successful_fixes.md` | project (shared) | FIX-N confirmed wins; `task:` + `tags:`. |
 | `$PWD/workspace/rule_violations.md` | project (shared) | Per-project AI behavioral mistakes (cache misjudgment, skipped record-before-op, etc.); `task:` + `tags:`. |
-| `$PWD/workspace/<task>/goal.md` | per-task | User-controlled. main reads only. |
+| `$PWD/workspace/<task>/goal.md` | per-task | AI fills when user explicitly asks; otherwise reads only. |
 
 The 4 ledgers are **shared across all tasks in this repo**. Add `task: <name>` to every new entry so future sessions can filter. `goal.md` is the only per-task file.
 

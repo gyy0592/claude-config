@@ -1,8 +1,7 @@
 # Current Goal
 
-<!-- This file is COMMANDER-CONTROLLED. -->
-<!-- AI reads this each turn but MUST NOT modify it. -->
-<!-- AI follows this goal verbatim. If unclear, ASK Commander — do not invent. -->
-<!-- Commander edits this file to set/change the goal. -->
+<!-- This file is written by the user OR by AI when the user explicitly asks. -->
+<!-- AI reads this each BOOT turn. AI may fill/edit it ONLY when explicitly asked by the user this session. -->
+<!-- AI must NOT modify this file mid-task without being asked. -->
 
-(no goal set yet — Commander to fill)
+(no goal set yet)

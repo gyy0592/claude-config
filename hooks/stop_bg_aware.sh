@@ -138,11 +138,14 @@ DECISION_FILE="${SDIR}/stop_decision.json"
 
 if [ -f "$DECISION_FILE" ]; then
     STOP_VAL=$(jq -r '.stop // -1' "$DECISION_FILE" 2>/dev/null)
+    REFLECT_ROUNDS=$(jq -r '.reflect_rounds // 0' "$DECISION_FILE" 2>/dev/null)
     REASON=$(jq -r '.reason // ""' "$DECISION_FILE" 2>/dev/null)
 
-    # v2.5.5: tri-state. -1 = haiku hasn't filled it in yet (placeholder this
-    # hook created on the previous fire). 0/1 = haiku's verdict. We only
-    # consume on 0/1, not on -1, so the prompt re-fires until haiku acts.
+    # Require reflect_rounds >= 5 for a valid stop=1 verdict.
+    if [ "$STOP_VAL" = "1" ] && [ "${REFLECT_ROUNDS:-0}" -lt 5 ] 2>/dev/null; then
+        STOP_VAL="-1"
+    fi
+
     case "$STOP_VAL" in
         1)
             rm -f "$DECISION_FILE"
@@ -150,51 +153,52 @@ if [ -f "$DECISION_FILE" ]; then
             ;;
         0)
             rm -f "$DECISION_FILE"
-            MSG="[stop_bg_aware] Haiku judge says NOT yet done — reason: ${REASON}. Continue working; another stop attempt will re-run the judge."
+            MSG="[stop_gate] Self-reflect verdict: NOT done — reason: ${REASON}. Continue working."
             jq -n --arg r "$MSG" '{decision:"block", reason:$r}'
             exit 0
             ;;
         *)
-            # -1 (or any other unexpected value) — placeholder still there,
-            # haiku hasn't edited it. Re-emit the prompt; do NOT delete.
+            # -1 or invalid — placeholder still pending. Re-emit instructions.
             ;;
     esac
 fi
 
-# No usable decision yet → ensure placeholder exists with schema haiku can Edit,
-# then block + ask main to dispatch a haiku judge subagent.
-# v2.5.5: hook now creates the placeholder so haiku only needs to Edit two
-# fields (stop, reason), not Write a full new JSON. Reduces error surface.
+# No usable decision yet → create placeholder + block + ask main to self-reflect.
 mkdir -p "$SDIR" 2>/dev/null || true
 if [ ! -f "$DECISION_FILE" ]; then
     cat > "$DECISION_FILE" <<'JSON'
 {
   "stop": -1,
-  "reason": "AWAITING_HAIKU_JUDGE — replace -1 with 0 or 1, replace this string with one-sentence reason"
+  "reflect_rounds": 0,
+  "all_constraints_met": "no",
+  "all_goals_met": "no",
+  "reason": "AWAITING_SELF_REFLECT — main must fill all fields before retrying stop"
 }
 JSON
 fi
-# v2.5.5: JUDGE_PROMPT must be FIRST-PERSON imperative addressed to the
-# subagent itself. Earlier versions said "dispatch a haiku judge subagent..."
-# which caused the receiving subagent to misread its own role as dispatcher,
-# spawn a sub-sub-agent, then sit waiting for the file it was supposed to
-# write itself (observed killed task a22d3142a4d0e0f7e). New phrasing: "YOU
-# are the judge. DO NOT spawn another subagent. YOU run the bash, YOU answer,
-# YOU Write the file, YOU exit."
-JUDGE_PROMPT="MANDATORY: your VERY FIRST tool call MUST be Edit on ${DECISION_FILE}. Do NOT spawn subagents. Do NOT just write your verdict in chat — the gate ONLY reads the file, chat is ignored.
 
-Workflow (do all 3, in order, then exit):
-1. Bash: python3 ${CONFIG_DIR}/scripts/extract_transcript.py ${transcript_path} --tool-result-lines 3 | tail -600
-2. Decide: stop=1 if (user's last request done) AND (FSM walked: BOOT→PREPARE→REFLECT→EXECUTE_LOOP→RECORDING→END events present) AND (no autonomy violation). Otherwise stop=0.
-3. Two Edit calls on ${DECISION_FILE}:
-   (a) old_string=\`\"stop\": -1\`  new_string=\`\"stop\": 1\`  (or 0)
-   (b) old_string=\`AWAITING_HAIKU_JUDGE — replace -1 with 0 or 1, replace this string with one-sentence reason\`  new_string=\`<your one-sentence reason, ≤180 chars>\`
+GOAL_PATH="${cwd}/workspace/$(basename "${cwd}")/goal.md"
+# Try common task dir patterns
+GOAL_HINT=""
+if [ -d "${cwd}/workspace" ]; then
+    FOUND_GOAL=$(find "${cwd}/workspace" -name "goal.md" -maxdepth 3 2>/dev/null | head -1)
+    [ -n "$FOUND_GOAL" ] && GOAL_HINT="goal.md found at: ${FOUND_GOAL} — READ IT before reflecting."
+fi
+[ -z "$GOAL_HINT" ] && GOAL_HINT="No goal.md found — reconstruct goal from session context."
 
-If you skip step 3 the user is stuck in an infinite stop loop. Edit the file, then exit silently."
+MSG="[stop_gate] bg settled. Before stopping, YOU must self-reflect and fill ${DECISION_FILE}.
 
-MSG="[stop_bg] bg idle ≥${STALE_MIN}min. Dispatch judge (paste below as-is, then retry stop):
-
-Agent(model=\"haiku\", subagent_type=\"general-purpose\", run_in_background=true, prompt=\"\"\"${JUDGE_PROMPT}\"\"\")"
+MANDATORY steps (do all, then retry stop):
+1. ${GOAL_HINT}
+2. Run 5 rebuttal rounds (spawn Agent(run_in_background=true) once per round, read reply, repeat).
+   Each round: ask 'did we fully achieve the goal? any constraint violated?'
+3. After round 5 consensus, Edit ${DECISION_FILE} with ALL fields:
+   (a) \"stop\": 1 (all goals met + no violations) OR 0 (incomplete)
+   (b) \"reflect_rounds\": 5  (must be exactly 5 — hook rejects < 5)
+   (c) \"all_constraints_met\": \"yes\" or \"no\"
+   (d) \"all_goals_met\": \"yes\" or \"no\"
+   (e) \"reason\": one-sentence summary
+4. Retry stop. Hook will consume the file and allow if stop=1 and reflect_rounds=5."
 
 jq -n --arg r "$MSG" '{decision:"block", reason:$r}'
 exit 0

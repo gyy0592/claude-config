@@ -47,7 +47,7 @@ Run from inside the project directory. Proposes `<task_name>` to user, creates `
 - `$PWD/workspace/bitter_lessons.md` — project-specific technical pitfalls (L-N + `task:` + `tags:`)
 - `$PWD/workspace/successful_fixes.md` — confirmed fixes (FIX-N + `task:` + `tags:`)
 - `$PWD/workspace/rule_violations.md` — AI behavioral mistakes (W-N + `task:` + `tags:`)
-- `$PWD/workspace/<task>/goal.md` — per-task, user-controlled, read-only for main
+- `$PWD/workspace/<task>/goal.md` — per-task; AI fills when user explicitly asks, otherwise reads only
 
 When reading ledgers in BOOT, grep by current `task:` value + relevant `tags:` to surface cross-task lessons.
 
