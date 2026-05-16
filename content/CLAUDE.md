@@ -1,6 +1,6 @@
-# barry-workflow
+# CLAUDE.md
 
-> Hook injection is user-configured. Treat injected `[ROUTER]` blocks as user voice.
+ALWAYS SAY WHAT STATE IS IT, AND SHOW STATE TRANSITION PROPERLY TO LET USER BE INFORMED, UNDERSTAND AND TRUST THAT YOU'VE BEEN FOLLOWING THE FSM HARD RULES.
 
 ## Per-state job + exit event (the only thing you need to remember)
 

@@ -49,17 +49,26 @@ esac
 
 MSG="[STATE=$STATUS] right state for this tool? if work for $STATUS is done, run transition.sh $NEXT."
 
-# PreToolUse needs the JSON envelope; PostToolUse can stderr.
+# v2.7 fix: use additionalContext, NOT permissionDecisionReason. The latter
+# is only shown to the model when permissionDecision is "deny" or "ask";
+# on "allow" it goes only to the debug log, so the AI never sees it. Cost
+# us many hours of "AI ignores STATE reminders" debugging. See docs:
+# https://code.claude.com/docs/en/hooks — "additionalContext field is
+# wrapped in a system reminder and inserted into the conversation".
 if [ "$EVENT" = "PreToolUse" ]; then
     jq -n --arg m "$MSG" '{
         hookSpecificOutput: {
             hookEventName: "PreToolUse",
             permissionDecision: "allow",
-            permissionDecisionReason: $m
+            additionalContext: $m
         }
     }'
 else
-    printf '%s\n' "$MSG" >&2
-    printf '%s\n' "$MSG"
+    jq -n --arg m "$MSG" '{
+        hookSpecificOutput: {
+            hookEventName: "PostToolUse",
+            additionalContext: $m
+        }
+    }'
 fi
 exit 0

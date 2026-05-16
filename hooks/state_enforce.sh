@@ -22,16 +22,18 @@ STATUS="$(grep -m1 -E '^current_status:' "$STATE_FILE" 2>/dev/null | awk '{print
 [ -z "$STATUS" ] && exit 0
 
 warn() {
-    # Emit to BOTH stdout AND stderr.
-    # - Claude PostToolUse: stderr → model context (informational warning).
-    # - Codex PostToolUse:  stdout → additionalContext (informational warning).
-    # Either host picks up the same message; the other channel is ignored harmlessly.
-    # v2.5.3: append a soft reflexive question — does NOT block, just nudges
-    # the model to self-check whether it should be in this state at all.
-    # No suggestion of the "right" answer; AI decides.
-    msg="[state_enforce] $STATUS state — $1 — Are you sure you're in the right state for this? If not, consider 'bash hooks/transition.sh <event>' before retrying."
-    printf '%s\n' "$msg"
-    printf '%s\n' "$msg" >&2
+    # v2.7 fix: previous version assumed PostToolUse stderr was visible to the
+    # model — false for Claude Code (debug log only). Now uses JSON envelope's
+    # hookSpecificOutput.additionalContext (the only Pre/PostToolUse path that
+    # actually surfaces text into the model's context).
+    msg="[state_enforce] $STATUS state — $1 — Are you sure you're in the right state for this? If not, consider 'bash ~/.claude/hooks/transition.sh <event>' before retrying."
+    jq -n --arg m "$msg" '{
+        hookSpecificOutput: {
+            hookEventName: "PostToolUse",
+            additionalContext: $m
+        }
+    }'
+    exit 0
 }
 
 # Bash command is a "mutator" if it touches files.

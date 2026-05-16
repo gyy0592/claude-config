@@ -105,29 +105,36 @@ fi
 
 DELTA=$((CURRENT_TOTAL - LAST_TOTAL))
 if [ "$DELTA" -ge "$THRESHOLD" ]; then
-    cat >&2 <<BANNER
-[CACHE_REFRESH_BANNER · +${DELTA} tokens since last check, threshold=${THRESHOLD}]
-长会话累计 input_tokens 已超阈值。下一次工具调用前完成 3 项复核：
+    # v2.7 fix: PostToolUse stderr is debug-only — model never sees it.
+    # Use hookSpecificOutput.additionalContext to actually surface this
+    # banner. Previously these reminders never reached the AI.
+    BODY="[CACHE_REFRESH_BANNER · +${DELTA} tokens since last check, threshold=${THRESHOLD}]
+Long-session cumulative input_tokens exceeded the threshold. Before the next tool call complete 3 reviews:
 
-A. cache_hit_map 复核
-  1. 重读 .barry_workflow/${SID}/state.md 的 cache_hit_map
-  2. 对其中 hit: YES 的 artifact，≥3 轮未实际访问的降为 hit: NO 并本轮 Read 一次
+A. cache_hit_map review
+  1. Re-read .barry_workflow/${SID}/state.md cache_hit_map
+  2. For artifacts marked hit: YES that haven't been actually accessed in ≥3 turns, downgrade to hit: NO and re-Read once this turn
 
-B. 6 项 ledger 合规自检（防止"记了不用"，全部 grep 当前 task: + 相关 tags:）
-  1. ${P_GL} — 全局跨项目 AI 行为智慧 (L-XXX)
-  2. ${P_GV} — 全局 AI 违规 (W-XXX)
-  3. ${P_BL} — 本项目技术坑
-  4. ${P_RV} — 本项目 AI 违规
-  5. ${P_SF} — 本项目成功 fix
-  6. ${P_AL} — 本项目尝试日志 (ATT-N)
+B. 6-ledger compliance self-audit (don't 'record but never use' — grep each by current task: + relevant tags:)
+  1. ${P_GL} — cross-project AI behavior wisdom (L-XXX)
+  2. ${P_GV} — global AI violations (W-XXX)
+  3. ${P_BL} — project technical pitfalls
+  4. ${P_RV} — project AI violations
+  5. ${P_SF} — project successful fixes
+  6. ${P_AL} — project attempt log (ATT-N)
 
-C. instruction 合规自检
-  - autonomy: 中途有没有问用户？除非 destructive / 3-failure-stop / 用户明确 opt-in，应自己决定继续干。
-  - dispatch: >1 file / WebSearch / code change 时有没有用 Agent(run_in_background=true)？
-  - recording: 这一轮有没有 [PLAN] → tool → [OBSERVE]，有没有 [BOARD_READ] 开头？
+C. instruction compliance self-audit
+  - autonomy: did you ask the user mid-task? Unless destructive / 3-failure-stop / explicit user opt-in, decide yourself.
+  - dispatch: when touching >1 file / WebSearch / code change, did you use Agent(run_in_background=true)?
+  - recording: did this turn have [PLAN] → tool → [OBSERVE], and a [BOARD_READ] header?
 
-完成后写一行 [CACHE_REFRESH_DONE 检查项 A+B+C] 到 action.md
-BANNER
+When done, write [CACHE_REFRESH_DONE A+B+C] to action.md"
+    jq -n --arg m "$BODY" '{
+        hookSpecificOutput: {
+            hookEventName: "PostToolUse",
+            additionalContext: $m
+        }
+    }'
     python3 - "$STATE_FILE" "$CURRENT_TOTAL" <<'PY' 2>/dev/null || true
 import json, sys, datetime
 path, total = sys.argv[1], int(sys.argv[2])

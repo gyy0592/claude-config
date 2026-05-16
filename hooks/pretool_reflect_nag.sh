@@ -91,11 +91,13 @@ if [ "${#MSG}" -gt "$MAX_CHARS" ]; then
     MSG="${MSG:0:$((MAX_CHARS-3))}..."
 fi
 
+# v2.7 fix: additionalContext (visible to model on allow), not
+# permissionDecisionReason (silent on allow).
 jq -n --arg m "$MSG" '{
     hookSpecificOutput: {
         hookEventName: "PreToolUse",
         permissionDecision: "allow",
-        permissionDecisionReason: $m
+        additionalContext: $m
     }
 }'
 exit 0

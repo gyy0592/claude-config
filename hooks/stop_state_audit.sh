@@ -26,7 +26,65 @@ INPUT="$(cat 2>/dev/null || true)"
 [ -z "$INPUT" ] && exit 0
 
 cwd=$(echo "$INPUT" | jq -r '.cwd // ""' 2>/dev/null)
+transcript_path=$(echo "$INPUT" | jq -r '.transcript_path // ""' 2>/dev/null)
 [ -z "$cwd" ] && cwd="${PWD:-$(pwd)}"
+
+# v2.7: if any bg task is pending (fresh activity), silent allow stop so
+# main can sleep until task_notification. Audit fires again next time stop
+# is attempted (after bg settles). Detection logic copied from
+# stop_bg_aware.sh — same convention: 30-min mtime gate on .output files.
+if [ -n "$transcript_path" ] && [ -f "$transcript_path" ]; then
+    BG_PENDING="$(python3 - "$transcript_path" <<'PY' 2>/dev/null
+import sys, json, os, time, re
+path = sys.argv[1]
+launched, completed = set(), set()
+tasks_dir = None
+try:
+    slug = os.path.basename(os.path.dirname(path))
+    sid  = os.path.basename(path).rsplit('.jsonl', 1)[0]
+    uid  = os.geteuid()
+    tasks_dir = f"/tmp/claude-{uid}/{slug}/{sid}/tasks"
+except Exception: pass
+try:
+    with open(path) as f:
+        for line in f:
+            if not line.strip(): continue
+            try: o = json.loads(line)
+            except: continue
+            tur = o.get("toolUseResult") if isinstance(o.get("toolUseResult"), dict) else None
+            if tur:
+                if tur.get("isAsync") is True and tur.get("agentId"):
+                    launched.add(tur["agentId"])
+                if tur.get("backgroundTaskId"):
+                    launched.add(tur["backgroundTaskId"])
+                if tur.get("agentId") and (tur.get("totalDurationMs") is not None or tur.get("status") == "completed"):
+                    completed.add(tur["agentId"])
+            if o.get("type") == "system" and o.get("subtype") == "task_notification":
+                tid = o.get("task_id")
+                if tid: completed.add(tid)
+            if o.get("type") == "queue-operation" and o.get("operation") == "enqueue":
+                content = o.get("content", "")
+                if isinstance(content, str) and "<task-notification>" in content:
+                    for m in re.findall(r"<task-id>([^<]+)</task-id>", content):
+                        completed.add(m)
+    pending = launched - completed
+    if pending and tasks_dir and os.path.isdir(tasks_dir):
+        active = set(); now = time.time(); STALE = 30*60
+        for tid in pending:
+            f = os.path.join(tasks_dir, f"{tid}.output")
+            if not os.path.exists(f): continue
+            try: age = now - os.path.getmtime(f)
+            except OSError: active.add(tid); continue
+            if age < STALE: active.add(tid)
+        pending = active
+    print("yes" if pending else "no")
+except Exception: print("no")
+PY
+)"
+    if [ "$BG_PENDING" = "yes" ]; then
+        exit 0
+    fi
+fi
 
 STATE_FILE="$(latest_state_file "$cwd" 2>/dev/null || true)"
 # If we can't find state.md, fail open (let stop go through — better than

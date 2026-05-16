@@ -52,14 +52,15 @@ bump() {
 }
 
 nudge() {
-    # Emits JSON envelope with allow + a short reason. Max $MAX_CHARS enforced.
+    # v2.7 fix: additionalContext (visible to model on allow), not
+    # permissionDecisionReason (silent on allow). Max $MAX_CHARS enforced.
     local msg="$1"
     [ "${#msg}" -gt "$MAX_CHARS" ] && msg="${msg:0:$((MAX_CHARS-3))}..."
     jq -n --arg m "$msg" '{
         hookSpecificOutput: {
             hookEventName: "PreToolUse",
             permissionDecision: "allow",
-            permissionDecisionReason: $m
+            additionalContext: $m
         }
     }'
     exit 0

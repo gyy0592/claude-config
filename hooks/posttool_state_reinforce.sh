@@ -117,10 +117,18 @@ text = pathlib.Path(sys.argv[1]).read_text(errors="ignore")
 print(re.sub(r'\n{2,}', '\n', text).strip())
 PY
 )"
-    cat >&2 <<BANNER
-[STATE_REINFORCE · state=${STATUS} · +${DELTA}/${THRESHOLD} tokens · full router]
-${SUMMARY}
-BANNER
+    # v2.7 fix: PostToolUse stderr does NOT reach the model. Use the JSON
+    # envelope's hookSpecificOutput.additionalContext field instead, which
+    # Claude Code wraps in a system-reminder and inserts next to the tool
+    # result. Previously this banner went only to debug log.
+    BANNER_BODY="[STATE_REINFORCE · state=${STATUS} · +${DELTA}/${THRESHOLD} tokens · full router]
+${SUMMARY}"
+    jq -n --arg m "$BANNER_BODY" '{
+        hookSpecificOutput: {
+            hookEventName: "PostToolUse",
+            additionalContext: $m
+        }
+    }'
     python3 - "$SF_REINF" "$CURRENT_TOTAL" "$STATUS" <<'PY' 2>/dev/null || true
 import json, sys, datetime
 path, total, state = sys.argv[1], int(sys.argv[2]), sys.argv[3]
