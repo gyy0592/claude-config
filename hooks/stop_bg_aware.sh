@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# stop_bg_aware.sh — v2.7.10. Stop hook with bg-aware + self-reflect gate.
+# stop_bg_aware.sh — v2.7.11. Stop hook with bg-aware + self-reflect gate.
 #
 # Behavior:
 # 1. Parse transcript for pending bg tasks (Agent run_in_background, Bash bg).
@@ -61,6 +61,16 @@ if [ -f "$YAML" ] && declare -F read_config >/dev/null 2>&1; then
     [ -n "${v:-}" ] && STALE_MIN="$v"
 fi
 
+# Resolve grace-seconds threshold from yaml (default 120s = 2 min).
+# An agent whose .output mtime is within grace_sec is treated as alive even
+# when lsof finds no open fd — covers the lsof gap between intermittent writes.
+# Dead agents whose last write is older than grace_sec + lsof dead → dropped.
+GRACE_SEC=120
+if [ -f "$YAML" ] && declare -F read_config >/dev/null 2>&1; then
+    v="$(read_config "$YAML" "stop_gate.bg_grace_seconds" 2>/dev/null || true)"
+    [ -n "${v:-}" ] && GRACE_SEC="$v"
+fi
+
 # Parse transcript: launched - completed bg ids, then liveness gate.
 # BUG-S-R2-06/09 fix: cap total python+lsof wall-clock at 8s via `timeout` so
 # a pathologically long pending set or stale NFS can't exceed Claude Code's
@@ -68,10 +78,11 @@ fi
 bg_state="none"
 TIMEOUT_BIN="$(command -v timeout || true)"
 if [ -n "$transcript_path" ] && [ -f "$transcript_path" ]; then
-    bg_state=$(STALE_MIN="$STALE_MIN" ${TIMEOUT_BIN:+$TIMEOUT_BIN 8} python3 - "$transcript_path" 2>/dev/null << 'PY'
+    bg_state=$(STALE_MIN="$STALE_MIN" GRACE_SEC="$GRACE_SEC" ${TIMEOUT_BIN:+$TIMEOUT_BIN 8} python3 - "$transcript_path" 2>/dev/null << 'PY'
 import sys, json, os, time, re
 path = sys.argv[1]
 stale_sec = int(os.environ.get("STALE_MIN", "30")) * 60
+grace_sec = int(os.environ.get("GRACE_SEC", "120"))
 
 launched_ids = set()
 completed_ids = set()
@@ -113,16 +124,17 @@ try:
 
     pending = launched_ids - completed_ids
     if pending and tasks_dir and os.path.isdir(tasks_dir):
-        # v2.7.10 final: combine Humanize lsof liveness probe + mtime silence
-        # detection. Both must pass for the task to count as "alive":
-        #   - lsof exit 0 = at least one process has .output open (or symlink
-        #     target open) → process plausibly running
-        #   - mtime within stale_sec window → recently active, not frozen
-        # If lsof says "no fd" OR mtime stale longer than stale_sec → treat
-        # as dead and drop from pending. This handles the long-session case
-        # where Claude Code keeps fds open on completed agent JSONL files
-        # (lsof alone would false-positive) AND the just-launched case where
-        # .output may not exist yet (mtime gate alone would false-negative).
+        # v2.7.11: lsof liveness probe + grace-window mtime fallback.
+        #   - lsof exit 0 = at least one process has .output open → alive.
+        #   - lsof no-fd + age < grace_sec (default 120s) → alive: covers the
+        #     lsof fd gap between intermittent writes (agents write one line,
+        #     close fd, compute, reopen → lsof blind window is milliseconds to
+        #     seconds; 2-min grace comfortably covers it).
+        #   - lsof no-fd + age >= grace_sec → dead: agent wrote > 2 min ago
+        #     and no process holds the fd now → genuinely finished or crashed.
+        # This tightens the v2.7.10 OR fix (which used stale_sec=30 min as
+        # the mtime fallback window, causing up to 30-min false-positive for
+        # recently-dead agents). Grace window reduces that to ≤ grace_sec.
         import subprocess, shutil
         lsof_bin = shutil.which('lsof')
         active = set()
@@ -157,12 +169,12 @@ try:
                     lsof_alive = True  # timeout → fail open
                 except Exception:
                     lsof_alive = True  # fail open
-            # Either gate is sufficient: lsof says alive OR mtime not silent.
-            # AND was wrong: agents write .output intermittently, so lsof returns
-            # no-fd between writes → false "dead" even for actively running agents.
-            if lsof_alive or not mtime_stale:
+            # lsof alive OR wrote within grace_sec → alive.
+            # grace_sec (default 120s) covers lsof fd gap between intermittent
+            # writes while keeping false-positive window tight (vs 30-min stale_sec).
+            if lsof_alive or age < grace_sec:
                 active.add(tid)
-            # else: dead (lsof: no fd AND mtime: too old) → drop.
+            # else: dead (lsof: no fd AND last write > grace_sec ago) → drop.
         pending = active
 
     print('pending' if pending else 'none')
