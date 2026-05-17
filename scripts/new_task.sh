@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # new_task.sh — initialize a project-level workspace + per-task goal.md.
 #
-# Usage: bash <claude-config-dir>/scripts/new_task.sh <task_name>
+# Usage: bash <claude-config-dir>/scripts/new_task.sh --name <task_name> [--goal "..."] [--constraint "..."]
+#        compat: bash <claude-config-dir>/scripts/new_task.sh <task_name>
 #
 # Run from inside your project directory.
 #

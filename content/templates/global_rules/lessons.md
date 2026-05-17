@@ -131,3 +131,9 @@ Military law is absolute, errors mean death.
 - **Lesson**: 这种 bug 整个 `<script>` 解析失败，所有 addEventListener 不绑定 → 用户打开点击全无反应。同一会话踩了 5 次（scenarios.html 1 次 + implementation.html 4 次），每次都同款 symptom 不同位置。
 - **Specialized example**: `verdictText: "本会话派 subagent 时 main 提了一句"读 subagent_rules.md"，..."` → 第 2 个 ASCII `"` 提前闭合 string，第 3 个 `"` 后面的中文成为 syntax error。改成 `「读 subagent_rules.md」` 就过。
 - `tags: [html, javascript, encoding, bitter-bug, web-frontend, perf-protect]`
+
+### L-020: "push file X to branch Y" = cherry-pick, never merge source branch
+- **Correct behavior**: When user says "push X to branch Y", cherry-pick only the commit containing X. Never merge the entire source branch unless user explicitly says "merge".
+- **Lesson**: "push to main" means "the file should be on main" — the minimum operation to achieve this is cherry-pick of the relevant commit. Merging a whole dev branch brings in unintended commits and violates minimum-fix principle.
+- **Specialized example**: User said "push skills/plain-language to v2 and main". AI merged all of v2 into main, bringing 4+ unrelated dev commits. Correct: cherry-pick the one commit adding skills/plain-language/SKILL.md.
+- `tags: [scope-creep, git, minimum-fix, cherry-pick]`
