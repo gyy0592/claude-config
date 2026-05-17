@@ -157,10 +157,12 @@ try:
                     lsof_alive = True  # timeout → fail open
                 except Exception:
                     lsof_alive = True  # fail open
-            # Both gates must pass: lsof says alive AND mtime not silent.
-            if lsof_alive and not mtime_stale:
+            # Either gate is sufficient: lsof says alive OR mtime not silent.
+            # AND was wrong: agents write .output intermittently, so lsof returns
+            # no-fd between writes → false "dead" even for actively running agents.
+            if lsof_alive or not mtime_stale:
                 active.add(tid)
-            # else: dead (lsof: no fd OR mtime: too old) → drop.
+            # else: dead (lsof: no fd AND mtime: too old) → drop.
         pending = active
 
     print('pending' if pending else 'none')
