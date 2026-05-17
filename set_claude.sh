@@ -305,6 +305,19 @@ else
     echo "[wrapper] ✓ SHELL_RC already has custom claude() version, preserved without overwrite"
 fi
 
+# ── 7b. Add claude-config scripts to PATH (new_task.sh, start_viewer.sh) ────────────
+if ! grep -q "claude-config-scripts-path" "$SHELL_RC" 2>/dev/null; then
+  SCRIPTS_PATH="${CLAUDE_CONFIG_DIR}/scripts"
+  cat >> "$SHELL_RC" << SCRIPTPATH
+
+# claude-config-scripts-path — added by set_claude.sh; do not remove
+export PATH="\$PATH:${SCRIPTS_PATH}"
+SCRIPTPATH
+  echo "[path] ✓ added ${SCRIPTS_PATH} to PATH in $SHELL_RC"
+else
+  echo "[path] ✓ claude-config-scripts-path already in $SHELL_RC — skipped"
+fi
+
 # ── 8. Add Humanize pipeline + performance tuning environment variables ─────────────
 if ! grep -q "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS" "$SHELL_RC" 2>/dev/null; then
   cat >> "$SHELL_RC" << 'ENVVARS'

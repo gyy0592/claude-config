@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# stop_bg_aware.sh — v2.7.11. Stop hook with bg-aware + self-reflect gate.
+# stop_bg_aware.sh — v2.7.12. Stop hook with bg-aware + self-reflect gate.
 #
 # Behavior:
 # 1. Parse transcript for pending bg tasks (Agent run_in_background, Bash bg).
@@ -304,7 +304,12 @@ JSON
 fi
 
 GOAL_HINT=""
-if [ -d "${cwd}/workspace" ]; then
+current_goal=$(grep -m1 '^current_goal:' "${SDIR}/state.md" 2>/dev/null | sed 's/^current_goal:[[:space:]]*//' | tr -d '"' | tr -d '\n' || true)
+if [ -n "$current_goal" ]; then
+    abs_goal="${cwd}/${current_goal}"
+    [ -f "$abs_goal" ] && GOAL_HINT="goal.md: ${abs_goal} — READ IT before reflecting."
+fi
+if [ -z "$GOAL_HINT" ] && [ -d "${cwd}/workspace" ]; then
     FOUND_GOAL=$(find "${cwd}/workspace" -name "goal.md" -maxdepth 3 2>/dev/null | head -1)
     [ -n "$FOUND_GOAL" ] && GOAL_HINT="goal.md found at: ${FOUND_GOAL} — READ IT before reflecting."
 fi
