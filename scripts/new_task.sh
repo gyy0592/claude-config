@@ -63,6 +63,17 @@ if ! [[ "$TASK_NAME" =~ ^[a-zA-Z0-9_-]+$ ]]; then
   exit 2
 fi
 
+if [[ -z "$GOAL_TEXT" ]]; then
+  err_both "error: --goal is required"
+  err_both "usage: bash ${BASH_SOURCE[0]} --name <task_name> --goal \"...\" --constraint \"...\""
+  exit 2
+fi
+if [[ -z "$CONSTRAINT_TEXT" ]]; then
+  err_both "error: --constraint is required"
+  err_both "usage: bash ${BASH_SOURCE[0]} --name <task_name> --goal \"...\" --constraint \"...\""
+  exit 2
+fi
+
 WS="$PWD/workspace"
 TASK_DIR="${WS}/${TASK_NAME}"
 if [[ -d "$TASK_DIR" ]]; then

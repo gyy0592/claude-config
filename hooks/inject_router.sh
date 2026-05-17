@@ -56,9 +56,9 @@ if [ -n "$CURRENT_GOAL" ] && [ "$CURRENT_GOAL" != '""' ] && [ -f "${CWD}/${CURRE
     echo "[GOAL · ${CURRENT_GOAL}] still matches user's current intent? if not, run scripts/new_task.sh to write a new goal before continuing. if yes, Read goal.md again to confirm constraints still hold."
 else
     if [ -n "$CURRENT_GOAL" ] && [ "$CURRENT_GOAL" != '""' ]; then
-        echo "[GOAL NOT SET] (stale path ${CURRENT_GOAL} — file missing) — run: bash __CLAUDE_CONFIG_DIR__/scripts/new_task.sh --name <task_name> --goal \"...\" --constraint \"...\""
+        echo "[GOAL NOT SET] (stale path ${CURRENT_GOAL} — file missing) — in PREPARE state, run: bash __CLAUDE_CONFIG_DIR__/scripts/new_task.sh --name <task_name> --goal \"...\" --constraint \"...\""
     else
-        echo "[GOAL NOT SET] — run: bash __CLAUDE_CONFIG_DIR__/scripts/new_task.sh --name <task_name> --goal \"...\" --constraint \"...\""
+        echo "[GOAL NOT SET] — in PREPARE state, run: bash __CLAUDE_CONFIG_DIR__/scripts/new_task.sh --name <task_name> --goal \"...\" --constraint \"...\""
     fi
 fi
 
