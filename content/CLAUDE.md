@@ -37,7 +37,7 @@ On first UserPromptSubmit, `session_boot.sh` creates:
 
 For a per-task `goal.md`:
 ```
-bash __CLAUDE_CONFIG_DIR__/scripts/new_task.sh <task_name>
+bash __CLAUDE_CONFIG_DIR__/scripts/new_task.sh --name <task_name> --goal "..." --constraint "..."
 ```
 Run from inside the project directory. Proposes `<task_name>` to user, creates `workspace/<task_name>/goal.md` skeleton, you then fill it from the agreed scope and ask for sign-off. Re-seeds any missing ledgers as a safety net.
 
