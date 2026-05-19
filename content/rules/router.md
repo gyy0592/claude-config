@@ -24,4 +24,4 @@ FSM (v2.4): BOOT → PREPARE → REFLECT ↔ EXECUTE_LOOP → RECORDING → END.
 
 Scenario-specific deltas live in `~/.claude/rules/patches/*.md` (long_monitor / bug_debug / perf_debug / simple_fast / exploration). Check each patch's `applies_to` (state + scenario + triggers) before applying.
 
-lessons.md grep — before replying to user OR writing deliverables, grep ~/.claude/rules/lessons.md `tags:` for matches (minimal-edits / brevity / language / scope-creep / etc.) and comply.
+4-ledger check — before replying, confirm cache_hit_map has hit: YES for all 4 error files: (1) ~/.claude/rules/lessons.md (2) ~/.claude/rules/violation.md (3) workspace/bitter_lessons.md (4) workspace/rule_violations.md. Any hit: NO → Read it now. Then grep all 4 for tags matching current task and comply.

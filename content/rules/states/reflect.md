@@ -10,6 +10,7 @@ Entered from PREPARE (pre-task). In v2.4, EXECUTE_EXIT no longer routes to REFLE
 
 1. main fills `## main's questions` with 3–7 specific questions (concrete file paths / log lines / observables).
 2. main spawns the rebuttal agent via `Agent(run_in_background=true)` with the prompt template below. The prompt names the `reflection_<round_id>.md` path.
+   **Only ONE Agent spawn per round. Spawning a second Agent in the same REFLECT round is a W-violation.**
 3. Agent reads the file, fills `## reviewer reply` (round 1), and **exits**. No sleep-loop, no waiting for SendMessage.
 4. main reads `## reviewer reply`. If the reply is sufficient, main writes `[CONSENSUS_REACHED]` + agreed action list under `## consensus`, calls `transition.sh REFLECT_DONE`, done.
 5. If more rounds are genuinely needed, main spawns a **new** rebuttal agent with a fresh round file path (e.g. `reflection_r2-...md`) and passes the prior round's file as additional context in the prompt. Each round = one fresh `Agent(...)` spawn that exits after writing its reply.
@@ -76,10 +77,14 @@ Round budget: __N__ (default 5; fallback 10 on prior failure).
 Step 1: Read __ROUND_FILE__ in full. The `## main's questions` block lists
         concrete questions, each tied to a file path / log line / observable.
 Step 2: Read each cited file / log line directly. Do not rely on summaries.
-Step 3: Append your analysis under `## reviewer reply` (round 1). Concrete
-        diff suggestions only (location + before + after). If you think
-        the proposal is fine on a question, say so explicitly with a
-        one-sentence reason. Don't pad.
+Step 3: Before answering main's specific questions, complete the Mandatory
+        Routine Audit (every round, every reason):
+        (a) goal deviation — does the plan stay within goal.md constraints? flag any scope creep.
+        (b) bitter_lessons coverage — did main grep workspace/bitter_lessons.md and ~/.claude/rules/lessons.md for task-relevant tags? list any unchecked tags.
+        (c) violation risk — does the plan risk repeating any W-XXX from ~/.claude/rules/violation.md? cite by tag.
+        (d) failure scenario — list AT LEAST 1 concrete scenario where this plan fails (writing "no issues found" is not acceptable).
+        (e) observable completeness — for each failure mode in (d), name the concrete observable variable that would surface it.
+        Then answer main's specific questions with concrete diff suggestions (location + before + after). Be adversarial — assume issues exist until the evidence proves otherwise.
 Step 4: Exit immediately after writing the reply. Do not sleep, do not
         wait for SendMessage. If main wants a follow-up round, it will
         spawn a NEW rebuttal agent with a fresh round file — your job

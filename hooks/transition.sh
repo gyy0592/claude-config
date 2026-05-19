@@ -50,7 +50,7 @@ event_for_state() {
     esac
 }
 
-VALID_EVENTS="BOOT_DONE|PREPARE_DONE|REFLECT_DONE|EXECUTE_EXIT|NEED_RECORD|RECORD_DONE|BACK_TO_LOOP|RESET_TO_BOOT"
+VALID_EVENTS="BOOT_DONE|PREPARE_DONE|REFLECT_DONE|EXECUTE_EXIT|NEED_RECORD|RECORD_DONE|BACK_TO_LOOP|RESET_TO_BOOT|USER_JUMP_CONVERSATION"
 
 if [ -z "$EVENT" ]; then
     err_both "usage: transition.sh <${VALID_EVENTS}> [--sid=<session-id>] [--reason=...]"
@@ -183,6 +183,7 @@ case "$EVENT" in
         fi
         ;;
     RESET_TO_BOOT) NEW=BOOT ;;
+    USER_JUMP_CONVERSATION) NEW=CONVERSATION ;;
     *)
         # v2.5.2 (F6 fix): output to BOTH stdout and stderr (survives 2>/dev/null)
         # and include a did-you-mean hint if the caller passed a state name instead
@@ -269,6 +270,7 @@ case "$NEW" in
     EXECUTE_LOOP) STATE_DOC="execute.md" ;;
     RECORDING)    STATE_DOC="recording.md" ;;
     END)          STATE_DOC="end.md" ;;
+    CONVERSATION) STATE_DOC="conversation.md" ;;
     *)            STATE_DOC="" ;;
 esac
 if [ -n "$STATE_DOC" ]; then
@@ -279,6 +281,14 @@ if [ -n "$STATE_DOC" ]; then
         echo "=== Full pipeline for $NEW (states/$STATE_DOC) ==="
         echo ""
         cat "$NEW_SPEC"
+    fi
+fi
+# After transition to CONVERSATION, also cat the router file if it exists.
+if [ "$NEW" = "CONVERSATION" ]; then
+    CONV_ROUTER="__CLAUDE_CONFIG_DIR__/content/rules/router_CONVERSATION.md"
+    if [ -f "$CONV_ROUTER" ]; then
+        echo ""
+        cat "$CONV_ROUTER"
     fi
 fi
 
