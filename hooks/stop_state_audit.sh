@@ -106,6 +106,9 @@ STATE_FILE="$(latest_state_file "$cwd" 2>/dev/null || true)"
 
 CURRENT=$(grep -m1 '^current_status:' "$STATE_FILE" 2>/dev/null | awk '{print $2}' | tr -d '\r')
 
+# CONVERSATION state exemption: direct discussion mode, no FSM spine required.
+[ "$CURRENT" = "CONVERSATION" ] && exit 0
+
 # Parse stage_history events. After a RESET_TO_BOOT we only count events
 # since the most recent reset (because that started a new task subtree;
 # the previous task's spine doesn't count for the new one).

@@ -137,3 +137,15 @@ Military law is absolute, errors mean death.
 - **Lesson**: "push to main" means "the file should be on main" — the minimum operation to achieve this is cherry-pick of the relevant commit. Merging a whole dev branch brings in unintended commits and violates minimum-fix principle.
 - **Specialized example**: User said "push skills/plain-language to v2 and main". AI merged all of v2 into main, bringing 4+ unrelated dev commits. Correct: cherry-pick the one commit adding skills/plain-language/SKILL.md.
 - `tags: [scope-creep, git, minimum-fix, cherry-pick]`
+
+### L-021: Find correct reset base via merge first-parent before cleaning bad merge commits
+- **Correct behavior**: Before running `git reset --hard` to undo a bad merge on a branch, find the true clean base using `git cat-file -p <merge-commit>` → first `parent:` line = the branch's state before the merge. Do NOT pick a recent-looking commit from `git log` — it may itself be inside the merged-in history.
+- **Lesson**: Visual inspection of `git log` on a bloated branch is misleading. The first parent of the merge commit is the only authoritative answer for "what was here before the merge".
+- **Specialized example**: main had 261 commits after `233a1ad` (Merge PR #1 from dev). AI ran `git reset --hard 99786c3` (v2.7.10, looked recent) — but 99786c3 was inside the dev branch imported by the bad merge. Correct base was `2fedfb4` = `git cat-file -p 233a1ad | grep parent | head -1`.
+- `tags: [git, merge-cleanup, minimum-fix, scope-creep]`
+
+### L-022: Adding a New FSM State Requires Syncing the Session-Close Guard
+- **Correct behavior**: When adding a new state to a barry-workflow FSM, always update `stop_state_audit.sh` (or equivalent session-close guard) to exempt the new state. Without exemption, sessions ending in the new state will be blocked from closing because the guard requires `EXECUTE_EXIT + RECORD_DONE` events.
+- **Lesson**: The session-close guard has a hardcoded `REQUIRED` event list. Any new state that legitimately bypasses the normal EXECUTE→RECORDING pipeline must be explicitly exempted — otherwise the new state is unusable in practice. This is easy to miss because the state itself works fine; only the session-end fails.
+- **Specialized example**: CONVERSATION state was added as a lightweight discussion mode (no goal.md, no stop gate). Without adding `[ "$CURRENT" = "CONVERSATION" ] && exit 0` to stop_state_audit.sh, any session ending in CONVERSATION would be blocked with "missing EXECUTE_EXIT + RECORD_DONE". The rebuttal reviewer caught this in REFLECT before execution.
+- `tags: [fsm, stop-gate, new-state, workflow-design, scope-creep]`

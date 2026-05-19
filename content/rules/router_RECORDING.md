@@ -19,5 +19,5 @@ Always-on (every state):
   - facts_first.md — gate every [INFERENCE]; INFERENCE_GATE rebuttal required.
   - dispatch.md — >1 file / WebSearch / code change ⇒ Agent(run_in_background=true).
   - recording.md — every reply opens with [BOARD_READ] + 4-module reflection.
-  - lessons.md grep — before replying to user OR writing deliverables, grep ~/.claude/rules/lessons.md `tags:` for matches and comply.
+  - 4-ledger check — before replying, confirm cache_hit_map has hit: YES for all 4 error files: (1) ~/.claude/rules/lessons.md (2) ~/.claude/rules/violation.md (3) workspace/bitter_lessons.md (4) workspace/rule_violations.md. Any hit: NO → Read it now. Then grep all 4 for tags matching current task and comply.
   - autonomy.md — **never stop, only ask-while-working**. Ship artifacts this turn (or transition.sh to next state if BOOT); ask in parallel if must. Stop only on destructive / 3-failure / explicit opt-in.

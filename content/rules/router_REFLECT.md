@@ -1,4 +1,5 @@
 [ROUTER · state=REFLECT] **First action MUST be `Agent(run_in_background=true)` to spawn a rebuttal subagent.** Before that subagent writes content into `## reviewer reply` of `.barry_workflow/<sid>/reflection_*.md`, no other tool call is allowed — except Read on reference docs and Write/append confined to `.barry_workflow/<sid>/reflection_*.md` (rebuttal scratch). All project source / ledger writes are forbidden in this state.
+**SINGLE AGENT ONLY — spawning ≥2 Agent calls in the same REFLECT round is a W-violation. Only ONE rebuttal agent per round is permitted.**
 
 → Full pipeline (rebuttal protocol / N rounds / CONSENSUS): `cat ~/.claude/rules/states/reflect.md`
 → Subagent constraints: `cat ~/.claude/rules/subagent_rules.md`
@@ -19,5 +20,5 @@ Always-on (every state):
   - facts_first.md — gate every [INFERENCE]; INFERENCE_GATE rebuttal required.
   - dispatch.md — >1 file / WebSearch / code change ⇒ background subagent dispatch.
   - recording.md — every reply opens with [BOARD_READ] + 4-module reflection.
-  - lessons.md grep — before replying to user OR writing deliverables, grep ~/.claude/rules/lessons.md `tags:` for matches (minimal-edits / brevity / language / scope-creep / etc.) and comply.
+  - 4-ledger check — before replying, confirm cache_hit_map has hit: YES for all 4 error files: (1) ~/.claude/rules/lessons.md (2) ~/.claude/rules/violation.md (3) workspace/bitter_lessons.md (4) workspace/rule_violations.md. Any hit: NO → Read it now. Then grep all 4 for tags matching current task and comply.
   - autonomy.md — do NOT ask the user. Allowed only on (a) destructive ops, (b) 3-failure-stop, (c) prior explicit user opt-in. Otherwise REFLECT subagent rebuttal + decide yourself.
