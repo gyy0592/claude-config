@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# stop_bg_aware.sh — v2.7.22. Stop hook with bg-aware + self-reflect gate.
+# stop_bg_aware.sh — v2.7.23. Stop hook with bg-aware + self-reflect gate.
 #
 # Behavior:
 # 1. Parse transcript for pending bg tasks (Agent run_in_background, Bash bg).
@@ -36,6 +36,15 @@ cwd=$(printf '%s' "$input" | jq -r '.cwd // ""' 2>/dev/null)
 # session_id is embedded in instructional MSG text. Empty → fail-open exit.
 session_id="${session_id//[^a-zA-Z0-9_-]/}"
 [ -z "$session_id" ] && exit 0
+
+# v2.7.23: CONVERSATION state exemption — discussion mode, no stop gate
+# (mirror of stop_state_audit.sh L109-110). Without this, user-asked Q&A
+# turns hit the OPTION B reflection prompt unnecessarily.
+SDIR_FOR_STATE="$cwd/.barry_workflow/$session_id"
+if [ -f "$SDIR_FOR_STATE/state.md" ]; then
+    CURRENT_STATUS=$(grep -m1 '^current_status:' "$SDIR_FOR_STATE/state.md" 2>/dev/null | awk '{print $2}' | tr -d '[:space:]')
+    [ "$CURRENT_STATUS" = "CONVERSATION" ] && exit 0
+fi
 
 # yaml stop_gate.enabled — default off; opt-in via workflow_config.yaml.
 ENABLED="false"
