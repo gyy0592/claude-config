@@ -430,6 +430,18 @@ for grp in list(hooks.get("UserPromptSubmit", [])):
            and "cache_refresh_check.sh" not in h.get("command", "")
     ]
 hooks["UserPromptSubmit"] = [g for g in hooks.get("UserPromptSubmit", []) if g.get("hooks")]
+
+# v2.7.19 fix: strip OLD-name PostToolUse refs. Previous v2.7.18-and-before
+# registered cache_refresh_check.sh / posttool_state_reinforce.sh; after
+# rename they linger as dead refs pointing at deleted hook files → every
+# tool call bashes a non-existent file.
+for grp in list(hooks.get("PostToolUse", [])):
+    grp["hooks"] = [
+        h for h in grp.get("hooks", [])
+        if "cache_refresh_check.sh" not in h.get("command", "")
+           and "posttool_state_reinforce.sh" not in h.get("command", "")
+    ]
+hooks["PostToolUse"] = [g for g in hooks.get("PostToolUse", []) if g.get("hooks")]
 ensure_hook("PostToolUse", None, f"bash {CACHE_REFRESH_SCRIPT}")
 
 # v2.5: state-aware reinforcement — every ~10k input_tokens or state-change,
