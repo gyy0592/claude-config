@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
-# cache_refresh_check.sh — v2.5 (moved from UserPromptSubmit to PostToolUse).
+# posttool_refresh_100k.sh — v2.7.19
 #
 # PostToolUse hook. After each tool call, sums input_tokens +
 # cache_read_input_tokens + cache_creation_input_tokens across the session's
-# transcript JSONL. If the delta since last refresh ≥ threshold, emits a
-# banner instructing the model to:
-#   A. re-verify cache_hit_map (long sessions evict YES rows from KV cache)
-#   B. re-grep all 6 ledgers (global lessons/violation + 4 project ledgers)
-#   C. self-audit autonomy / dispatch / recording compliance
+# transcript JSONL. If the delta since last refresh ≥ threshold (100k by
+# default in v2.7.19), emits ONE of 4 round-robin banners:
+#   block 0 (A): cache_hit_map review
+#   block 1 (B): 6-ledger grep audit
+#   block 2 (C): autonomy / dispatch / recording self-audit
+#   block 3 (D): GOAL_AUDIT against current_goal file
+# Counter persists in $SDIR/refresh_100k.counter so blocks cycle across triggers.
 #
 # Why PostToolUse not UserPromptSubmit (v2.5 change): long autonomous tasks
 # can run 50+ tool calls between user prompts. UserPromptSubmit fires 0 times
@@ -105,16 +107,35 @@ fi
 
 DELTA=$((CURRENT_TOTAL - LAST_TOTAL))
 if [ "$DELTA" -ge "$THRESHOLD" ]; then
-    # v2.7 fix: PostToolUse stderr is debug-only — model never sees it.
-    # Use hookSpecificOutput.additionalContext to actually surface this
-    # banner. Previously these reminders never reached the AI.
-    BODY="[CACHE_REFRESH_BANNER · +${DELTA} tokens since last check, threshold=${THRESHOLD}]
-Long-session cumulative input_tokens exceeded the threshold. Before the next tool call complete 3 reviews:
+    # v2.7.19: 4-block round-robin rotation. counter persists across triggers.
+    COUNTER_FILE="${SDIR}/refresh_100k.counter"
+    counter=$(cat "$COUNTER_FILE" 2>/dev/null || echo 0)
+    case "$counter" in ''|*[!0-9]*) counter=0 ;; esac
+    block_idx=$(( counter % 4 ))
+    new_counter=$(( counter + 1 ))
+    printf '%s\n' "$new_counter" > "$COUNTER_FILE" 2>/dev/null || true
 
+    HEADER="[CACHE_REFRESH_BANNER · +${DELTA} tokens since last check, threshold=${THRESHOLD}]"
+
+    # GOAL_AUDIT block needs current_goal path; fall back to block 0 if missing.
+    GOAL_PATH=$(grep -E '^current_goal:' "$SDIR/state.md" 2>/dev/null | head -1 | sed -E 's/^current_goal:[[:space:]]*"?([^"]*)"?$/\1/')
+    if [ "$block_idx" = "3" ]; then
+        if [ -z "$GOAL_PATH" ] || [ ! -f "$CWD/$GOAL_PATH" ]; then
+            block_idx=0
+        fi
+    fi
+
+    case "$block_idx" in
+        0)
+            BODY="${HEADER}
 A. cache_hit_map review
   1. Re-read .barry_workflow/${SID}/state.md cache_hit_map
   2. For artifacts marked hit: YES that haven't been actually accessed in ≥3 turns, downgrade to hit: NO and re-Read once this turn
 
+When done, write [CACHE_REFRESH_DONE A] to action.md"
+            ;;
+        1)
+            BODY="${HEADER}
 B. 6-ledger compliance self-audit (don't 'record but never use' — grep each by current task: + relevant tags:)
   1. ${P_GL} — cross-project AI behavior wisdom (L-XXX)
   2. ${P_GV} — global AI violations (W-XXX)
@@ -123,12 +144,28 @@ B. 6-ledger compliance self-audit (don't 'record but never use' — grep each by
   5. ${P_SF} — project successful fixes
   6. ${P_AL} — project attempt log (ATT-N)
 
+When done, write [CACHE_REFRESH_DONE B] to action.md"
+            ;;
+        2)
+            BODY="${HEADER}
 C. instruction compliance self-audit
   - autonomy: did you ask the user mid-task? Unless destructive / 3-failure-stop / explicit user opt-in, decide yourself.
   - dispatch: when touching >1 file / WebSearch / code change, did you use Agent(run_in_background=true)?
   - recording: did this turn have [PLAN] → tool → [OBSERVE], and a [BOARD_READ] header?
 
-When done, write [CACHE_REFRESH_DONE A+B+C] to action.md"
+When done, write [CACHE_REFRESH_DONE C] to action.md"
+            ;;
+        3)
+            BODY="${HEADER}
+[GOAL_AUDIT · +${DELTA}/${THRESHOLD} tokens]
+Read ${CWD}/${GOAL_PATH} (current_goal).
+For EACH goal item / success criterion: did you complete it? Any drift
+from original goal? Any criterion silently skipped? Strictly follow goal,
+no shortcuts. Reply with [GOAL_TRACKING ok|drift=<x>|skipped=<y>] in next
+assistant text."
+            ;;
+    esac
+
     jq -n --arg m "$BODY" '{
         hookSpecificOutput: {
             hookEventName: "PostToolUse",

@@ -243,7 +243,10 @@ fi
 
 mkdir -p "$HOOKS_DST"
 
-for f in _session_lib.sh inject_router.sh session_boot.sh transition.sh prepare_helper.sh execute_loop_audit.sh pretooluse_short_nudge.sh state_enforce.sh cache_refresh_check.sh posttool_state_reinforce.sh pretool_reflect_nag.sh pretool_ledger_guard.sh state_keepalive.sh stop_bg_aware.sh pretool_state_tool_guard.sh stop_state_audit.sh; do
+# v2.7.19: clean up old deployed hooks that were renamed
+rm -f "$HOME/.claude/hooks/cache_refresh_check.sh" "$HOME/.claude/hooks/posttool_state_reinforce.sh" 2>/dev/null
+
+for f in _session_lib.sh inject_router.sh session_boot.sh transition.sh prepare_helper.sh execute_loop_audit.sh pretooluse_short_nudge.sh state_enforce.sh posttool_refresh_100k.sh posttool_reinforce_20k.sh pretool_reflect_nag.sh pretool_ledger_guard.sh state_keepalive.sh stop_bg_aware.sh pretool_state_tool_guard.sh stop_state_audit.sh; do
     src="${HOOKS_SRC}/${f}"
     dst="${HOOKS_DST}/${f}"
     if [ ! -f "$src" ]; then
@@ -418,19 +421,20 @@ ensure_hook("UserPromptSubmit", None, f"bash {BOOT_SCRIPT}")
 
 # v2.4 F3 / v2.5: cache_hit_map + ledger refresh banner.
 # v2.5 moved to PostToolUse — long autonomous tasks never see UserPromptSubmit.
-CACHE_REFRESH_SCRIPT = os.path.expanduser("~/.claude/hooks/cache_refresh_check.sh")
+CACHE_REFRESH_SCRIPT = os.path.expanduser("~/.claude/hooks/posttool_refresh_100k.sh")
 # Idempotent cleanup: strip any pre-v2.5 UserPromptSubmit registration.
 for grp in list(hooks.get("UserPromptSubmit", [])):
     grp["hooks"] = [
         h for h in grp.get("hooks", [])
-        if "cache_refresh_check.sh" not in h.get("command", "")
+        if "posttool_refresh_100k.sh" not in h.get("command", "")
+           and "cache_refresh_check.sh" not in h.get("command", "")
     ]
 hooks["UserPromptSubmit"] = [g for g in hooks.get("UserPromptSubmit", []) if g.get("hooks")]
 ensure_hook("PostToolUse", None, f"bash {CACHE_REFRESH_SCRIPT}")
 
 # v2.5: state-aware reinforcement — every ~10k input_tokens or state-change,
 # re-inject a ≤400-char summary of the current router_<STATE>.md.
-STATE_REINFORCE_SCRIPT = os.path.expanduser("~/.claude/hooks/posttool_state_reinforce.sh")
+STATE_REINFORCE_SCRIPT = os.path.expanduser("~/.claude/hooks/posttool_reinforce_20k.sh")
 ensure_hook("PostToolUse", None, f"bash {STATE_REINFORCE_SCRIPT}")
 
 # v4 P7: PreToolUse short nudge (≤100-char allow-with-reason)

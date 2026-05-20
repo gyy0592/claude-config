@@ -43,18 +43,20 @@ state_audit:
   enabled: false
 
 cache_refresh:
-  # v2.4 F3 / v2.5: hooks/cache_refresh_check.sh — PostToolUse now (v2.5 moved from
-  # UserPromptSubmit so long autonomous tasks still trigger). Emits a banner
-  # listing the full ledger self-check.
-  threshold_input_tokens: 200000
+  # v2.7.19: hooks/posttool_refresh_100k.sh — PostToolUse. Every ~100k input_tokens
+  # the hook emits one of 4 round-robin banners (A: cache_hit_map review / B: 6-ledger
+  # grep audit / C: autonomy/dispatch/recording self-audit / D: GOAL_AUDIT against
+  # current_goal). Threshold lowered from 200k to 100k to catch drift earlier in
+  # long autonomous loops.
+  threshold_input_tokens: 100000
 
-# v2.5 / v2.5.3: state-aware reinforcement — every ~10k input_tokens, PostToolUse
-# hook re-injects the FULL router_<STATE>.md so long autonomous loops don't drift
-# from the state's allowed/forbidden + autonomy. v2.5.3 removed the 400-char cap
-# because it was cutting off the always-on footer (autonomy etc.) — the exact
-# part AI most needed. max_chars is now informational only (hook ignores it).
+# v2.7.19: state-aware reinforcement — every ~20k input_tokens, PostToolUse hook
+# posttool_reinforce_20k.sh emits one of 2 round-robin banners (block 0: full
+# router_<STATE>.md / block 1: CONSTRAINT_AUDIT against current_constraint).
+# Threshold raised from 10k to 20k to halve banner frequency now that each
+# trigger does more (rotation + constraint audit).
 state_reinforce:
-  threshold_input_tokens: 10000
+  threshold_input_tokens: 20000
   max_chars: 0   # 0 = no cap; hook injects full router file
 
 # v2.5: REFLECT-state rebuttal nag — PreToolUse hook fires every tool call
