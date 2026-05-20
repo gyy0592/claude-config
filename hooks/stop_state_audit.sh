@@ -28,7 +28,7 @@ INPUT="$(cat 2>/dev/null || true)"
 [ -z "$INPUT" ] && exit 0
 
 # v2.7.8: yaml kill-switch — default false (no-op). Must set state_audit.enabled=true to activate.
-CONFIG_DIR="${CLAUDE_CONFIG_DIR:-__CLAUDE_CONFIG_DIR__}"
+CONFIG_DIR="__CLAUDE_CONFIG_DIR__"
 YAML="$CONFIG_DIR/content/rules/workflow_config.yaml"
 ENABLED="false"
 if [ -f "$YAML" ] && declare -F read_config >/dev/null 2>&1; then

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# stop_bg_aware.sh — v2.7.17. Stop hook with bg-aware + self-reflect gate.
+# stop_bg_aware.sh — v2.7.18. Stop hook with bg-aware + self-reflect gate.
 #
 # Behavior:
 # 1. Parse transcript for pending bg tasks (Agent run_in_background, Bash bg).
@@ -17,7 +17,7 @@
 
 set -u
 
-CONFIG_DIR="${CLAUDE_CONFIG_DIR:-__CLAUDE_CONFIG_DIR__}"
+CONFIG_DIR="__CLAUDE_CONFIG_DIR__"
 LIB="$(dirname "$0")/_session_lib.sh"
 # shellcheck disable=SC1090
 [ -f "$LIB" ] && . "$LIB"
