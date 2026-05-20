@@ -83,8 +83,8 @@ fi
 
 mkdir -p "$TASK_DIR"
 
-# 1. Per-task 3-file layout: goal.md + constraint.md + current_task.md
-# (v2.7.19: split single goal.md into 3 manifest files.)
+# 1. Per-task 2-file layout: goal.md + constraint.md
+# (v2.7.20: dropped current_task.md manifest — state.md fields are self-describing.)
 
 # 1a. goal.md — template + user --goal text replacing the placeholder paragraph
 gsrc="${TPL_DIR}/goal.md"
@@ -143,22 +143,6 @@ new = re.sub(
 p.write_text(new)
 PYC
 
-# 1c. current_task.md — manifest pointing at goal.md + constraint.md
-ctsrc="${TPL_DIR}/current_task.md"
-if [[ -f "$ctsrc" ]]; then
-  cp "$ctsrc" "${TASK_DIR}/current_task.md"
-else
-  err_both "[new_task] warn: template ${ctsrc} missing, creating bare current_task.md"
-  cat > "${TASK_DIR}/current_task.md" << 'BARECT'
-# Current Task — __TASK_NAME__
-
-- Goal: ./goal.md
-- Constraints: ./constraint.md
-BARECT
-fi
-# Substitute __TASK_NAME__ → actual task name. (TASK_NAME is [a-zA-Z0-9_-]+, safe for sed.)
-sed -i "s|__TASK_NAME__|${TASK_NAME}|g" "${TASK_DIR}/current_task.md"
-
 # 2. Shared ledgers (only if absent — idempotent across tasks)
 seeded=()
 for f in bitter_lessons.md successful_fixes.md attempts_ledger.md; do
@@ -180,30 +164,24 @@ if [[ ! -f "${WS}/rule_violations.md" ]]; then
   seeded+=("rule_violations.md")
 fi
 
-# Update current_task / current_goal / current_constraint in active state.md
-# (best-effort, only if session active). v2.7.19: 3-field atomic update.
+# Update current_goal / current_constraint in active state.md (best-effort).
+# v2.7.20: dropped current_task field — state.md's 2 path fields are
+# self-describing; current_task.md manifest was redundant indirection.
 if declare -F latest_state_file >/dev/null 2>&1; then
   ACTIVE_STATE="$(latest_state_file "$PWD" 2>/dev/null || true)"
   if [[ -n "$ACTIVE_STATE" && -f "$ACTIVE_STATE" ]]; then
     SAFE_TASK_NAME="${TASK_NAME//[$'\n\r']/}"
     GOAL_REL="workspace/${SAFE_TASK_NAME}/goal.md"
     CON_REL="workspace/${SAFE_TASK_NAME}/constraint.md"
-    TASK_REL="workspace/${SAFE_TASK_NAME}/current_task.md"
-    # current_goal — preserved (other hooks depend on it)
     sed -i "s|^current_goal:.*|current_goal: \"${GOAL_REL}\"|" "$ACTIVE_STATE" 2>/dev/null || true
-    # current_task — update if line present, else append inside YAML block
-    if grep -q '^current_task:' "$ACTIVE_STATE" 2>/dev/null; then
-      sed -i "s|^current_task:.*|current_task: \"${TASK_REL}\"|" "$ACTIVE_STATE" 2>/dev/null || true
-    else
-      sed -i "/^current_goal:/a current_task: \"${TASK_REL}\"" "$ACTIVE_STATE" 2>/dev/null || true
-    fi
-    # current_constraint — same pattern
     if grep -q '^current_constraint:' "$ACTIVE_STATE" 2>/dev/null; then
       sed -i "s|^current_constraint:.*|current_constraint: \"${CON_REL}\"|" "$ACTIVE_STATE" 2>/dev/null || true
     else
       sed -i "/^current_goal:/a current_constraint: \"${CON_REL}\"" "$ACTIVE_STATE" 2>/dev/null || true
     fi
-    echo "[new_task] ✓ updated current_task / current_goal / current_constraint in ${ACTIVE_STATE}"
+    # Drop stale current_task line from older v2.7.19 deployments.
+    sed -i '/^current_task:/d' "$ACTIVE_STATE" 2>/dev/null || true
+    echo "[new_task] ✓ updated current_goal / current_constraint in ${ACTIVE_STATE}"
   fi
 fi
 
