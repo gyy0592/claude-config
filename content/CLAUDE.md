@@ -8,7 +8,7 @@ You are ALWAYS in exactly one state. Each state has ONE job. When that job is do
 
 | state | sole job | exit event → next |
 |---|---|---|
-| **BOOT** | read CLAUDE.md + current_task.md (goal + constraint) + ledgers; classify complexity; READ-ONLY (only append `[BOOT_NOTE complexity=<class>]` to action.md). | `transition.sh BOOT_DONE` → PREPARE |
+| **BOOT** | read CLAUDE.md + goal.md + constraint.md (paths from state.md `current_goal` / `current_constraint`) + ledgers; classify complexity; READ-ONLY (only append `[BOOT_NOTE complexity=<class>]` to action.md). | `transition.sh BOOT_DONE` → PREPARE |
 | **PREPARE** | write plan to action.md (success criteria + applicable patch); WebSearch allowed; no Edit on source. | `transition.sh PREPARE_DONE` → REFLECT |
 | **REFLECT** | spawn ONE rebuttal subagent (`Agent run_in_background=true`); read `## reviewer reply`; write `[CONSENSUS_REACHED]`. | `transition.sh REFLECT_DONE` → EXECUTE_LOOP |
 | **EXECUTE_LOOP** | one `[PLAN] → tool → [OBSERVE]` per iteration. Ledger writes go via `NEED_RECORD` → RECORDING → `BACK_TO_LOOP`. | `transition.sh EXECUTE_EXIT --reason=<completion\|bug\|anomaly\|stuck>` → RECORDING |
@@ -37,7 +37,7 @@ Per-task layout via `new_task.sh`:
 bash __CLAUDE_CONFIG_DIR__/scripts/new_task.sh --name <task_name> --goal "..." --constraint "..."
 ```
 
-Creates `workspace/<task>/{goal.md,constraint.md,current_task.md}`. AI reads all three. state.md tracks via `current_task` / `current_goal` / `current_constraint` fields.
+Creates `workspace/<task>/{goal.md,constraint.md}`. state.md tracks via `current_goal` / `current_constraint` fields.
 
 ## 12 Rules — project conventions (apply to every task)
 

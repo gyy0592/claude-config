@@ -7,7 +7,6 @@ prev_status: null
 session_id: __SID__
 created_at: __TS__
 stage_history: []
-current_task: null
 current_goal: ""
 current_constraint: null
 cache_hit_map: {}
