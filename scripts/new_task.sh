@@ -83,81 +83,35 @@ fi
 
 mkdir -p "$TASK_DIR"
 
-# 1. Per-task 3-file layout: goal.md + constraint.md + current_task.md
-# (v2.7.19: split single goal.md into 3 manifest files.)
-
-# 1a. goal.md — template + user --goal text replacing the placeholder paragraph
+# 1. Per-task goal.md (always)
 gsrc="${TPL_DIR}/goal.md"
 if [[ -f "$gsrc" ]]; then
   cp "$gsrc" "${TASK_DIR}/goal.md"
 else
-  err_both "[new_task] warn: template ${gsrc} missing, creating bare goal.md"
-  cat > "${TASK_DIR}/goal.md" << 'BAREGOAL'
-# Goal
+  err_both "[new_task] warn: template ${gsrc} missing, creating empty goal.md"
+  : > "${TASK_DIR}/goal.md"
+fi
 
-(One paragraph: what must be achieved by end of this task.)
+# If --goal or --constraint provided, fill them into goal.md
+if [[ -n "$GOAL_TEXT" || -n "$CONSTRAINT_TEXT" ]]; then
+  GOAL_FILL="${GOAL_TEXT:-"(no goal provided)"}"
+  CONSTRAINT_FILL="${CONSTRAINT_TEXT:-"(no constraints provided)"}"
+  cat > "${TASK_DIR}/goal.md" << GOALEOF
+# Current Goal
+
+## Goal
+
+${GOAL_FILL}
+
+## Constraints
+
+${CONSTRAINT_FILL}
 
 ## Success Criteria
 
-(Observable, checkable criteria — how to verify the goal is complete.)
-BAREGOAL
+(fill in observable success criteria)
+GOALEOF
 fi
-# Replace the placeholder paragraph under "# Goal" with the user's --goal text.
-python3 - "${TASK_DIR}/goal.md" "$GOAL_TEXT" << 'PYG'
-import sys, pathlib, re
-p = pathlib.Path(sys.argv[1])
-txt = p.read_text()
-goal_text = sys.argv[2]
-# Replace any parenthesized placeholder right after "# Goal" header up to the next "##" heading.
-new = re.sub(
-    r'(^# Goal\s*\n)\(.*?\)\s*\n',
-    lambda m: m.group(1) + "\n" + goal_text.rstrip() + "\n\n",
-    txt, count=1, flags=re.DOTALL | re.MULTILINE,
-)
-p.write_text(new)
-PYG
-
-# 1b. constraint.md — template + user --constraint text replacing placeholder block
-csrc="${TPL_DIR}/constraint.md"
-if [[ -f "$csrc" ]]; then
-  cp "$csrc" "${TASK_DIR}/constraint.md"
-else
-  err_both "[new_task] warn: template ${csrc} missing, creating bare constraint.md"
-  cat > "${TASK_DIR}/constraint.md" << 'BARECON'
-# Constraints
-
-(Hard constraints — things that MUST NOT be violated.)
-BARECON
-fi
-python3 - "${TASK_DIR}/constraint.md" "$CONSTRAINT_TEXT" << 'PYC'
-import sys, pathlib, re
-p = pathlib.Path(sys.argv[1])
-txt = p.read_text()
-con_text = sys.argv[2]
-# Replace the placeholder parenthesized block right after "# Constraints" header.
-new = re.sub(
-    r'(^# Constraints\s*\n)\(.*?\)\s*\n',
-    lambda m: m.group(1) + "\n" + con_text.rstrip() + "\n",
-    txt, count=1, flags=re.DOTALL | re.MULTILINE,
-)
-p.write_text(new)
-PYC
-
-# 1c. current_task.md — manifest pointing at goal.md + constraint.md
-ctsrc="${TPL_DIR}/current_task.md"
-if [[ -f "$ctsrc" ]]; then
-  cp "$ctsrc" "${TASK_DIR}/current_task.md"
-else
-  err_both "[new_task] warn: template ${ctsrc} missing, creating bare current_task.md"
-  cat > "${TASK_DIR}/current_task.md" << 'BARECT'
-# Current Task — __TASK_NAME__
-
-- Goal: ./goal.md
-- Constraints: ./constraint.md
-BARECT
-fi
-# Substitute __TASK_NAME__ → actual task name. (TASK_NAME is [a-zA-Z0-9_-]+, safe for sed.)
-sed -i "s|__TASK_NAME__|${TASK_NAME}|g" "${TASK_DIR}/current_task.md"
 
 # 2. Shared ledgers (only if absent — idempotent across tasks)
 seeded=()
@@ -180,30 +134,14 @@ if [[ ! -f "${WS}/rule_violations.md" ]]; then
   seeded+=("rule_violations.md")
 fi
 
-# Update current_task / current_goal / current_constraint in active state.md
-# (best-effort, only if session active). v2.7.19: 3-field atomic update.
+# Update current_goal: in active state.md (best-effort, only if session active)
 if declare -F latest_state_file >/dev/null 2>&1; then
   ACTIVE_STATE="$(latest_state_file "$PWD" 2>/dev/null || true)"
   if [[ -n "$ACTIVE_STATE" && -f "$ACTIVE_STATE" ]]; then
+    # Strip newlines from task name for single-line YAML value
     SAFE_TASK_NAME="${TASK_NAME//[$'\n\r']/}"
-    GOAL_REL="workspace/${SAFE_TASK_NAME}/goal.md"
-    CON_REL="workspace/${SAFE_TASK_NAME}/constraint.md"
-    TASK_REL="workspace/${SAFE_TASK_NAME}/current_task.md"
-    # current_goal — preserved (other hooks depend on it)
-    sed -i "s|^current_goal:.*|current_goal: \"${GOAL_REL}\"|" "$ACTIVE_STATE" 2>/dev/null || true
-    # current_task — update if line present, else append inside YAML block
-    if grep -q '^current_task:' "$ACTIVE_STATE" 2>/dev/null; then
-      sed -i "s|^current_task:.*|current_task: \"${TASK_REL}\"|" "$ACTIVE_STATE" 2>/dev/null || true
-    else
-      sed -i "/^current_goal:/a current_task: \"${TASK_REL}\"" "$ACTIVE_STATE" 2>/dev/null || true
-    fi
-    # current_constraint — same pattern
-    if grep -q '^current_constraint:' "$ACTIVE_STATE" 2>/dev/null; then
-      sed -i "s|^current_constraint:.*|current_constraint: \"${CON_REL}\"|" "$ACTIVE_STATE" 2>/dev/null || true
-    else
-      sed -i "/^current_goal:/a current_constraint: \"${CON_REL}\"" "$ACTIVE_STATE" 2>/dev/null || true
-    fi
-    echo "[new_task] ✓ updated current_task / current_goal / current_constraint in ${ACTIVE_STATE}"
+    sed -i "s|^current_goal:.*|current_goal: \"workspace/${SAFE_TASK_NAME}/goal.md\"|" "$ACTIVE_STATE" 2>/dev/null || true
+    echo "[new_task] ✓ updated current_goal in ${ACTIVE_STATE}"
   fi
 fi
 

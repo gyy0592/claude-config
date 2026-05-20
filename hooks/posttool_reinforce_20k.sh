@@ -1,13 +1,10 @@
 #!/usr/bin/env bash
-# posttool_reinforce_20k.sh — v2.7.19
+# posttool_state_reinforce.sh — v2.5.
 #
-# PostToolUse hook (matcher=*). Every ~20k input_tokens (configurable in
-# workflow_config.yaml state_reinforce.threshold_input_tokens), emits one of
-# 2 round-robin banners:
-#   block 0: full router_<STATE>.md (STATE_REINFORCE)
-#   block 1: CONSTRAINT_AUDIT against current_constraint file
-# Counter persists in $SDIR/reinforce_20k.counter so blocks alternate across
-# triggers in the same session.
+# PostToolUse hook (matcher=*). Every ~10k input_tokens (configurable in
+# workflow_config.yaml state_reinforce.threshold_input_tokens), re-injects a
+# ≤max_chars summary of the current router_<STATE>.md so long autonomous loops
+# don't drift from the state's Allowed/Forbidden + autonomy rule.
 #
 # Token counting: same convention as cache_refresh_check.sh — sum of
 # input_tokens + cache_read_input_tokens + cache_creation_input_tokens across
@@ -109,41 +106,23 @@ STATE_CHANGED=0
 
 # Fire if token delta crossed threshold OR state changed since last fire.
 if [ "$DELTA" -ge "$THRESHOLD" ] || [ "$STATE_CHANGED" = "1" ]; then
-    # v2.7.19: 2-block rotation. counter persists across triggers in same sid.
-    COUNTER_FILE="${SDIR}/reinforce_20k.counter"
-    counter=$(cat "$COUNTER_FILE" 2>/dev/null || echo 0)
-    case "$counter" in ''|*[!0-9]*) counter=0 ;; esac
-    block_idx=$(( counter % 2 ))
-    new_counter=$(( counter + 1 ))
-    printf '%s\n' "$new_counter" > "$COUNTER_FILE" 2>/dev/null || true
-
-    # Determine constraint path (used by block 1; may fall back to block 0).
-    CONSTRAINT_PATH=$(grep -E '^current_constraint:' "$SF_STATE" 2>/dev/null | head -1 | sed -E 's/^current_constraint:[[:space:]]*"?([^"]*)"?$/\1/')
-    if [ "$block_idx" = "1" ]; then
-        if [ -z "$CONSTRAINT_PATH" ] || [ ! -f "$CWD/$CONSTRAINT_PATH" ]; then
-            block_idx=0
-        fi
-    fi
-
-    if [ "$block_idx" = "0" ]; then
-        # block 0: full router_<STATE>.md (re-inject) — original behavior.
-        SUMMARY="$(python3 - "$ROUTER_FILE" <<'PY' 2>/dev/null
+    # v2.5.3: no more MAX_CHARS truncation — re-inject the FULL router_<STATE>.md.
+    # 6 routers are 1.2–2.4 KB; even the longest is < 600 tokens, smaller than
+    # cache_refresh's banner. Truncation was discarding the always-on footer
+    # (autonomy / dispatch / recording / lessons / facts_first) plus all
+    # transition exit commands — exactly the parts AI most needed to remember.
+    SUMMARY="$(python3 - "$ROUTER_FILE" <<'PY' 2>/dev/null
 import sys, pathlib, re
 text = pathlib.Path(sys.argv[1]).read_text(errors="ignore")
 print(re.sub(r'\n{2,}', '\n', text).strip())
 PY
 )"
-        BANNER_BODY="[STATE_REINFORCE · state=${STATUS} · +${DELTA}/${THRESHOLD} tokens · full router]
+    # v2.7 fix: PostToolUse stderr does NOT reach the model. Use the JSON
+    # envelope's hookSpecificOutput.additionalContext field instead, which
+    # Claude Code wraps in a system-reminder and inserts next to the tool
+    # result. Previously this banner went only to debug log.
+    BANNER_BODY="[STATE_REINFORCE · state=${STATUS} · +${DELTA}/${THRESHOLD} tokens · full router]
 ${SUMMARY}"
-    else
-        # block 1: CONSTRAINT_AUDIT against current_constraint file.
-        BANNER_BODY="[CONSTRAINT_AUDIT · +${DELTA}/${THRESHOLD} tokens]
-Read ${CWD}/${CONSTRAINT_PATH} (current_constraint).
-For EACH constraint listed: did you violate it this turn? If yes, fix
-immediately before next tool call. If unsure, re-read constraint.md.
-Reply with [CONSTRAINT_OK] or [CONSTRAINT_FIXED <what>] in next assistant text."
-    fi
-
     jq -n --arg m "$BANNER_BODY" '{
         hookSpecificOutput: {
             hookEventName: "PostToolUse",
