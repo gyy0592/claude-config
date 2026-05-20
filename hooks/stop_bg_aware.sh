@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# stop_bg_aware.sh — v2.7.16. Stop hook with bg-aware + self-reflect gate.
+# stop_bg_aware.sh — v2.7.17. Stop hook with bg-aware + self-reflect gate.
 #
 # Behavior:
 # 1. Parse transcript for pending bg tasks (Agent run_in_background, Bash bg).
@@ -14,8 +14,6 @@
 #       (`bash -c 'sleep N && date >> /tmp/heartbeat' &` or write to a file
 #       periodically); the hook will see bg pending and silent-allow stop.
 #       NO wait_seconds / wait_until / sleep-then-block machinery in the hook.
-#
-# stop_hook_active=true short-circuits → silent allow (loop guard).
 
 set -u
 
@@ -38,12 +36,6 @@ cwd=$(printf '%s' "$input" | jq -r '.cwd // ""' 2>/dev/null)
 # session_id is embedded in instructional MSG text. Empty → fail-open exit.
 session_id="${session_id//[^a-zA-Z0-9_-]/}"
 [ -z "$session_id" ] && exit 0
-
-# Loop guard: hook fired and AI is re-attempting stop → accept.
-# Accept "true" or "1" (BUG-89 fix: handle integer truthy from JSON).
-case "$stop_hook_active" in
-    true|True|TRUE|1) exit 0 ;;
-esac
 
 # yaml stop_gate.enabled — default off; opt-in via workflow_config.yaml.
 ENABLED="false"
