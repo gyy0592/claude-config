@@ -126,6 +126,12 @@ Each L-XXX schema: title + correct behavior + lesson + specialized example + `ta
 
 Military law is absolute, errors mean death.
 
+### L-023: Run git status Before Writing Commit File List in PREPARE
+- **Correct behavior**: Before writing any commit plan in PREPARE, always run `git status --short` to enumerate ALL modified and untracked files in the working tree. Only then write the explicit file list for staging.
+- **Lesson**: A PREPARE plan written from memory ("I remember editing X and Y") will miss files that were modified but not committed in prior sessions. The working tree state is the authoritative source — not what you remember editing.
+- **Specialized example**: commit_and_cherry_pick PREPARE wrote "stage router_CONVERSATION.md + stop_bg_aware.sh" from memory. 11 other workflow_rebuttal_upgrade files (transition.sh, stop_state_audit.sh, router_*.md ×6, states/reflect.md, lessons.md) were in the working tree but omitted. Required a follow-up v2.7.15 commit. Fix: run `git status --short` first, then write the file list from the output.
+- `tags: [git, commit, plan-gap, minimum-fix, record-skip]`
+
 ### L-019: 中文 JS string 内不要嵌 ASCII 双引号 (Corporal v4 session)
 - **Correct behavior**: 生成 HTML 内嵌 `<script>` 时，JS string literal 用 `"..."` 包，里面如果出现中文文本含引用语，<b>用「」「」单/双书名号或 ASCII 单引号</b>。绝对不要写 `"a"b"c"`。
 - **Lesson**: 这种 bug 整个 `<script>` 解析失败，所有 addEventListener 不绑定 → 用户打开点击全无反应。同一会话踩了 5 次（scenarios.html 1 次 + implementation.html 4 次），每次都同款 symptom 不同位置。

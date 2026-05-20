@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# stop_bg_aware.sh — v2.7.15. Stop hook with bg-aware + self-reflect gate.
+# stop_bg_aware.sh — v2.7.16. Stop hook with bg-aware + self-reflect gate.
 #
 # Behavior:
 # 1. Parse transcript for pending bg tasks (Agent run_in_background, Bash bg).
@@ -336,6 +336,10 @@ OPTION B — If work is done and you are ready to assess:
    (c) \"all_constraints_met\": \"yes\" or \"no\"
    (d) \"all_goals_met\": \"yes\" or \"no\"
    (e) \"reason\": one-sentence summary
+   (f) FACTS CHECK — before writing stop=1, answer: Are ALL your answers above
+       [FACT] (directly observed this turn)? Any [INFERENCE] or [ASSUMPTION]?
+       Did you exhaust every possible verification command? If any claim is not
+       directly observed output — you CANNOT write stop=1.
 4. Retry stop. Hook will consume the file and allow if stop=1 and reflect_rounds=5."
 
 jq -n --arg r "$MSG" '{decision:"block", reason:$r}'
