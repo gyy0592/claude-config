@@ -23,7 +23,7 @@
 
 set -u  # not -e; never abort the tool call
 
-CONFIG_DIR="${CLAUDE_CONFIG_DIR:-__CLAUDE_CONFIG_DIR__}"
+CONFIG_DIR="__CLAUDE_CONFIG_DIR__"
 LIB="$(dirname "$0")/_session_lib.sh"
 # shellcheck disable=SC1090
 [ -f "$LIB" ] && . "$LIB"
