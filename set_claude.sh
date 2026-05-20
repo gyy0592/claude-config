@@ -246,7 +246,7 @@ mkdir -p "$HOOKS_DST"
 # v2.7.19: clean up old deployed hooks that were renamed
 rm -f "$HOME/.claude/hooks/cache_refresh_check.sh" "$HOME/.claude/hooks/posttool_state_reinforce.sh" 2>/dev/null
 
-for f in _session_lib.sh inject_router.sh session_boot.sh transition.sh prepare_helper.sh execute_loop_audit.sh pretooluse_short_nudge.sh state_enforce.sh posttool_refresh_100k.sh posttool_reinforce_20k.sh pretool_reflect_nag.sh pretool_ledger_guard.sh state_keepalive.sh stop_bg_aware.sh pretool_state_tool_guard.sh stop_state_audit.sh; do
+for f in _session_lib.sh inject_router.sh session_boot.sh transition.sh prepare_helper.sh execute_loop_audit.sh pretooluse_short_nudge.sh state_enforce.sh posttool_refresh_100k.sh posttool_reinforce_20k.sh pretool_reflect_nag.sh pretool_ledger_guard.sh state_keepalive.sh stop_bg_aware.sh pretool_state_tool_guard.sh stop_state_audit.sh pretool_bg_timeout_guard.sh; do
     src="${HOOKS_SRC}/${f}"
     dst="${HOOKS_DST}/${f}"
     if [ ! -f "$src" ]; then
@@ -490,6 +490,12 @@ ensure_hook("Stop", None, f"bash {STOP_STATE_AUDIT_SCRIPT}")
 # state_tool_policy.<STATE>.deny_tools to widen/narrow.
 STATE_TOOL_GUARD_SCRIPT = os.path.expanduser("~/.claude/hooks/pretool_state_tool_guard.sh")
 ensure_hook("PreToolUse", None, f"bash {STATE_TOOL_GUARD_SCRIPT}")
+
+# v2.7.22: bg-task lifetime guard. Denies run_in_background=true Bash calls
+# that don't have a bounded lifetime (no timeout / sleep-N-and-exit / small
+# bounded for-loop). Blocks while-true / tail -f / unbounded seq.
+BG_TIMEOUT_GUARD_SCRIPT = os.path.expanduser("~/.claude/hooks/pretool_bg_timeout_guard.sh")
+ensure_hook("PreToolUse", None, f"bash {BG_TIMEOUT_GUARD_SCRIPT}")
 
 # v2.1 P16: PostToolUse state-enforce (informational stderr warning when
 # tool conflicts with current FSM state).
