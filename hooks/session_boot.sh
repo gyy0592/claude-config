@@ -14,11 +14,17 @@ CWD="$(printf '%s' "$INPUT" | jq -r '.cwd // empty' 2>/dev/null || true)"
 [ -z "$CWD" ] && CWD="${PWD:-$(pwd)}"
 [ -z "$SID" ] && SID="$(date +%s)-noidshort"
 
-# Heuristic: only create if .git or CLAUDE.md/AGENTS.md or workspace/ or .barry_workflow/ exists at $CWD.
-# .barry_workflow/ check prevents deadlock when the hook previously ran but workspace/ didn't exist yet.
-if [ ! -d "${CWD}/.git" ] && [ ! -f "${CWD}/CLAUDE.md" ] && [ ! -f "${CWD}/AGENTS.md" ] && [ ! -d "${CWD}/workspace" ] && [ ! -d "${CWD}/.barry_workflow" ]; then
-    exit 0
-fi
+# v2.7.21: dropped heuristic guard ([ -d .git ] || [ -f CLAUDE.md ] || ...).
+# Reason: fresh project dirs (e.g. homework folder with no .git yet) caused
+# session_boot to silent-exit, leaving state.md uncreated → transition.sh
+# couldn't find YAML block → AI manually wrote "EXECUTE_LOOP" to state.md
+# as a workaround, corrupting the FSM. If user activated Claude Code in this
+# cwd, intent to use barry-workflow is implicit; .barry_workflow/<sid>/ is
+# small and easy to clean up if it lands in an unwanted dir.
+# Refuse only on obvious "don't pollute" paths (root, $HOME exact).
+case "$CWD" in
+    "/"|"$HOME"|"")  exit 0 ;;
+esac
 
 SDIR="$(session_dir "$CWD" "$SID")"
 STATE_FILE="${SDIR}/state.md"
