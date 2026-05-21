@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# stop_bg_aware.sh — v2.7.23. Stop hook with bg-aware + self-reflect gate.
+# stop_bg_aware.sh — v2.7.24. Stop hook with bg-aware + self-reflect gate.
+# v2.7.24: drop phantom bg tasks — if .output file missing AND launched > stale_sec ago,
+# treat as dead (prevents long-session silent-allow loop after /tmp cleanup or reboot).
 #
 # Behavior:
 # 1. Parse transcript for pending bg tasks (Agent run_in_background, Bash bg).
@@ -86,7 +88,20 @@ stale_sec = int(os.environ.get("STALE_MIN", "30")) * 60
 grace_sec = int(os.environ.get("GRACE_SEC", "120"))
 
 launched_ids = set()
+launched_ts = {}  # v2.7.24: tid -> unix ts of first-seen launch (for phantom-drop)
 completed_ids = set()
+
+def _parse_ts(s):
+    # ISO-8601 with optional trailing Z. Returns float unix ts or None.
+    if not isinstance(s, str) or not s:
+        return None
+    try:
+        from datetime import datetime
+        if s.endswith('Z'):
+            s = s[:-1] + '+00:00'
+        return datetime.fromisoformat(s).timestamp()
+    except Exception:
+        return None
 tasks_dir = None
 try:
     slug = os.path.basename(os.path.dirname(path))
@@ -103,12 +118,19 @@ try:
             if not line: continue
             try: obj = json.loads(line)
             except: continue
+            line_ts = _parse_ts(obj.get('timestamp'))
             tur = obj.get('toolUseResult') if isinstance(obj.get('toolUseResult'), dict) else None
             if tur:
                 if tur.get('isAsync') is True and tur.get('agentId'):
-                    launched_ids.add(tur['agentId'])
+                    tid = tur['agentId']
+                    launched_ids.add(tid)
+                    if line_ts is not None and tid not in launched_ts:
+                        launched_ts[tid] = line_ts
                 if tur.get('backgroundTaskId'):
-                    launched_ids.add(tur['backgroundTaskId'])
+                    tid = tur['backgroundTaskId']
+                    launched_ids.add(tid)
+                    if line_ts is not None and tid not in launched_ts:
+                        launched_ts[tid] = line_ts
                 if tur.get('agentId') and (
                     tur.get('totalDurationMs') is not None
                     or tur.get('status') == 'completed'
@@ -143,7 +165,13 @@ try:
         for tid in pending:
             ofile = os.path.join(tasks_dir, f"{tid}.output")
             # Just-launched (no .output yet) → assume alive.
+            # v2.7.24: BUT if launched > stale_sec ago AND no .output ever
+            # materialised → phantom (e.g. /tmp cleared, reboot). Drop it,
+            # else hook silent-allows forever.
             if not os.path.exists(ofile):
+                lt = launched_ts.get(tid)
+                if lt is not None and (now - lt) >= stale_sec:
+                    continue  # phantom: drop from active
                 active.add(tid); continue
             # mtime silence check.
             try:
